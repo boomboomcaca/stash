@@ -584,6 +584,60 @@ $sceneTabWidth: 450px;
     margin-left: 5px;
     margin-right: 5px;
   }
+
+  // 手机横屏时视频置顶
+  @media (orientation: landscape) and (max-height: 1300px) {
+    .row {
+      display: flex;
+      flex-direction: column-reverse;
+    }
+    
+    .scene-player-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: #000;
+      padding: 0;
+      margin: 0;
+      height: 100vh;
+      
+      .VideoPlayer {
+        height: 100vh;
+        max-height: 100vh;
+        padding-bottom: 0;
+        
+        .video-wrapper {
+          height: 100vh;
+        }
+      }
+    }
+    
+    .scene-tabs {
+      margin-top: 100vh;
+      padding-top: 1rem;
+      background: var(--bs-body-bg);
+      min-height: 100vh;
+      overflow-x: hidden;
+      
+      // 确保场景信息面板在横屏时可以正常滚动
+      .tab-content {
+        max-height: none;
+        overflow-y: auto;
+      }
+    }
+    
+    // 隐藏可能干扰全屏视频的元素
+    body {
+      overflow-x: hidden;
+    }
+    
+    // 确保视频控制栏在横屏模式下仍然可见
+    .video-js .vjs-control-bar {
+      z-index: 1001;
+    }
+  }
 }
 @media (min-width: 1200px) {
   .scene-tabs {

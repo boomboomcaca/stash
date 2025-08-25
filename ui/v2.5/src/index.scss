@@ -1024,6 +1024,11 @@ div.dropdown-menu {
       bottom: 0;
       top: auto;
     }
+
+    // 手机横屏时隐藏导航栏
+    @media (orientation: landscape) and (max-height: 1300px) {
+      display: none !important;
+    }
   }
   @include media-breakpoint-up(xl) {
     height: $navbar-height;
