@@ -57,10 +57,59 @@ ui/login/locales/*
 node_modules
 
 *.db
+*.sqlite
+*.sqlite3
 
+# Stash specific binaries and build artifacts
 /stash
+/stash.exe
 /Stash.app
 /phasher
+/phasher.exe
 dist
+build/
+
+# Media and cache files
+/blobs/
+/cache/
+/tmp/
+*.tmp
+*.temp
+
+# Configuration backup files
+config.yml.*
+*.backup
+
+# FFmpeg binaries
+/ffmpeg
+/ffmpeg.exe
+/ffprobe
+/ffprobe.exe
+ffmpeg-*
+ffprobe-*
+*.zip
+
+# Log files
+*.log
+logs/
+
+# OS specific files
 .DS_Store
+Thumbs.db
+Desktop.ini
+
+# Environment and local config
 /.local*
+.env
+.env.local
+.env.*.local
+
+# Generated GraphQL files (keeping existing rule but adding more specific ones)
+**/generated_*.go
+
+# Plugin specific
+plugins/cache/
+
+# Test coverage
+coverage.out
+*.cover

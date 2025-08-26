@@ -11,6 +11,7 @@ gallery_cover_regex: (poster|cover|folder|board)\.[^\.]+$
 generated: generated
 host: 0.0.0.0
 jwt_secret_key: f53e48d29b2bb8c020ea67505b7362def33672ae5370391ca3961d63bd00ae69
+language: zh-CN
 menu_items:
     - scenes
     - images
@@ -30,7 +31,7 @@ plugins:
           name: Community (stable)
           url: https://stashapp.github.io/CommunityScripts/stable/index.yml
 plugins_path: /home/boom/stash/plugins
-port: 9999
+port: 11111
 preview_audio: true
 preview_exclude_end: "0"
 preview_exclude_start: "0"
@@ -50,7 +51,7 @@ sound_on_preview: false
 stash:
     - excludeimage: false
       excludevideo: false
-      path: /mnt/d/Movies
+      path: \Movies
 theme_color: '#202b33'
 ui:
     frontPageContent:
@@ -95,5 +96,14 @@ ui:
           mode: GALLERIES
           sortBy: date
     lastNoteSeen: 20240826
+    taskDefaults:
+        cleanGenerated:
+            blobFiles: true
+            dryRun: false
+            imageThumbnails: true
+            markers: true
+            screenshots: true
+            sprites: true
+            transcodes: true
 video_file_naming_algorithm: OSHASH
 write_image_thumbnails: true
