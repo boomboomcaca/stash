@@ -19,6 +19,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     originalPlaybackRate: 1,
   };
 
+  // 绑定的事件处理函数引用，用于正确移除事件监听器
+  private boundTouchStart: ((event: TouchEvent) => void) | null = null;
+  private boundTouchEnd: ((event: TouchEvent) => void) | null = null;
+  private boundTouchMove: ((event: TouchEvent) => void) | null = null;
+  
+  // 防抖计时器
+  private resizeTimer: number | null = null;
+
   private readonly LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
   private readonly DOUBLE_TAP_DURATION = 300; // 双击检测时间（毫秒）
   private readonly DOUBLE_TAP_DISTANCE = 50; // 双击检测距离（像素）
@@ -35,25 +43,24 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     // 监听屏幕方向变化
     window.addEventListener("orientationchange", () => {
+      // 立即重置播放速度
+      this.resetPlaybackRate();
+      
+      // 延迟检查触摸控制状态，确保屏幕尺寸已更新
       setTimeout(() => {
-        // 在屏幕方向变化时，总是重置播放速度
-        this.resetPlaybackRate();
-        
-        if (this.shouldEnableTouchControls()) {
-          this.initializeTouchControls();
-        } else {
-          this.removeTouchControls();
-        }
-      }, 100);
+        this.updateTouchControlsState();
+      }, 150);
     });
 
     // 监听窗口大小变化（处理某些浏览器的方向变化）
     window.addEventListener("resize", () => {
-      setTimeout(() => {
-        // 在窗口大小变化时，检查是否需要重置播放速度
-        if (!this.shouldEnableTouchControls()) {
-          this.resetPlaybackRate();
-        }
+      // 使用防抖处理resize事件
+      if (this.resizeTimer) {
+        clearTimeout(this.resizeTimer);
+      }
+      
+      this.resizeTimer = setTimeout(() => {
+        this.updateTouchControlsState();
       }, 100);
     });
   }
@@ -71,6 +78,21 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     return isMobile && isTouch && (isLandscape || isLandscapeByRatio);
   }
 
+  private updateTouchControlsState(): void {
+    // 检查当前触摸控制状态
+    const shouldEnable = this.shouldEnableTouchControls();
+    
+    if (shouldEnable) {
+      // 如果需要启用触摸控制，先检查是否已经启用
+      if (!this.boundTouchStart) {
+        this.initializeTouchControls();
+      }
+    } else {
+      // 如果需要禁用触摸控制，确保完全移除
+      this.removeTouchControls();
+    }
+  }
+
   private initializeTouchControls(): void {
     const videoEl = this.player.el().querySelector("video");
     if (!videoEl) return;
@@ -78,10 +100,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 移除现有的事件监听器
     this.removeTouchControls();
 
+    // 绑定事件处理函数并保存引用
+    this.boundTouchStart = this.handleTouchStart.bind(this);
+    this.boundTouchEnd = this.handleTouchEnd.bind(this);
+    this.boundTouchMove = this.handleTouchMove.bind(this);
+
     // 添加触摸事件监听器
-    videoEl.addEventListener("touchstart", this.handleTouchStart.bind(this), { passive: false });
-    videoEl.addEventListener("touchend", this.handleTouchEnd.bind(this), { passive: false });
-    videoEl.addEventListener("touchmove", this.handleTouchMove.bind(this), { passive: false });
+    videoEl.addEventListener("touchstart", this.boundTouchStart, { passive: false });
+    videoEl.addEventListener("touchend", this.boundTouchEnd, { passive: false });
+    videoEl.addEventListener("touchmove", this.boundTouchMove, { passive: false });
 
     // 添加样式
     this.addTouchControlStyles();
@@ -91,9 +118,16 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const videoEl = this.player.el().querySelector("video");
     if (!videoEl) return;
 
-    videoEl.removeEventListener("touchstart", this.handleTouchStart.bind(this));
-    videoEl.removeEventListener("touchend", this.handleTouchEnd.bind(this));
-    videoEl.removeEventListener("touchmove", this.handleTouchMove.bind(this));
+    // 使用绑定后的函数引用来移除事件监听器
+    if (this.boundTouchStart) {
+      videoEl.removeEventListener("touchstart", this.boundTouchStart);
+    }
+    if (this.boundTouchEnd) {
+      videoEl.removeEventListener("touchend", this.boundTouchEnd);
+    }
+    if (this.boundTouchMove) {
+      videoEl.removeEventListener("touchmove", this.boundTouchMove);
+    }
 
     // 清理所有计时器
     if (this.state.longPressTimer) {
@@ -112,6 +146,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.player.playbackRate(this.state.originalPlaybackRate);
       this.state.isLongPress = false;
     }
+
+    // 重置触摸控制状态
+    this.state.isLongPress = false;
+    this.state.lastTapTime = 0;
+    this.state.doubleTapTimer = null;
+    this.state.longPressTimer = null;
   }
 
   private handleTouchStart(event: TouchEvent): void {
@@ -301,6 +341,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     
     // 移除事件监听器
     this.removeTouchControls();
+    
+    // 清理计时器
+    if (this.resizeTimer) {
+      clearTimeout(this.resizeTimer);
+      this.resizeTimer = null;
+    }
     
     // 清理样式
     const styleId = "mobile-touch-controls-styles";

@@ -575,7 +575,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             : isLandscape,
         },
         touchControls: {
-          disabled: true, // 改回 true，禁用 videojs-mobile-ui 的触摸控制
+          disabled: false, // 改回 true，禁用 videojs-mobile-ui 的触摸控制
         },
       };
       if (!isSafari) {
