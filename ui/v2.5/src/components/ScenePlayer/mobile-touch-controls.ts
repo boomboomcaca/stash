@@ -36,10 +36,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 监听屏幕方向变化
     window.addEventListener("orientationchange", () => {
       setTimeout(() => {
+        // 在屏幕方向变化时，总是重置播放速度
+        this.resetPlaybackRate();
+        
         if (this.shouldEnableTouchControls()) {
           this.initializeTouchControls();
         } else {
           this.removeTouchControls();
+        }
+      }, 100);
+    });
+
+    // 监听窗口大小变化（处理某些浏览器的方向变化）
+    window.addEventListener("resize", () => {
+      setTimeout(() => {
+        // 在窗口大小变化时，检查是否需要重置播放速度
+        if (!this.shouldEnableTouchControls()) {
+          this.resetPlaybackRate();
         }
       }, 100);
     });
@@ -51,7 +64,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const isLandscape = window.matchMedia("(orientation: landscape)").matches;
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
     
-    return isMobile && isLandscape && isTouch;
+    // 更精确的横屏检测：检查屏幕宽高比
+    const isLandscapeByRatio = window.innerWidth > window.innerHeight;
+    
+    // 只有在移动设备、触摸设备、且处于横屏模式时才启用触摸控制
+    return isMobile && isTouch && (isLandscape || isLandscapeByRatio);
   }
 
   private initializeTouchControls(): void {
@@ -89,8 +106,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.state.doubleTapTimer = null;
     }
 
-    // 恢复原始播放速度
-    if (this.state.isLongPress) {
+    // 无论长按状态如何，都恢复原始播放速度
+    // 这确保在屏幕旋转时播放速度被正确重置
+    if (this.state.originalPlaybackRate !== undefined) {
       this.player.playbackRate(this.state.originalPlaybackRate);
       this.state.isLongPress = false;
     }
@@ -275,6 +293,33 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     `;
     document.head.appendChild(style);
+  }
+
+  dispose(): void {
+    // 在插件销毁时重置播放速度
+    this.resetPlaybackRate();
+    
+    // 移除事件监听器
+    this.removeTouchControls();
+    
+    // 清理样式
+    const styleId = "mobile-touch-controls-styles";
+    const style = document.getElementById(styleId);
+    if (style) {
+      style.remove();
+    }
+    
+    // 调用父类的dispose方法
+    super.dispose();
+  }
+
+  private resetPlaybackRate(): void {
+    // 如果当前播放速度不是原始速度，则重置
+    const currentRate = this.player.playbackRate() || 1;
+    if (currentRate !== this.state.originalPlaybackRate && this.state.originalPlaybackRate !== undefined) {
+      this.player.playbackRate(this.state.originalPlaybackRate);
+      this.state.isLongPress = false;
+    }
   }
 }
 
