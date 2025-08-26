@@ -23,6 +23,7 @@ import "./vtt-thumbnails";
 import "./big-buttons";
 import "./track-activity";
 import "./vrmode";
+import "./mobile-touch-controls";
 import cx from "classnames";
 import {
   useSceneSaveActivity,
@@ -380,6 +381,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             pauseBeforeLooping: false,
             createButtons: uiConfig?.showAbLoopControls ?? false,
           },
+          mobileTouchControls: {},
         },
       };
 
@@ -573,7 +575,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             : isLandscape,
         },
         touchControls: {
-          disabled: true,
+          disabled: false, // 启用触摸控制，让我们的自定义插件处理
         },
       };
       if (!isSafari) {
