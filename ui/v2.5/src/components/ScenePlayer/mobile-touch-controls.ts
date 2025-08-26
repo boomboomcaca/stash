@@ -78,6 +78,17 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     videoEl.removeEventListener("touchend", this.handleTouchEnd.bind(this));
     videoEl.removeEventListener("touchmove", this.handleTouchMove.bind(this));
 
+    // 清理所有计时器
+    if (this.state.longPressTimer) {
+      clearTimeout(this.state.longPressTimer);
+      this.state.longPressTimer = null;
+    }
+    
+    if (this.state.doubleTapTimer) {
+      clearTimeout(this.state.doubleTapTimer);
+      this.state.doubleTapTimer = null;
+    }
+
     // 恢复原始播放速度
     if (this.state.isLongPress) {
       this.player.playbackRate(this.state.originalPlaybackRate);
@@ -96,7 +107,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 记录触摸位置
     this.state.lastTapPosition = { x, y };
 
-
+    // 重置长按状态
+    this.state.isLongPress = false;
 
     // 开始长按计时器
     this.state.longPressTimer = window.setTimeout(() => {
@@ -114,8 +126,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const rect = (event.target as HTMLElement).getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
-
-
 
     // 清除长按计时器
     if (this.state.longPressTimer) {
@@ -140,13 +150,28 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     );
 
     if (timeSinceLastTap < this.DOUBLE_TAP_DURATION && distance < this.DOUBLE_TAP_DISTANCE) {
-      // 双击
+      // 双击 - 清除可能存在的单击延时计时器
+      if (this.state.doubleTapTimer) {
+        clearTimeout(this.state.doubleTapTimer);
+        this.state.doubleTapTimer = null;
+      }
       this.handleDoubleTap(x, y);
       this.state.lastTapTime = 0; // 重置，避免连续双击
     } else {
-      // 单击
-      this.handleSingleTap(x, y);
+      // 可能是单击 - 延迟执行以等待可能的双击
       this.state.lastTapTime = now;
+      this.state.lastTapPosition = { x, y };
+      
+      // 清除之前的单击计时器
+      if (this.state.doubleTapTimer) {
+        clearTimeout(this.state.doubleTapTimer);
+      }
+      
+      // 延迟执行单击操作，等待可能的双击
+      this.state.doubleTapTimer = window.setTimeout(() => {
+        this.handleSingleTap(x, y);
+        this.state.doubleTapTimer = null;
+      }, this.DOUBLE_TAP_DURATION);
     }
 
     event.preventDefault();
@@ -176,7 +201,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 单击切换播放/暂停
     try {
       if (this.player.paused()) {
-        this.player.play().catch((error) => {
+        this.player.play()?.catch((error) => {
           console.warn("播放失败:", error);
         });
       } else {
@@ -188,14 +213,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private handleDoubleTap(x: number, y: number): void {
-    const videoWidth = this.player.el().offsetWidth;
+    const playerEl = this.player.el() as HTMLElement;
+    const videoWidth = playerEl?.offsetWidth || 0;
     const isLeftSide = x < videoWidth / 2;
 
     if (isLeftSide) {
-      // 左侧双击：后退5秒
+      // 左侧双击：后退10秒
       this.seekRelative(-this.SEEK_STEP);
     } else {
-      // 右侧双击：前进5秒
+      // 右侧双击：前进10秒
       this.seekRelative(this.SEEK_STEP);
     }
   }
@@ -203,13 +229,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private handleLongPress(x: number, y: number): void {
     // 长按：20倍速播放
     try {
-      this.state.originalPlaybackRate = this.player.playbackRate();
+      this.state.originalPlaybackRate = this.player.playbackRate() || 1;
       this.player.playbackRate(this.FAST_FORWARD_RATE);
       this.state.isLongPress = true;
       
       // 确保视频在播放状态
       if (this.player.paused()) {
-        this.player.play().catch((error) => {
+        this.player.play()?.catch((error) => {
           console.warn("长按播放失败:", error);
         });
       }
@@ -219,8 +245,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private seekRelative(seconds: number): void {
-    const currentTime = this.player.currentTime();
-    const duration = this.player.duration();
+    const currentTime = this.player.currentTime() || 0;
+    const duration = this.player.duration() || 0;
     const newTime = Math.max(0, Math.min(currentTime + seconds, duration));
     this.player.currentTime(newTime);
   }
