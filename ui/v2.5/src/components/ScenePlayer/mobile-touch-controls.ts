@@ -23,7 +23,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly DOUBLE_TAP_DURATION = 300; // 双击检测时间（毫秒）
   private readonly DOUBLE_TAP_DISTANCE = 50; // 双击检测距离（像素）
   private readonly FAST_FORWARD_RATE = 20; // 快进倍速
-  private readonly SEEK_STEP = 5; // 快进/快退步长（秒）
+  private readonly SEEK_STEP = 10; // 快进/快退步长（秒）
 
   constructor(player: VideoJsPlayer) {
     super(player);
