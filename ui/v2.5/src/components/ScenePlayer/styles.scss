@@ -73,7 +73,7 @@ $sceneTabWidth: 450px;
   }
 
   .vjs-big-button-group {
-    display: none;
+    display: none !important;
     height: 80px;
     justify-content: space-around;
     opacity: 0;
@@ -81,6 +81,8 @@ $sceneTabWidth: 450px;
     top: calc(50% - 40px);
     width: 100%;
     z-index: 1;
+    visibility: hidden !important;
+    pointer-events: none !important;
 
     .vjs-button {
       font-size: 4em;
@@ -312,16 +314,16 @@ $sceneTabWidth: 450px;
   @media (pointer: coarse) {
     &.vjs-touch-enabled {
       &.vjs-has-started .vjs-big-button-group {
-        display: flex;
-        opacity: 1;
-        visibility: visible;
+        display: none !important;
+        opacity: 0;
+        visibility: hidden;
       }
 
       &.vjs-has-started.vjs-user-inactive.vjs-playing .vjs-big-button-group {
+        display: none !important;
         opacity: 0;
         pointer-events: none;
-        transition: visibility 1s, opacity 1s;
-        visibility: visible;
+        visibility: hidden;
       }
 
       .vjs-big-play-pause-button .vjs-icon-placeholder::before {
