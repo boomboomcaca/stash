@@ -96,8 +96,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 记录触摸位置
     this.state.lastTapPosition = { x, y };
 
-    // 添加触摸反馈样式
-    this.player.el().classList.add("vjs-touching");
+
 
     // 开始长按计时器
     this.state.longPressTimer = window.setTimeout(() => {
@@ -116,8 +115,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
 
-    // 移除触摸反馈样式
-    this.player.el().classList.remove("vjs-touching");
+
 
     // 清除长按计时器
     if (this.state.longPressTimer) {
@@ -228,7 +226,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private addTouchControlStyles(): void {
-    // 添加触摸控制提示样式
+    // 添加基础触摸控制样式
     const styleId = "mobile-touch-controls-styles";
     if (document.getElementById(styleId)) return;
 
@@ -248,29 +246,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         display: none !important;
       }
       
-      /* 横屏模式下的触摸控制提示 */
-      @media (orientation: landscape) and (max-width: 1199px) {
-        .video-js.vjs-touch-enabled::after {
-          content: "单击播放/暂停 | 左侧双击后退5秒 | 右侧双击前进5秒 | 长按20倍速";
-          position: absolute;
-          top: 10px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: rgba(0, 0, 0, 0.7);
-          color: white;
-          padding: 5px 10px;
-          border-radius: 4px;
-          font-size: 12px;
-          z-index: 1000;
-          opacity: 0;
-          transition: opacity 0.3s;
-          pointer-events: none;
-        }
-        
-        .video-js.vjs-touch-enabled:hover::after {
-          opacity: 1;
-        }
-      }
+
     `;
     document.head.appendChild(style);
   }

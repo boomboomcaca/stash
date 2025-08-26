@@ -653,53 +653,12 @@ $sceneTabWidth: 450px;
         display: none !important;
       }
       
-      // 添加触摸控制提示
-      &::before {
-        content: "单击播放/暂停 | 左侧双击后退5秒 | 右侧双击前进5秒 | 长按20倍速";
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 11px;
-        z-index: 1002;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-        white-space: nowrap;
-        font-weight: 500;
-      }
+
       
-      &:hover::before {
-        opacity: 1;
-      }
-      
-      // 触摸反馈效果
-      &.vjs-touching::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.1);
-        z-index: 1001;
-        pointer-events: none;
-        animation: touch-feedback 0.2s ease-out;
-      }
+
     }
     
-    @keyframes touch-feedback {
-      0% {
-        opacity: 0.3;
-      }
-      100% {
-        opacity: 0;
-      }
-    }
+
   }
 }
 @media (min-width: 1200px) {

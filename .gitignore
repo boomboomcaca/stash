@@ -59,6 +59,8 @@ node_modules
 *.db
 *.sqlite
 *.sqlite3
+*.sqlite-shm
+*.sqlite-wal
 
 # Stash specific binaries and build artifacts
 /stash
@@ -76,7 +78,8 @@ build/
 *.tmp
 *.temp
 
-# Configuration backup files
+# Configuration files
+config.yml
 config.yml.*
 *.backup
 
