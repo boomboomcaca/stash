@@ -19,7 +19,19 @@ $sceneTabWidth: 450px;
   }
 
   &.portrait .video-wrapper {
-    height: 177.78vw;
+    // 原来的固定高度会裁剪竖屏视频
+    // height: 177.78vw;
+    
+    // 新的解决方案：让视频自适应高度
+    height: auto;
+    max-height: 100vh;
+    
+    // 确保竖屏视频完整显示
+    .video-js {
+      object-fit: contain;  // 保持宽高比，完整显示
+      height: auto;
+      max-height: 100vh;
+    }
   }
 }
 
