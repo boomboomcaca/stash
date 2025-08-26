@@ -65,6 +65,10 @@ Stash can pull metadata (performers, tags, descriptions, studios, and more) dire
 
 <sub>[StashDB](http://stashdb.org) is the canonical instance of our open source metadata API, [stash-box](https://github.com/stashapp/stash-box).</sub>
 
+# Join Our Community
+
+We are excited to announce that we have a new home for support, feature requests, and discussions related to Stash and its associated projects. Join our community on the [Discourse forum](https://discourse.stashapp.cc) to connect with other users, share your ideas, and get help from fellow enthusiasts.
+
 # Translation
 [![Translate](https://translate.codeberg.org/widget/stash/stash/svg-badge.svg)](https://translate.codeberg.org/engage/stash/)
 
@@ -78,9 +82,10 @@ We are excited to announce that we have a new home for support, feature requests
 
 # Support (FAQ)
 
-Check out our documentation on [Stash-Docs](https://docs.stashapp.cc) for information about the software, questions, guides, add-ons and more. 
+Check out our documentation on [Stash-Docs](https://docs.stashapp.cc) for information about the software documentation, guides. 
 
 For more help you can:
+* Join the community [Discourse forum](https://discourse.stashapp.cc)
 * Check the in-app documentation, in the top right corner of the app (it's also mirrored on [Stash-Docs](https://docs.stashapp.cc/in-app-manual))
 * Join our [community forum](https://discourse.stashapp.cc)
 * Join the [Discord server](https://discord.gg/2TsNFKt)
