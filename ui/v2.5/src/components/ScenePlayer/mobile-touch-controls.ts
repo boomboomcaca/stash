@@ -7,6 +7,13 @@ interface TouchControlState {
   lastTapPosition: { x: number; y: number };
   doubleTapTimer: number | null;
   originalPlaybackRate: number;
+  
+  // 拖拽进度相关状态
+  isDragging: boolean;
+  dragStartX: number;
+  dragStartY: number;
+  dragStartTime: number;
+  dragCurrentProgress: number;
 }
 
 class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
@@ -17,6 +24,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     lastTapPosition: { x: 0, y: 0 },
     doubleTapTimer: null,
     originalPlaybackRate: 1,
+    
+    // 拖拽进度相关状态初始化
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    dragStartTime: 0,
+    dragCurrentProgress: 0,
   };
 
   // 绑定的事件处理函数引用，用于正确移除事件监听器
@@ -36,6 +50,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly DOUBLE_TAP_DISTANCE = 50; // 双击检测距离（像素）
   private readonly FAST_FORWARD_RATE = 20; // 快进倍速
   private readonly SEEK_STEP = 10; // 快进/快退步长（秒）
+  
+  // 拖拽进度相关常量
+  private readonly DRAG_THRESHOLD = 15; // 开始拖拽的最小距离（像素）
+  private readonly MAX_VERTICAL_DRAG = 100; // 拖拽时允许的最大垂直偏移（像素）
 
   constructor(player: VideoJsPlayer) {
     super(player);
@@ -195,6 +213,16 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.state.lastTapTime = 0;
     this.state.doubleTapTimer = null;
     this.state.longPressTimer = null;
+    
+    // 重置拖拽状态
+    if (this.state.isDragging) {
+      this.hideDragProgressIndicator();
+      this.state.isDragging = false;
+    }
+    this.state.dragStartX = 0;
+    this.state.dragStartY = 0;
+    this.state.dragStartTime = 0;
+    this.state.dragCurrentProgress = 0;
   }
 
   private handleTouchStart(event: TouchEvent): void {
@@ -207,13 +235,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     // 记录触摸位置
     this.state.lastTapPosition = { x, y };
+    
+    // 记录拖拽起始位置和时间
+    this.state.dragStartX = x;
+    this.state.dragStartY = y;
+    this.state.dragStartTime = this.player.currentTime() || 0;
+    this.state.isDragging = false;
+    this.state.dragCurrentProgress = 0;
 
     // 重置长按状态
     this.state.isLongPress = false;
 
     // 开始长按计时器
     this.state.longPressTimer = window.setTimeout(() => {
-      this.handleLongPress(x, y);
+      // 只有在没有进入拖拽模式时才触发长按
+      if (!this.state.isDragging) {
+        this.handleLongPress(x, y);
+      }
     }, this.LONG_PRESS_DURATION);
 
     // 阻止默认行为，避免触发video.js的默认触摸控制
@@ -232,6 +270,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     if (this.state.longPressTimer) {
       clearTimeout(this.state.longPressTimer);
       this.state.longPressTimer = null;
+    }
+
+    // 如果是拖拽结束，跳转到对应进度位置
+    if (this.state.isDragging) {
+      this.handleDragEnd();
+      event.preventDefault();
+      return;
     }
 
     // 如果是长按结束，恢复播放速度
@@ -279,22 +324,50 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private handleTouchMove(event: TouchEvent): void {
-    // 如果移动距离过大，取消长按
-    if (this.state.longPressTimer) {
-      const touch = event.touches[0];
-      const rect = (event.target as HTMLElement).getBoundingClientRect();
-      const x = touch.clientX - rect.left;
-      const y = touch.clientY - rect.top;
+    if (event.touches.length !== 1) return;
+    
+    const touch = event.touches[0];
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    const deltaX = x - this.state.dragStartX;
+    const deltaY = y - this.state.dragStartY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // 检测是否开始拖拽
+    if (!this.state.isDragging && distance > this.DRAG_THRESHOLD) {
+      const horizontalDistance = Math.abs(deltaX);
+      const verticalDistance = Math.abs(deltaY);
       
-      const distance = Math.sqrt(
-        Math.pow(x - this.state.lastTapPosition.x, 2) + 
-        Math.pow(y - this.state.lastTapPosition.y, 2)
-      );
-
-      if (distance > 20) {
-        clearTimeout(this.state.longPressTimer);
-        this.state.longPressTimer = null;
+      // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大，则进入拖拽模式
+      if (horizontalDistance > verticalDistance && verticalDistance < this.MAX_VERTICAL_DRAG) {
+        this.state.isDragging = true;
+        
+        // 取消长按计时器
+        if (this.state.longPressTimer) {
+          clearTimeout(this.state.longPressTimer);
+          this.state.longPressTimer = null;
+        }
+        
+        // 显示拖拽进度指示器
+        this.showDragProgressIndicator();
+        
+        console.log("[MobileTouchControls] 开始拖拽进度模式");
       }
+    }
+    
+    // 如果已经在拖拽模式，更新进度
+    if (this.state.isDragging) {
+      this.updateDragProgress(deltaX, rect.width);
+      event.preventDefault();
+      return;
+    }
+    
+    // 如果移动距离过大，取消长按
+    if (this.state.longPressTimer && distance > 20) {
+      clearTimeout(this.state.longPressTimer);
+      this.state.longPressTimer = null;
     }
   }
 
@@ -352,6 +425,94 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.player.currentTime(newTime);
   }
 
+  private updateDragProgress(deltaX: number, videoWidth: number): void {
+    const duration = this.player.duration() || 0;
+    if (duration === 0) return;
+
+    // 计算拖拽的进度偏移
+    // 正值向前拖拽（快进），负值向后拖拽（快退）
+    const progressDelta = (deltaX / videoWidth) * duration;
+    const newProgress = Math.max(0, Math.min(this.state.dragStartTime + progressDelta, duration));
+    
+    this.state.dragCurrentProgress = newProgress;
+    
+    // 更新进度指示器显示
+    this.updateDragProgressIndicator(newProgress, duration);
+  }
+
+  private handleDragEnd(): void {
+    if (!this.state.isDragging) return;
+    
+    console.log("[MobileTouchControls] 拖拽结束，跳转到进度:", this.state.dragCurrentProgress);
+    
+    // 跳转到拖拽的进度位置
+    this.player.currentTime(this.state.dragCurrentProgress);
+    
+    // 隐藏进度指示器
+    this.hideDragProgressIndicator();
+    
+    // 重置拖拽状态
+    this.state.isDragging = false;
+    this.state.dragCurrentProgress = 0;
+  }
+
+  private showDragProgressIndicator(): void {
+    const playerEl = this.player.el() as HTMLElement;
+    if (!playerEl) return;
+
+    // 移除可能存在的旧指示器
+    this.hideDragProgressIndicator();
+
+    // 创建进度指示器容器
+    const indicator = document.createElement("div");
+    indicator.className = "mobile-drag-progress-indicator";
+    indicator.innerHTML = `
+      <div class="progress-bar">
+        <div class="progress-fill"></div>
+        <div class="progress-handle"></div>
+      </div>
+      <div class="progress-time">00:00 / 00:00</div>
+    `;
+
+    playerEl.appendChild(indicator);
+  }
+
+  private updateDragProgressIndicator(currentTime: number, duration: number): void {
+    const playerEl = this.player.el() as HTMLElement;
+    const indicator = playerEl.querySelector(".mobile-drag-progress-indicator");
+    if (!indicator) return;
+
+    const progressFill = indicator.querySelector(".progress-fill") as HTMLElement;
+    const progressHandle = indicator.querySelector(".progress-handle") as HTMLElement;
+    const progressTime = indicator.querySelector(".progress-time") as HTMLElement;
+
+    if (progressFill && progressHandle && progressTime) {
+      const percentage = (currentTime / duration) * 100;
+      progressFill.style.width = `${percentage}%`;
+      progressHandle.style.left = `${percentage}%`;
+
+      const currentTimeStr = this.formatTime(currentTime);
+      const durationStr = this.formatTime(duration);
+      progressTime.textContent = `${currentTimeStr} / ${durationStr}`;
+    }
+  }
+
+  private hideDragProgressIndicator(): void {
+    const playerEl = this.player.el() as HTMLElement;
+    if (!playerEl) return;
+
+    const indicator = playerEl.querySelector(".mobile-drag-progress-indicator");
+    if (indicator) {
+      indicator.remove();
+    }
+  }
+
+  private formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
   private addTouchControlStyles(): void {
     // 添加基础触摸控制样式
     const styleId = "mobile-touch-controls-styles";
@@ -373,7 +534,59 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         display: none !important;
       }
       
-
+      /* 拖拽进度指示器样式 */
+      .mobile-drag-progress-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.8);
+        border-radius: 8px;
+        padding: 16px 20px;
+        z-index: 1000;
+        min-width: 280px;
+        text-align: center;
+        pointer-events: none;
+      }
+      
+      .mobile-drag-progress-indicator .progress-bar {
+        position: relative;
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 3px;
+        margin-bottom: 12px;
+      }
+      
+      .mobile-drag-progress-indicator .progress-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: #007bff;
+        border-radius: 3px;
+        transition: width 0.1s ease;
+      }
+      
+      .mobile-drag-progress-indicator .progress-handle {
+        position: absolute;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        background: #007bff;
+        border: 2px solid white;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+        transition: left 0.1s ease;
+      }
+      
+      .mobile-drag-progress-indicator .progress-time {
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -381,6 +594,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   dispose(): void {
     // 在插件销毁时重置播放速度
     this.resetPlaybackRate();
+    
+    // 清理拖拽进度指示器
+    this.hideDragProgressIndicator();
     
     // 移除触摸事件监听器
     this.removeTouchControls();
