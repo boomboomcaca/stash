@@ -19,7 +19,7 @@ interface IScenePlayerScrubberProps {
   file: GQL.VideoFileDataFragment;
   scene: GQL.SceneDataFragment;
   time: number;
-  onSeek: (seconds: number) => void;
+  onSeek: (seconds: number, isDragging?: boolean) => void;
   onScroll: () => void;
 }
 
@@ -42,6 +42,13 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   const lastMouseEvent = useRef<MouseEvent | null>(null);
   const startMouseEvent = useRef<MouseEvent | null>(null);
   const velocity = useRef(0);
+  
+  // Touch event handling
+  const touchDown = useRef(false);
+  const lastTouchEvent = useRef<TouchEvent | null>(null);
+  const startTouchEvent = useRef<TouchEvent | null>(null);
+  const isDragging = useRef(false);
+  const dragThreshold = 5; // Minimum pixels to consider as drag
 
   const prevTime = useRef(NaN);
   const _width = useRef(0);
@@ -49,7 +56,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   const [scrubWidth, setScrubWidth] = useState(0);
   const position = useRef(0);
   const setPosition = useCallback(
-    (value: number, seek: boolean) => {
+    (value: number, seek: boolean, isDragging?: boolean) => {
       if (!scrubWidth) return;
 
       const slider = sliderEl.current!;
@@ -76,7 +83,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
       position.current = newPosition;
 
       if (seek) {
-        onSeek(percentage * (file.duration || 0));
+        onSeek(percentage * (file.duration || 0), isDragging);
       }
     },
     [onSeek, file.duration, scrubWidth]
@@ -176,13 +183,14 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
       const slider = sliderEl.current!;
 
       mouseDown.current = false;
+      isDragging.current = false;
 
       contentEl.current!.classList.remove("dragging");
 
       let newPosition = position.current;
       const midpointOffset = slider.clientWidth / 2;
       const delta = Math.abs(event.clientX - startMouseEvent.current!.clientX);
-      if (delta < 1 && event.target instanceof HTMLDivElement) {
+      if (delta < dragThreshold && event.target instanceof HTMLDivElement) {
         const { target } = event;
 
         if (target.hasAttribute("data-sprite-item-id")) {
@@ -199,7 +207,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
       }
 
       setEaseOutTransition();
-      setPosition(newPosition, true);
+      setPosition(newPosition, true, false); // 拖拽结束时，非拖拽模式
     },
     [setPosition]
   );
@@ -230,47 +238,171 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         // ignore such an event to prevent pausing the player
         if (delta === 0) return;
 
-        onScroll();
+        // Check if this qualifies as a drag
+        const totalDelta = Math.abs(event.clientX - startMouseEvent.current!.clientX);
+        if (totalDelta >= dragThreshold) {
+          isDragging.current = true;
+          onScroll();
+        }
       }
 
-      contentEl.current!.classList.add("dragging");
+      if (isDragging.current) {
+        contentEl.current!.classList.add("dragging");
 
-      const movement = event.movementX;
-      velocity.current = movement;
+        const movement = event.movementX;
+        velocity.current = movement;
 
-      clearTransition();
-      setPosition(position.current + delta, false);
+        clearTransition();
+        setPosition(position.current + delta, true, true); // 在拖拽时实时更新视频帧
+      }
+      
       lastMouseEvent.current = event;
     },
     [onScroll, setPosition]
   );
 
+  // Touch event handlers
+  const onTouchStart = useCallback((event: TouchEvent) => {
+    if (event.touches.length !== 1) return;
+
+    event.preventDefault();
+
+    touchDown.current = true;
+    lastTouchEvent.current = event;
+    startTouchEvent.current = event;
+    velocity.current = 0;
+    isDragging.current = false;
+  }, []);
+
+  const onTouchMove = useCallback(
+    (event: TouchEvent) => {
+      if (!touchDown.current || event.touches.length !== 1) return;
+
+      const touch = event.touches[0];
+      const lastTouch = lastTouchEvent.current!.touches[0];
+      
+      // negative dragging right (past), positive left (future)
+      const delta = touch.clientX - lastTouch.clientX;
+
+      if (lastTouchEvent.current === startTouchEvent.current) {
+        // this is the first touchmove event after touchstart
+        const totalDelta = Math.abs(touch.clientX - startTouchEvent.current!.touches[0].clientX);
+        if (totalDelta >= dragThreshold) {
+          isDragging.current = true;
+          onScroll();
+          event.preventDefault(); // Prevent scrolling and other touch behaviors
+        }
+      }
+
+      if (isDragging.current) {
+        event.preventDefault();
+        contentEl.current!.classList.add("dragging");
+
+        const movement = touch.clientX - lastTouch.clientX;
+        velocity.current = movement;
+
+        clearTransition();
+        setPosition(position.current + delta, true, true); // 在触摸拖拽时实时更新视频帧
+      }
+      
+      lastTouchEvent.current = event;
+    },
+    [onScroll, setPosition]
+  );
+
+  const onTouchEnd = useCallback(
+    (event: TouchEvent) => {
+      if (!touchDown.current) return;
+      
+      const slider = sliderEl.current!;
+      
+      touchDown.current = false;
+      const wasDragging = isDragging.current;
+      isDragging.current = false;
+
+      contentEl.current!.classList.remove("dragging");
+
+      // If it was a drag, handle the end position
+      if (wasDragging) {
+        let newPosition = position.current;
+        
+        if (Math.abs(velocity.current) > 25) {
+          newPosition = position.current + velocity.current * 10;
+          velocity.current = 0;
+        }
+
+        setEaseOutTransition();
+        setPosition(newPosition, true, false); // 触摸拖拽结束时，非拖拽模式
+      } else {
+        // Handle tap (click equivalent)
+        const touch = event.changedTouches[0];
+        const startTouch = startTouchEvent.current!.touches[0];
+        const delta = Math.abs(touch.clientX - startTouch.clientX);
+        
+        if (delta < dragThreshold) {
+          // This was a tap, handle as click
+          const target = event.target as HTMLDivElement;
+          if (target && (target.hasAttribute("data-sprite-item-id") || target.hasAttribute("data-marker-id"))) {
+            const midpointOffset = slider.clientWidth / 2;
+            let newPosition = position.current;
+            
+            if (target.hasAttribute("data-sprite-item-id")) {
+              const rect = target.getBoundingClientRect();
+              const touchX = touch.clientX - rect.left;
+              newPosition = midpointOffset - (target.offsetLeft + touchX);
+            }
+
+            if (target.hasAttribute("data-marker-id")) {
+              newPosition = midpointOffset - target.offsetLeft;
+            }
+            
+            setEaseOutTransition();
+            setPosition(newPosition, true, false); // 点击时，非拖拽模式
+          }
+        }
+      }
+    },
+    [setPosition]
+  );
+
   useEffect(() => {
     const content = contentEl.current!;
 
+    // Mouse events
     content.addEventListener("mousedown", onMouseDown, false);
     content.addEventListener("mousemove", onMouseMove, false);
     window.addEventListener("mouseup", onMouseUp, false);
 
+    // Touch events
+    content.addEventListener("touchstart", onTouchStart, { passive: false });
+    content.addEventListener("touchmove", onTouchMove, { passive: false });
+    content.addEventListener("touchend", onTouchEnd, { passive: false });
+
     return () => {
+      // Mouse events
       content.removeEventListener("mousedown", onMouseDown);
       content.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
+      
+      // Touch events
+      content.removeEventListener("touchstart", onTouchStart);
+      content.removeEventListener("touchmove", onTouchMove);
+      content.removeEventListener("touchend", onTouchEnd);
     };
-  }, [onMouseDown, onMouseMove, onMouseUp]);
+  }, [onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd]);
 
   function goBack() {
     const slider = sliderEl.current!;
     const newPosition = position.current + slider.clientWidth;
     setEaseOutTransition();
-    setPosition(newPosition, true);
+    setPosition(newPosition, true, false); // 导航按钮点击，非拖拽模式
   }
 
   function goForward() {
     const slider = sliderEl.current!;
     const newPosition = position.current - slider.clientWidth;
     setEaseOutTransition();
-    setPosition(newPosition, true);
+    setPosition(newPosition, true, false); // 导航按钮点击，非拖拽模式
   }
 
   function renderTags() {

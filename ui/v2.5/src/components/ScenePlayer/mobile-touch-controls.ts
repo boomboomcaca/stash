@@ -14,6 +14,7 @@ interface TouchControlState {
   dragStartY: number;
   dragStartTime: number;
   dragCurrentProgress: number;
+  wasPlayingBeforeDrag: boolean; // 拖拽前的播放状态
 }
 
 class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
@@ -31,6 +32,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     dragStartY: 0,
     dragStartTime: 0,
     dragCurrentProgress: 0,
+    wasPlayingBeforeDrag: false,
   };
 
   // 绑定的事件处理函数引用，用于正确移除事件监听器
@@ -223,6 +225,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.state.dragStartY = 0;
     this.state.dragStartTime = 0;
     this.state.dragCurrentProgress = 0;
+    this.state.wasPlayingBeforeDrag = false;
   }
 
   private handleTouchStart(event: TouchEvent): void {
@@ -344,15 +347,19 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       if (horizontalDistance > verticalDistance && verticalDistance < this.MAX_VERTICAL_DRAG) {
         this.state.isDragging = true;
         
+        // 记录拖拽前的播放状态并暂停播放
+        this.state.wasPlayingBeforeDrag = !this.player.paused();
+        if (this.state.wasPlayingBeforeDrag) {
+          this.player.pause();
+        }
+        
         // 取消长按计时器
         if (this.state.longPressTimer) {
           clearTimeout(this.state.longPressTimer);
           this.state.longPressTimer = null;
         }
         
-        // 进入拖拽模式（已移除视觉指示器）
-        
-        console.log("[MobileTouchControls] 开始拖拽进度模式");
+        console.log("[MobileTouchControls] 开始拖拽进度模式，播放状态:", this.state.wasPlayingBeforeDrag);
       }
     }
     
@@ -447,12 +454,20 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 跳转到拖拽的进度位置
     this.player.currentTime(this.state.dragCurrentProgress);
     
+    // 恢复原始播放状态
+    if (this.state.wasPlayingBeforeDrag) {
+      this.player.play()?.catch((error) => {
+        console.warn("[MobileTouchControls] 恢复播放失败:", error);
+      });
+    }
+    
     // 重置视觉反馈
     this.resetVisualFeedback();
     
     // 重置拖拽状态
     this.state.isDragging = false;
     this.state.dragCurrentProgress = 0;
+    this.state.wasPlayingBeforeDrag = false;
   }
 
   private updateVisualFeedback(currentProgress: number, duration: number): void {

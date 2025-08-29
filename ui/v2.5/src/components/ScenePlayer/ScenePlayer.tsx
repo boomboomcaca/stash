@@ -225,6 +225,14 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     onNext,
     onPrevious,
   }) => {
+    // 拖拽状态管理
+    const draggingState = useRef<{
+      isDragging: boolean;
+      wasPlaying: boolean;
+    }>({
+      isDragging: false,
+      wasPlaying: false,
+    });
     const { configuration } = useContext(ConfigurationContext);
     const interfaceConfig = configuration?.interface;
     const uiConfig = configuration?.ui;
@@ -865,9 +873,39 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
     }
 
-    function onScrubberSeek(seconds: number) {
+    function onScrubberSeek(seconds: number, isDragging?: boolean) {
+      const player = getPlayer();
+      if (!player) return;
+
       if (started.current) {
-        getPlayer()?.currentTime(seconds);
+        if (isDragging) {
+          // 拖拽开始时，记录播放状态并暂停
+          if (!draggingState.current.isDragging) {
+            draggingState.current.isDragging = true;
+            draggingState.current.wasPlaying = !player.paused();
+            if (draggingState.current.wasPlaying) {
+              player.pause();
+            }
+          }
+          // 拖拽过程中，只更新视频帧，不播放
+          player.currentTime(seconds);
+        } else {
+          // 拖拽结束时，恢复原始播放状态
+          if (draggingState.current.isDragging) {
+            draggingState.current.isDragging = false;
+            player.currentTime(seconds);
+            
+            // 恢复原始播放状态
+            if (draggingState.current.wasPlaying) {
+              player.play()?.catch((error) => {
+                console.warn("恢复播放失败:", error);
+              });
+            }
+          } else {
+            // 非拖拽模式的正常seek
+            player.currentTime(seconds);
+          }
+        }
       } else {
         setTime(seconds);
       }
