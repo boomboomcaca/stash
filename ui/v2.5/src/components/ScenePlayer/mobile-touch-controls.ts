@@ -66,7 +66,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
   private readonly DOUBLE_TAP_DURATION = 300; // 双击检测时间（毫秒）
   private readonly DOUBLE_TAP_DISTANCE = 50; // 双击检测距离（像素）
-  private readonly FAST_FORWARD_RATE = 2; // 快进倍速
   private readonly SEEK_STEP = 10; // 快进/快退步长（秒）
   
   // 拖拽进度相关常量
@@ -74,7 +73,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly MAX_VERTICAL_DRAG = 100; // 拖拽时允许的最大垂直偏移（像素）
   
   // 长按倍速控制相关常量
-  private readonly SPEED_CONTROL_SENSITIVITY = 100; // 倍速控制灵敏度（像素）
+  private readonly SPEED_CONTROL_SENSITIVITY = 50; // 倍速控制灵敏度（像素）- 提高灵敏度
   private readonly MIN_SPEED_RATE = 0.25; // 最小倍速
   private readonly MAX_SPEED_RATE = 20; // 最大倍速
   private readonly SPEED_RATES = [0.25, 0.5, 0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20]; // 支持所有Video.js倍速档位
@@ -117,9 +116,16 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       currentIndex = this.SPEED_RATES.indexOf(this.getClosestSpeedRate(this.state.savedSpeedRate));
     }
     
-    // 计算滑动步数，每100像素为一个档位
-    const steps = Math.round(-deltaY / this.SPEED_CONTROL_SENSITIVITY);
-    const newIndex = Math.max(0, Math.min(this.SPEED_RATES.length - 1, currentIndex + steps));
+    // 计算滑动步数，使用更灵敏的计算方式
+    // 每50像素为一个档位，并且支持小数步长以实现更平滑的响应
+    const sensitivitySteps = -deltaY / this.SPEED_CONTROL_SENSITIVITY;
+    const steps = Math.round(sensitivitySteps);
+    
+    // 对于小幅度滑动，也要给予反馈
+    const minStep = Math.abs(sensitivitySteps) > 0.3 ? Math.sign(sensitivitySteps) : 0;
+    const finalSteps = steps !== 0 ? steps : minStep;
+    
+    const newIndex = Math.max(0, Math.min(this.SPEED_RATES.length - 1, currentIndex + finalSteps));
     
     return this.SPEED_RATES[newIndex];
   }
@@ -197,6 +203,19 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     console.log("[MobileTouchControls] 插件初始化，加载倍速:", this.state.savedSpeedRate);
 
+    // 确保播放器启动时使用保存的倍速（但只在横屏模式下）
+    if (this.shouldEnableTouchControls() && this.state.savedSpeedRate !== 1) {
+      // 延迟设置，确保播放器完全初始化
+      setTimeout(() => {
+        try {
+          this.player.playbackRate(this.state.savedSpeedRate);
+          console.log("[MobileTouchControls] 应用保存的倍速:", this.state.savedSpeedRate);
+        } catch (error) {
+          console.warn("[MobileTouchControls] 应用保存倍速失败:", error);
+        }
+      }, 500);
+    }
+
     // 只在移动设备横屏模式下启用
     if (this.shouldEnableTouchControls()) {
       console.log("[MobileTouchControls] 满足启用条件，初始化触摸控制");
@@ -208,12 +227,28 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 绑定并监听屏幕方向变化
     this.boundOrientationChange = () => {
       console.log("[MobileTouchControls] 屏幕方向变化事件");
-      // 立即重置播放速度
+      // 保存当前倍速设置，然后重置播放速度
+      const currentRate = this.player.playbackRate() || 1;
+      if (currentRate !== 1) {
+        this.state.savedSpeedRate = currentRate;
+        this.saveSpeedRate(currentRate);
+      }
       this.resetPlaybackRate();
       
       // 延迟检查触摸控制状态，确保屏幕尺寸已更新
       setTimeout(() => {
         this.updateTouchControlsState();
+        // 如果进入横屏模式，恢复保存的倍速
+        if (this.shouldEnableTouchControls() && this.state.savedSpeedRate !== 1) {
+          setTimeout(() => {
+            try {
+              this.player.playbackRate(this.state.savedSpeedRate);
+              console.log("[MobileTouchControls] 横屏模式恢复倍速:", this.state.savedSpeedRate);
+            } catch (error) {
+              console.warn("[MobileTouchControls] 恢复倍速失败:", error);
+            }
+          }, 200);
+        }
       }, 150);
     };
     window.addEventListener("orientationchange", this.boundOrientationChange);
@@ -427,10 +462,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 如果是长按结束，处理倍速控制结束
     if (this.state.isLongPress) {
       if (this.state.isLongPressSpeedControl) {
-        // 保存当前倍速设置
+        // 确保最终倍速设置被保存
         this.state.savedSpeedRate = this.state.currentSpeedRate;
         this.saveSpeedRate(this.state.currentSpeedRate);
-        console.log("[MobileTouchControls] 长按结束，保存倍速:", this.state.currentSpeedRate);
+        console.log("[MobileTouchControls] 长按结束，最终保存倍速:", this.state.currentSpeedRate);
         
         // 保持当前倍速，不恢复到原始倍速
         this.state.isLongPressSpeedControl = false;
@@ -499,9 +534,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       
       if (newSpeedRate !== this.state.currentSpeedRate) {
         this.state.currentSpeedRate = newSpeedRate;
+        this.state.savedSpeedRate = newSpeedRate; // 实时更新保存的倍速
         this.player.playbackRate(newSpeedRate);
         this.showSpeedFeedback(newSpeedRate);
-        console.log("[MobileTouchControls] 倍速调整为:", newSpeedRate);
+        // 实时保存到localStorage，确保不丢失设置
+        this.saveSpeedRate(newSpeedRate);
+        console.log("[MobileTouchControls] 倍速调整为:", newSpeedRate, "并已保存");
       }
       
       event.preventDefault();
