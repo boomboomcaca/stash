@@ -451,8 +451,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     
     console.log("[MobileTouchControls] 拖拽结束，跳转到进度:", this.state.dragCurrentProgress);
     
-    // 跳转到拖拽的进度位置
-    this.player.currentTime(this.state.dragCurrentProgress);
+    // 由于视频时间已经在拖拽过程中实时更新，这里不需要重复设置
+    // 只需要恢复播放状态和重置视觉反馈
     
     // 恢复原始播放状态
     if (this.state.wasPlayingBeforeDrag) {
@@ -475,35 +475,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 更新视频的实际时间位置
       this.player.currentTime(currentProgress);
       
-      // 强制触发视频帧更新
+      // 简化的视频帧更新 - 避免重复的DOM操作
       try {
         const videoElement = this.player.el().querySelector('video') as HTMLVideoElement;
         if (videoElement && videoElement.readyState >= 2) {
-          // 触发 timeupdate 事件以确保UI更新
-          videoElement.dispatchEvent(new Event('timeupdate'));
+          // 只触发timeupdate事件，让VideoJS自己处理UI更新
+          videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
         }
       } catch (frameError) {
         console.warn("[MobileTouchControls] 更新视频帧失败:", frameError);
-      }
-      
-      // 更新进度条位置
-      const progressBar = this.player.el().querySelector('.vjs-play-progress') as HTMLElement;
-      if (progressBar) {
-        const percentage = (currentProgress / duration) * 100;
-        progressBar.style.width = `${percentage}%`;
-      }
-
-      // 更新当前时间显示
-      const currentTimeDisplay = this.player.el().querySelector('.vjs-current-time-display') as HTMLElement;
-      if (currentTimeDisplay) {
-        currentTimeDisplay.textContent = this.formatTime(currentProgress);
-      }
-
-      // 更新剩余时间显示
-      const remainingTimeDisplay = this.player.el().querySelector('.vjs-remaining-time-display') as HTMLElement;
-      if (remainingTimeDisplay) {
-        const remainingTime = duration - currentProgress;
-        remainingTimeDisplay.textContent = `-${this.formatTime(remainingTime)}`;
       }
 
       // 为拖拽状态添加视觉样式
@@ -573,8 +553,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
       .video-js.vjs-touch-seeking .vjs-current-time-display,
       .video-js.vjs-touch-seeking .vjs-remaining-time-display {
-        color: #ffdd57 !important;
-        font-weight: bold !important;
         transition: var(--seeking-transition, none) !important;
       }
 

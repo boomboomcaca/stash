@@ -888,46 +888,18 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             }
           }
           
-          // 拖拽过程中，立即更新视频时间并强制刷新
+          // 拖拽过程中，使用优化的视频帧更新
           player.currentTime(seconds);
           
-          // 强制触发视频帧更新 - 使用多种方法确保刷新
+          // 简化的视频帧更新 - 只使用必要的操作
           try {
             const videoElement = player.el().querySelector('video') as HTMLVideoElement;
-            if (videoElement) {
-              // 方法1: 直接设置currentTime确保视频跳转
-              if (videoElement.readyState >= 2) {
-                videoElement.currentTime = seconds;
-              }
-              
-              // 方法2: 触发timeupdate事件
+            if (videoElement && videoElement.readyState >= 2) {
+              // 只触发timeupdate事件即可，避免过多的DOM操作
               videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
-              
-              // 方法3: 强制重绘视频帧
-              if (videoElement.readyState >= 3) {
-                // 临时改变一个无关的样式来触发重绘
-                const originalOpacity = videoElement.style.opacity;
-                videoElement.style.opacity = '0.999';
-                requestAnimationFrame(() => {
-                  videoElement.style.opacity = originalOpacity;
-                });
-              }
-              
-              // 方法4: 使用seeked事件来确保视频跳转完成
-              const onSeeked = () => {
-                videoElement.removeEventListener('seeked', onSeeked);
-                // 触发额外的更新
-                videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
-              };
-              videoElement.addEventListener('seeked', onSeeked, { once: true });
-              
-              // 方法5: 强制浏览器重新计算样式
-              if (videoElement.offsetHeight) {
-                videoElement.style.display = 'block';
-              }
             }
           } catch (error) {
-            console.warn("强制更新视频帧失败:", error);
+            console.warn("更新视频帧失败:", error);
           }
           
           // 更新本地时间状态以确保UI同步

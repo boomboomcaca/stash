@@ -49,6 +49,8 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   const startTouchEvent = useRef<TouchEvent | null>(null);
   const isDragging = useRef(false);
   const dragThreshold = 5; // Minimum pixels to consider as drag
+  const lastUpdateTime = useRef(0);
+  const UPDATE_THROTTLE = 16; // 约60fps的更新频率
 
   const prevTime = useRef(NaN);
   const _width = useRef(0);
@@ -254,9 +256,17 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
 
         clearTransition();
         
-        // 立即更新位置并求索视频帧
-        const newPosition = position.current + delta;
-        setPosition(newPosition, true, true); // 在拖拽时实时更新视频帧
+        // 使用节流减少频繁更新
+        const now = performance.now();
+        if (now - lastUpdateTime.current >= UPDATE_THROTTLE) {
+          const newPosition = position.current + delta;
+          setPosition(newPosition, true, true); // 在拖拽时实时更新视频帧
+          lastUpdateTime.current = now;
+        } else {
+          // 只更新位置，不触发视频seek
+          const newPosition = position.current + delta;
+          setPosition(newPosition, false);
+        }
       }
       
       lastMouseEvent.current = event;
@@ -306,9 +316,17 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
 
         clearTransition();
         
-        // 立即更新位置并请求视频帧更新
-        const newPosition = position.current + delta;
-        setPosition(newPosition, true, true); // 在触摸拖拽时实时更新视频帧
+        // 使用节流减少频繁更新
+        const now = performance.now();
+        if (now - lastUpdateTime.current >= UPDATE_THROTTLE) {
+          const newPosition = position.current + delta;
+          setPosition(newPosition, true, true); // 在触摸拖拽时实时更新视频帧
+          lastUpdateTime.current = now;
+        } else {
+          // 只更新位置，不触发视频seek
+          const newPosition = position.current + delta;
+          setPosition(newPosition, false);
+        }
       }
       
       lastTouchEvent.current = event;
