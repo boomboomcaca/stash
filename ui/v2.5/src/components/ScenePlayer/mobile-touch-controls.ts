@@ -216,7 +216,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     
     // 重置拖拽状态
     if (this.state.isDragging) {
-      this.hideDragProgressIndicator();
       this.state.isDragging = false;
     }
     this.state.dragStartX = 0;
@@ -350,8 +349,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
           this.state.longPressTimer = null;
         }
         
-        // 显示拖拽进度指示器
-        this.showDragProgressIndicator();
+        // 进入拖拽模式（已移除视觉指示器）
         
         console.log("[MobileTouchControls] 开始拖拽进度模式");
       }
@@ -435,9 +433,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const newProgress = Math.max(0, Math.min(this.state.dragStartTime + progressDelta, duration));
     
     this.state.dragCurrentProgress = newProgress;
-    
-    // 更新进度指示器显示
-    this.updateDragProgressIndicator(newProgress, duration);
   }
 
   private handleDragEnd(): void {
@@ -448,70 +443,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 跳转到拖拽的进度位置
     this.player.currentTime(this.state.dragCurrentProgress);
     
-    // 隐藏进度指示器
-    this.hideDragProgressIndicator();
-    
     // 重置拖拽状态
     this.state.isDragging = false;
     this.state.dragCurrentProgress = 0;
   }
 
-  private showDragProgressIndicator(): void {
-    const playerEl = this.player.el() as HTMLElement;
-    if (!playerEl) return;
 
-    // 移除可能存在的旧指示器
-    this.hideDragProgressIndicator();
-
-    // 创建进度指示器容器
-    const indicator = document.createElement("div");
-    indicator.className = "mobile-drag-progress-indicator";
-    indicator.innerHTML = `
-      <div class="progress-bar">
-        <div class="progress-fill"></div>
-        <div class="progress-handle"></div>
-      </div>
-      <div class="progress-time">00:00 / 00:00</div>
-    `;
-
-    playerEl.appendChild(indicator);
-  }
-
-  private updateDragProgressIndicator(currentTime: number, duration: number): void {
-    const playerEl = this.player.el() as HTMLElement;
-    const indicator = playerEl.querySelector(".mobile-drag-progress-indicator");
-    if (!indicator) return;
-
-    const progressFill = indicator.querySelector(".progress-fill") as HTMLElement;
-    const progressHandle = indicator.querySelector(".progress-handle") as HTMLElement;
-    const progressTime = indicator.querySelector(".progress-time") as HTMLElement;
-
-    if (progressFill && progressHandle && progressTime) {
-      const percentage = (currentTime / duration) * 100;
-      progressFill.style.width = `${percentage}%`;
-      progressHandle.style.left = `${percentage}%`;
-
-      const currentTimeStr = this.formatTime(currentTime);
-      const durationStr = this.formatTime(duration);
-      progressTime.textContent = `${currentTimeStr} / ${durationStr}`;
-    }
-  }
-
-  private hideDragProgressIndicator(): void {
-    const playerEl = this.player.el() as HTMLElement;
-    if (!playerEl) return;
-
-    const indicator = playerEl.querySelector(".mobile-drag-progress-indicator");
-    if (indicator) {
-      indicator.remove();
-    }
-  }
-
-  private formatTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
 
   private addTouchControlStyles(): void {
     // 添加基础触摸控制样式
@@ -533,60 +470,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       .video-js.vjs-touch-enabled .vjs-touch-overlay {
         display: none !important;
       }
-      
-      /* 拖拽进度指示器样式 */
-      .mobile-drag-progress-indicator {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 0, 0, 0.8);
-        border-radius: 8px;
-        padding: 16px 20px;
-        z-index: 1000;
-        min-width: 280px;
-        text-align: center;
-        pointer-events: none;
-      }
-      
-      .mobile-drag-progress-indicator .progress-bar {
-        position: relative;
-        width: 100%;
-        height: 6px;
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 3px;
-        margin-bottom: 12px;
-      }
-      
-      .mobile-drag-progress-indicator .progress-fill {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        background: #007bff;
-        border-radius: 3px;
-        transition: width 0.1s ease;
-      }
-      
-      .mobile-drag-progress-indicator .progress-handle {
-        position: absolute;
-        top: 50%;
-        width: 14px;
-        height: 14px;
-        background: #007bff;
-        border: 2px solid white;
-        border-radius: 50%;
-        transform: translate(-50%, -50%);
-        box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
-        transition: left 0.1s ease;
-      }
-      
-      .mobile-drag-progress-indicator .progress-time {
-        color: white;
-        font-size: 14px;
-        font-weight: 500;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-      }
     `;
     document.head.appendChild(style);
   }
@@ -595,8 +478,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 在插件销毁时重置播放速度
     this.resetPlaybackRate();
     
-    // 清理拖拽进度指示器
-    this.hideDragProgressIndicator();
+    // 清理拖拽状态
     
     // 移除触摸事件监听器
     this.removeTouchControls();
