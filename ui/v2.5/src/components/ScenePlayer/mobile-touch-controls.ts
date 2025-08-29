@@ -216,6 +216,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     
     // 重置拖拽状态
     if (this.state.isDragging) {
+      this.resetVisualFeedback();
       this.state.isDragging = false;
     }
     this.state.dragStartX = 0;
@@ -433,6 +434,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const newProgress = Math.max(0, Math.min(this.state.dragStartTime + progressDelta, duration));
     
     this.state.dragCurrentProgress = newProgress;
+    
+    // 实时更新进度条和时间显示的视觉反馈
+    this.updateVisualFeedback(newProgress, duration);
   }
 
   private handleDragEnd(): void {
@@ -443,12 +447,70 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 跳转到拖拽的进度位置
     this.player.currentTime(this.state.dragCurrentProgress);
     
+    // 重置视觉反馈
+    this.resetVisualFeedback();
+    
     // 重置拖拽状态
     this.state.isDragging = false;
     this.state.dragCurrentProgress = 0;
   }
 
+  private updateVisualFeedback(currentProgress: number, duration: number): void {
+    try {
+      // 更新进度条位置
+      const progressBar = this.player.el().querySelector('.vjs-play-progress') as HTMLElement;
+      if (progressBar) {
+        const percentage = (currentProgress / duration) * 100;
+        progressBar.style.width = `${percentage}%`;
+      }
 
+      // 更新当前时间显示
+      const currentTimeDisplay = this.player.el().querySelector('.vjs-current-time-display') as HTMLElement;
+      if (currentTimeDisplay) {
+        currentTimeDisplay.textContent = this.formatTime(currentProgress);
+      }
+
+      // 更新剩余时间显示
+      const remainingTimeDisplay = this.player.el().querySelector('.vjs-remaining-time-display') as HTMLElement;
+      if (remainingTimeDisplay) {
+        const remainingTime = duration - currentProgress;
+        remainingTimeDisplay.textContent = `-${this.formatTime(remainingTime)}`;
+      }
+
+      // 为拖拽状态添加视觉样式
+      const playerEl = this.player.el();
+      if (!playerEl.classList.contains('vjs-touch-seeking')) {
+        playerEl.classList.add('vjs-touch-seeking');
+      }
+
+    } catch (error) {
+      console.warn("[MobileTouchControls] 更新视觉反馈时出错:", error);
+    }
+  }
+
+  private resetVisualFeedback(): void {
+    try {
+      // 移除拖拽状态的视觉样式
+      const playerEl = this.player.el();
+      if (playerEl.classList.contains('vjs-touch-seeking')) {
+        playerEl.classList.remove('vjs-touch-seeking');
+      }
+    } catch (error) {
+      console.warn("[MobileTouchControls] 重置视觉反馈时出错:", error);
+    }
+  }
+
+  private formatTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+    }
+  }
 
   private addTouchControlStyles(): void {
     // 添加基础触摸控制样式
@@ -469,6 +531,32 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       /* 隐藏默认的video.js触摸控制 */
       .video-js.vjs-touch-enabled .vjs-touch-overlay {
         display: none !important;
+      }
+
+      /* 拖拽状态的视觉反馈样式 */
+      .video-js.vjs-touch-seeking {
+        --seeking-transition: none;
+      }
+
+      .video-js.vjs-touch-seeking .vjs-play-progress {
+        transition: var(--seeking-transition, none) !important;
+      }
+
+      .video-js.vjs-touch-seeking .vjs-current-time-display,
+      .video-js.vjs-touch-seeking .vjs-remaining-time-display {
+        color: #ffdd57 !important;
+        font-weight: bold !important;
+        transition: var(--seeking-transition, none) !important;
+      }
+
+      .video-js.vjs-touch-seeking .vjs-progress-control {
+        opacity: 1 !important;
+      }
+
+      /* 确保在拖拽时进度条始终可见 */
+      .video-js.vjs-touch-seeking .vjs-control-bar {
+        opacity: 1 !important;
+        visibility: visible !important;
       }
     `;
     document.head.appendChild(style);
