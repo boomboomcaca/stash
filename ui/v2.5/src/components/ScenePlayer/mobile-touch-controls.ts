@@ -73,7 +73,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly MAX_VERTICAL_DRAG = 100; // 拖拽时允许的最大垂直偏移（像素）
   
   // 长按倍速控制相关常量
-  private readonly SPEED_CONTROL_SENSITIVITY = 10; // 倍速控制灵敏度（像素）- 提高灵敏度
+  private readonly SPEED_CONTROL_SENSITIVITY = 20; // 倍速控制灵敏度（像素）- 提高灵敏度
   private readonly MIN_SPEED_RATE = 0.25; // 最小倍速
   private readonly MAX_SPEED_RATE = 20; // 最大倍速
   private readonly SPEED_RATES = [0.25, 0.5, 0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20]; // 支持所有Video.js倍速档位
@@ -171,15 +171,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         clearTimeout(this.speedFeedbackTimer);
       }
       
-      // 长按模式下持续显示，不自动隐藏
-      if (!this.state.isLongPressSpeedControl) {
-        // 设置1秒后自动隐藏计时器
-        this.speedFeedbackTimer = window.setTimeout(() => {
-          if (this.speedFeedbackElement) {
-            this.speedFeedbackElement.classList.remove('visible');
-          }
-        }, 1000);
-      }
+      // 所有情况下都设置1秒后自动隐藏计时器
+      this.speedFeedbackTimer = window.setTimeout(() => {
+        if (this.speedFeedbackElement) {
+          this.speedFeedbackElement.classList.remove('visible');
+        }
+      }, 1000);
     }
   }
 
@@ -608,10 +605,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.state.isLongPress = true;
       this.state.isLongPressSpeedControl = true;
       
+      // 保存长按开始的Y坐标，用于后续的垂直滑动检测
+      this.state.longPressStartY = this.state.dragStartY;
+      
       // 设置初始倍速为保存的默认倍速（按住不放的默认倍速）
       this.state.currentSpeedRate = this.state.savedSpeedRate;
       this.player.playbackRate(this.state.currentSpeedRate);
-      this.showSpeedFeedback(this.state.currentSpeedRate);
+      
+      // 移除立即显示反馈消息，只有在垂直滑动时才显示
+      // this.showSpeedFeedback(this.state.currentSpeedRate);
       
       console.log("[MobileTouchControls] 长按倍速控制模式启动，默认倍速:", this.state.savedSpeedRate);
       
