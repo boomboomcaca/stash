@@ -253,7 +253,10 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         velocity.current = movement;
 
         clearTransition();
-        setPosition(position.current + delta, true, true); // 在拖拽时实时更新视频帧
+        
+        // 立即更新位置并求索视频帧
+        const newPosition = position.current + delta;
+        setPosition(newPosition, true, true); // 在拖拽时实时更新视频帧
       }
       
       lastMouseEvent.current = event;
@@ -302,7 +305,10 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         velocity.current = movement;
 
         clearTransition();
-        setPosition(position.current + delta, true, true); // 在触摸拖拽时实时更新视频帧
+        
+        // 立即更新位置并请求视频帧更新
+        const newPosition = position.current + delta;
+        setPosition(newPosition, true, true); // 在触摸拖拽时实时更新视频帧
       }
       
       lastTouchEvent.current = event;

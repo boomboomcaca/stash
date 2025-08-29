@@ -354,7 +354,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         nativeControlsForTouch: false,
         playbackRates: [0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20],
         inactivityTimeout: 2000,
-        preload: "none",
+        preload: "metadata",
         playsinline: true,
         techOrder: ["chromecast", "html5"],
         userActions: {
@@ -887,8 +887,51 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
               player.pause();
             }
           }
-          // 拖拽过程中，只更新视频帧，不播放
+          
+          // 拖拽过程中，立即更新视频时间并强制刷新
           player.currentTime(seconds);
+          
+          // 强制触发视频帧更新 - 使用多种方法确保刷新
+          try {
+            const videoElement = player.el().querySelector('video') as HTMLVideoElement;
+            if (videoElement) {
+              // 方法1: 直接设置currentTime确保视频跳转
+              if (videoElement.readyState >= 2) {
+                videoElement.currentTime = seconds;
+              }
+              
+              // 方法2: 触发timeupdate事件
+              videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+              
+              // 方法3: 强制重绘视频帧
+              if (videoElement.readyState >= 3) {
+                // 临时改变一个无关的样式来触发重绘
+                const originalOpacity = videoElement.style.opacity;
+                videoElement.style.opacity = '0.999';
+                requestAnimationFrame(() => {
+                  videoElement.style.opacity = originalOpacity;
+                });
+              }
+              
+              // 方法4: 使用seeked事件来确保视频跳转完成
+              const onSeeked = () => {
+                videoElement.removeEventListener('seeked', onSeeked);
+                // 触发额外的更新
+                videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+              };
+              videoElement.addEventListener('seeked', onSeeked, { once: true });
+              
+              // 方法5: 强制浏览器重新计算样式
+              if (videoElement.offsetHeight) {
+                videoElement.style.display = 'block';
+              }
+            }
+          } catch (error) {
+            console.warn("强制更新视频帧失败:", error);
+          }
+          
+          // 更新本地时间状态以确保UI同步
+          setTime(seconds);
         } else {
           // 拖拽结束时，恢复原始播放状态
           if (draggingState.current.isDragging) {

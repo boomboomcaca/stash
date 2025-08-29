@@ -472,6 +472,20 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   private updateVisualFeedback(currentProgress: number, duration: number): void {
     try {
+      // 更新视频的实际时间位置
+      this.player.currentTime(currentProgress);
+      
+      // 强制触发视频帧更新
+      try {
+        const videoElement = this.player.el().querySelector('video') as HTMLVideoElement;
+        if (videoElement && videoElement.readyState >= 2) {
+          // 触发 timeupdate 事件以确保UI更新
+          videoElement.dispatchEvent(new Event('timeupdate'));
+        }
+      } catch (frameError) {
+        console.warn("[MobileTouchControls] 更新视频帧失败:", frameError);
+      }
+      
       // 更新进度条位置
       const progressBar = this.player.el().querySelector('.vjs-play-progress') as HTMLElement;
       if (progressBar) {
