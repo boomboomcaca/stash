@@ -23,6 +23,7 @@ import "./vtt-thumbnails";
 import "./big-buttons";
 import "./track-activity";
 import "./vrmode";
+import "./mobile-touch-controls";
 import cx from "classnames";
 import {
   useSceneSaveActivity,
@@ -240,6 +241,14 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     onNext,
     onPrevious,
   }) => {
+    // 拖拽状态管理
+    const draggingState = useRef<{
+      isDragging: boolean;
+      wasPlaying: boolean;
+    }>({
+      isDragging: false,
+      wasPlaying: false,
+    });
     const { configuration } = useContext(ConfigurationContext);
     const interfaceConfig = configuration?.interface;
     const uiConfig = configuration?.ui;
@@ -359,9 +368,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           },
         },
         nativeControlsForTouch: false,
-        playbackRates: [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
+        playbackRates: [0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20],
         inactivityTimeout: 2000,
-        preload: "none",
+        preload: "metadata",
         playsinline: true,
         techOrder: ["chromecast", "html5"],
         userActions: {
@@ -396,6 +405,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             pauseBeforeLooping: false,
             createButtons: uiConfig?.showAbLoopControls ?? false,
           },
+          mobileTouchControls: {},
         },
       };
 
@@ -589,7 +599,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             : isLandscape,
         },
         touchControls: {
-          disabled: true,
+          disabled: false, // 改回 true，禁用 videojs-mobile-ui 的触摸控制
         },
       };
       if (!isSafari) {
@@ -879,9 +889,54 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
     }
 
-    function onScrubberSeek(seconds: number) {
+    function onScrubberSeek(seconds: number, isDragging?: boolean) {
+      const player = getPlayer();
+      if (!player) return;
+
       if (started.current) {
-        getPlayer()?.currentTime(seconds);
+        if (isDragging) {
+          // 拖拽开始时，记录播放状态并暂停
+          if (!draggingState.current.isDragging) {
+            draggingState.current.isDragging = true;
+            draggingState.current.wasPlaying = !player.paused();
+            if (draggingState.current.wasPlaying) {
+              player.pause();
+            }
+          }
+          
+          // 拖拽过程中，使用优化的视频帧更新
+          player.currentTime(seconds);
+          
+          // 简化的视频帧更新 - 只使用必要的操作
+          try {
+            const videoElement = player.el().querySelector('video') as HTMLVideoElement;
+            if (videoElement && videoElement.readyState >= 2) {
+              // 只触发timeupdate事件即可，避免过多的DOM操作
+              videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+            }
+          } catch (error) {
+            console.warn("更新视频帧失败:", error);
+          }
+          
+          // 更新本地时间状态以确保UI同步
+          setTime(seconds);
+        } else {
+          // 拖拽结束时，恢复原始播放状态
+          if (draggingState.current.isDragging) {
+            draggingState.current.isDragging = false;
+            player.currentTime(seconds);
+            
+            // 恢复原始播放状态
+            if (draggingState.current.wasPlaying) {
+              player.play()?.catch((error) => {
+                console.warn("恢复播放失败:", error);
+              });
+            }
+          } else {
+            // 非拖拽模式的正常seek
+            player.currentTime(seconds);
+          }
+        }
       } else {
         setTime(seconds);
       }
