@@ -40,6 +40,7 @@ import {
 import { SceneInteractiveStatus } from "src/hooks/Interactive/status";
 import { languageMap } from "src/utils/caption";
 import { VIDEO_PLAYER_ID } from "./util";
+import { EnhancedSubtitleOverlay } from "./EnhancedSubtitle";
 
 // @ts-ignore
 import airplay from "@silvermine/videojs-airplay";
@@ -54,7 +55,7 @@ airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent) {
+function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void) {
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
@@ -195,6 +196,12 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent) {
     case 219: // [
       seekPercentRelative(-0.1);
       break;
+    case 67: // c
+      // Toggle enhanced subtitles with 'c' key
+      if (toggleEnhancedSubtitles) {
+        toggleEnhancedSubtitles();
+      }
+      break;
   }
 }
 
@@ -271,6 +278,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     const [fullscreen, setFullscreen] = useState(false);
     const [showScrubber, setShowScrubber] = useState(false);
+    const [showEnhancedSubtitles, setShowEnhancedSubtitles] = useState(true);
+    const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<string | null>(null);
+    const [subtitleLanguage, setSubtitleLanguage] = useState<string>('en');
 
     const started = useRef(false);
     const auto = useRef(false);
@@ -375,7 +385,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         techOrder: ["chromecast", "html5"],
         userActions: {
           hotkeys: function (this: VideoJsPlayer, event) {
-            handleHotkeys(this, event);
+            handleHotkeys(this, event, () => setShowEnhancedSubtitles(!showEnhancedSubtitles));
           },
         },
         plugins: {
@@ -654,6 +664,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       if (scene.captions && scene.captions.length > 0) {
         const languageCode = getDefaultLanguageCode();
         let hasDefault = false;
+        let defaultTrackSrc = null;
+        let defaultLang = 'en';
 
         for (let caption of scene.captions) {
           const lang = caption.language_code;
@@ -664,12 +676,17 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
           label = label + " (" + caption.caption_type + ")";
           const setAsDefault = !hasDefault && languageCode == lang;
+          const trackSrc = `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`;
+          
           if (setAsDefault) {
             hasDefault = true;
+            defaultTrackSrc = trackSrc;
+            defaultLang = lang;
           }
+          
           sourceSelector.addTextTrack(
             {
-              src: `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`,
+              src: trackSrc,
               kind: "captions",
               srclang: lang,
               label: label,
@@ -677,6 +694,18 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             },
             false
           );
+        }
+        
+        // Set the default or first track for enhanced subtitles
+        if (defaultTrackSrc) {
+          setCurrentSubtitleTrack(defaultTrackSrc);
+          setSubtitleLanguage(defaultLang);
+        } else if (scene.captions.length > 0) {
+          const firstCaption = scene.captions[0];
+          setCurrentSubtitleTrack(
+            `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`
+          );
+          setSubtitleLanguage(firstCaption.language_code);
         }
       }
 
@@ -983,6 +1012,15 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             time={time}
             onSeek={onScrubberSeek}
             onScroll={onScrubberScroll}
+          />
+        )}
+        {currentSubtitleTrack && showEnhancedSubtitles && (
+          <EnhancedSubtitleOverlay
+            currentTime={time}
+            subtitleTrack={currentSubtitleTrack}
+            isVisible={showEnhancedSubtitles}
+            language={subtitleLanguage}
+            onToggleVisibility={() => setShowEnhancedSubtitles(!showEnhancedSubtitles)}
           />
         )}
       </div>

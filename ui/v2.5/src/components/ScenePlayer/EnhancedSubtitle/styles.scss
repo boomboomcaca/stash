@@ -1,0 +1,206 @@
+.enhanced-subtitle-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  max-width: 80%;
+  pointer-events: auto;
+
+  .subtitle-card {
+    background: rgba(0, 0, 0, 0.9);
+    border: none;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    
+    .card-body {
+      padding: 1rem 1.5rem;
+    }
+  }
+
+  .subtitle-content {
+    text-align: center;
+    color: white;
+  }
+
+  .subtitle-text {
+    font-size: 1.2rem;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  }
+
+  .subtitle-word {
+    cursor: pointer;
+    padding: 2px 4px;
+    margin: 0 1px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    display: inline-block;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+      text-shadow: 2px 2px 6px rgba(0, 0, 0, 1);
+    }
+
+    &.selected {
+      background-color: rgba(74, 144, 226, 0.7);
+      color: white;
+    }
+  }
+
+  .subtitle-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    opacity: 0.8;
+
+    .language-indicator {
+      color: #ccc;
+      font-size: 0.7rem;
+    }
+
+    .btn {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+}
+
+.dictionary-modal {
+  .modal-dialog {
+    max-width: 600px;
+  }
+
+  .modal-content {
+    background: var(--bs-dark);
+    color: var(--bs-light);
+    border: 1px solid var(--bs-secondary);
+  }
+
+  .modal-header {
+    border-bottom: 1px solid var(--bs-secondary);
+    
+    .modal-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .language-badge {
+      background: var(--bs-primary);
+      color: white;
+      padding: 0.2rem 0.5rem;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+  }
+
+  .modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .dictionary-content {
+    .pronunciation {
+      font-style: italic;
+      color: var(--bs-info);
+    }
+
+    .definition {
+      border-left: 3px solid var(--bs-primary);
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+
+      .part-of-speech {
+        margin-bottom: 0.5rem;
+        
+        .badge {
+          font-size: 0.7rem;
+          text-transform: capitalize;
+        }
+      }
+
+      .meaning {
+        font-size: 1rem;
+        line-height: 1.4;
+      }
+
+      .examples {
+        margin-top: 0.5rem;
+        color: var(--bs-secondary);
+        font-size: 0.9rem;
+
+        ul {
+          margin-bottom: 0;
+          padding-left: 1.2rem;
+        }
+
+        li {
+          margin-bottom: 0.2rem;
+        }
+      }
+    }
+
+    .etymology {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--bs-secondary);
+      color: var(--bs-info);
+      font-size: 0.9rem;
+    }
+  }
+
+  .modal-footer {
+    border-top: 1px solid var(--bs-secondary);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .enhanced-subtitle-overlay {
+    max-width: 95%;
+    
+    .subtitle-text {
+      font-size: 1rem;
+    }
+
+    .subtitle-word {
+      margin: 0;
+      padding: 1px 2px;
+    }
+  }
+
+  .dictionary-modal .modal-dialog {
+    max-width: 95%;
+    margin: 1rem auto;
+  }
+}
+
+// Animation for fade in/out
+.enhanced-subtitle-overlay {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+// Loading spinner customization
+.dictionary-modal .spinner-border {
+  width: 2rem;
+  height: 2rem;
+  border-color: var(--bs-primary);
+  border-right-color: transparent;
+}
