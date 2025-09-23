@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Button, Card, Modal } from 'react-bootstrap';
+import { Modal } from 'react-bootstrap';
 import { WordSegment, DictionaryEntry, SubtitleCue, SegmentationOptions } from './types';
 import { createSegmenter, detectLanguage } from './segmentation';
 import { lookupWord } from './dictionary';
@@ -318,9 +318,13 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         )}
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={() => setShowDictionary(false)}>
+        <button 
+          type="button" 
+          className="btn btn-secondary" 
+          onClick={() => setShowDictionary(false)}
+        >
           Close
-        </Button>
+        </button>
       </Modal.Footer>
     </Modal>
   );
@@ -331,26 +335,9 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
 
   const subtitleContent = (
     <div className={`enhanced-subtitle-overlay ${isFullscreen ? 'fullscreen-mode' : ''}`}>
-      <Card className="subtitle-card">
-        <Card.Body className="subtitle-content">
-          <div className="subtitle-text">
-            {renderSegmentedText}
-          </div>
-          <div className="subtitle-controls mt-2">
-            <Button 
-              variant="outline-light" 
-              size="sm"
-              onClick={onToggleVisibility}
-              title="Hide enhanced subtitles"
-            >
-              Hide
-            </Button>
-            <span className="language-indicator">
-              Language: {detectedLanguage}
-            </span>
-          </div>
-        </Card.Body>
-      </Card>
+      <div className="subtitle-text">
+        {renderSegmentedText}
+      </div>
       
       {renderDictionaryModal()}
     </div>
