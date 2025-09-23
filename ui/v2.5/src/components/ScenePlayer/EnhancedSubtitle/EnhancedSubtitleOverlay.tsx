@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, Card, Modal } from 'react-bootstrap';
 import { WordSegment, DictionaryEntry, SubtitleCue, SegmentationOptions } from './types';
 import { createSegmenter, detectLanguage } from './segmentation';
@@ -10,6 +11,7 @@ interface EnhancedSubtitleOverlayProps {
   subtitleTrack: string | null;
   isVisible: boolean;
   language?: string;
+  isFullscreen?: boolean;
   onToggleVisibility: () => void;
 }
 
@@ -22,6 +24,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   subtitleTrack,
   isVisible,
   language = 'en',
+  isFullscreen = false,
   onToggleVisibility,
 }) => {
   const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
@@ -32,12 +35,59 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [isLoading, setIsLoading] = useState(false);
   const [showDictionary, setShowDictionary] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
+  const [fullscreenContainer, setFullscreenContainer] = useState<HTMLElement | null>(null);
   
   const segmenterRef = useRef(createSegmenter({
     language: detectedLanguage,
     enablePunctuation: false,
     minWordLength: 1
   }));
+
+  // Find fullscreen container when entering fullscreen mode
+  useEffect(() => {
+    if (!isFullscreen) {
+      setFullscreenContainer(null);
+      return;
+    }
+
+    // Look for video.js fullscreen container
+    const findFullscreenContainer = () => {
+      // Check for video.js fullscreen class on html element
+      if (document.documentElement.classList.contains('vjs-full-window')) {
+        // Find the video player container in fullscreen mode
+        const playerContainer = document.querySelector('.video-js.vjs-fullscreen') as HTMLElement;
+        if (playerContainer) {
+          setFullscreenContainer(playerContainer);
+          return;
+        }
+      }
+      
+      // Check for standard fullscreen element
+      const fullscreenElement = document.fullscreenElement as HTMLElement;
+      if (fullscreenElement) {
+        setFullscreenContainer(fullscreenElement);
+        return;
+      }
+      
+      // Fallback: look for any element with fullscreen-related classes
+      const vjsFullscreen = document.querySelector('.vjs-fullscreen') as HTMLElement;
+      if (vjsFullscreen) {
+        setFullscreenContainer(vjsFullscreen);
+        return;
+      }
+
+      // If no specific container found, use body as fallback
+      setFullscreenContainer(document.body);
+    };
+
+    // Try to find container immediately
+    findFullscreenContainer();
+
+    // If not found, try again after a short delay (for animation completion)
+    const timer = setTimeout(findFullscreenContainer, 100);
+
+    return () => clearTimeout(timer);
+  }, [isFullscreen]);
 
   // Parse VTT subtitles
   const parseVTT = useCallback((vttContent: string): SubtitleCue[] => {
@@ -279,8 +329,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     return null;
   }
 
-  return (
-    <div className="enhanced-subtitle-overlay">
+  const subtitleContent = (
+    <div className={`enhanced-subtitle-overlay ${isFullscreen ? 'fullscreen-mode' : ''}`}>
       <Card className="subtitle-card">
         <Card.Body className="subtitle-content">
           <div className="subtitle-text">
@@ -305,4 +355,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       {renderDictionaryModal()}
     </div>
   );
+
+  // Render with portal in fullscreen mode
+  if (isFullscreen && fullscreenContainer) {
+    return createPortal(subtitleContent, fullscreenContainer);
+  }
+
+  // Render normally for non-fullscreen mode
+  return subtitleContent;
 };
