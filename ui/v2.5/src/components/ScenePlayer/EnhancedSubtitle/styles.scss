@@ -5,7 +5,7 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
-  max-width: 80%;
+  // max-width: 80%; // 移除宽度限制
   pointer-events: auto;
 
   &.fullscreen-mode {
@@ -15,7 +15,7 @@
     left: 50%;
     transform: translateX(-50%);
     z-index: 99999;
-    max-width: 85%;
+    // max-width: 85%; // 移除全屏模式宽度限制
     
     .subtitle-text {
       font-size: 3.0rem;
@@ -37,11 +37,10 @@
       border-radius: 12px;
       padding: 16px 24px;
       
-      // 全屏模式也限制最多两行，无省略号
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
+      // 全屏模式单行显示，超出部分隐藏
+      white-space: nowrap;
       overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
@@ -60,7 +59,7 @@
       0 0 24px rgba(0, 0, 0, 0.8),
       2px 2px 4px rgba(0, 0, 0, 1),
       -2px -2px 4px rgba(0, 0, 0, 0.5);
-    max-width: 600px;
+    // max-width: 600px; // 移除文本最大宽度限制
     background: linear-gradient(
       180deg, 
       rgba(0, 0, 0, 0.1) 0%, 
@@ -70,11 +69,10 @@
     border-radius: 10px;
     padding: 12px 18px;
     
-    // 限制最多两行显示，无省略号
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+    // 单行显示，超出部分显示省略号
+    white-space: nowrap;
     overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .subtitle-word {
@@ -250,7 +248,7 @@
 // Responsive design
 @media (max-width: 768px) {
   .enhanced-subtitle-overlay {
-    max-width: 95%;
+    // max-width: 95%; // 移除移动端宽度限制
     
     .subtitle-text {
       font-size: 1.8rem;
@@ -270,7 +268,7 @@
   }
 
   .dictionary-modal .modal-dialog {
-    max-width: 95%;
+    // max-width: 95%; // 移除字典模态框宽度限制
     margin: 1rem auto;
   }
 }
