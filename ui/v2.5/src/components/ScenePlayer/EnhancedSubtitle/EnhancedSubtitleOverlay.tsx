@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Modal } from 'react-bootstrap';
 import { WordSegment, DictionaryEntry, SubtitleCue, SegmentationOptions } from './types';
 import { createSegmenter, detectLanguage } from './segmentation';
-import { lookupWord } from './dictionary';
+import { lookupWord, lookupWordWithContext } from './dictionary';
 import './styles.scss';
 
 interface EnhancedSubtitleOverlayProps {
@@ -226,7 +226,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
     
     try {
-      const entry = await lookupWord(word, detectedLanguage);
+      // Use the current subtitle text as context for better word explanation
+      const context = currentCue?.text || '';
+      console.log('🔍 Looking up word with context:', { word, context, language: detectedLanguage });
+      
+      // Use contextual lookup if we have context, otherwise fallback to regular lookup
+      const entry = context 
+        ? await lookupWordWithContext(word, context, detectedLanguage)
+        : await lookupWord(word, detectedLanguage);
+        
       setDictionary(entry);
     } catch (error) {
       console.error('Dictionary lookup failed:', error);
@@ -234,7 +242,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, [detectedLanguage, onPause]);
+  }, [detectedLanguage, currentCue, onPause]);
 
   // Handle closing dictionary and resume playback if needed
   const handleCloseDictionary = useCallback(() => {

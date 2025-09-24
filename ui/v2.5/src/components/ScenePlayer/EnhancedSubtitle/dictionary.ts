@@ -1,17 +1,39 @@
 import { DictionaryEntry } from './types';
+import { ollamaService } from './ollamaService';
 
 // Dictionary service for word lookups
 export class DictionaryService {
   private cache = new Map<string, DictionaryEntry>();
+  private ollamaAvailable = false;
 
   constructor() {
     // Initialize with some common words for demonstration
     this.initializeCommonWords();
+    // Check if Ollama is available
+    this.checkOllamaAvailability();
   }
 
-  // Look up a word in the dictionary
+  // Check if Ollama service is available
+  private async checkOllamaAvailability() {
+    try {
+      this.ollamaAvailable = await ollamaService.isAvailable();
+      console.log('Ollama service availability:', this.ollamaAvailable);
+    } catch (error) {
+      console.warn('Failed to check Ollama availability:', error);
+      this.ollamaAvailable = false;
+    }
+  }
+
+  // Look up a word in the dictionary (without context)
   async lookup(word: string, language: string = 'en'): Promise<DictionaryEntry | null> {
-    const cacheKey = `${word.toLowerCase()}_${language}`;
+    return this.lookupWithContext(word, '', language);
+  }
+
+  // Look up a word with context using Ollama if available, fallback to traditional APIs
+  async lookupWithContext(word: string, context: string = '', language: string = 'en'): Promise<DictionaryEntry | null> {
+    const cacheKey = context 
+      ? `${word.toLowerCase()}_${language}_${context.slice(0, 50)}` // Include context in cache key
+      : `${word.toLowerCase()}_${language}`;
     
     // Check cache first
     if (this.cache.has(cacheKey)) {
@@ -19,15 +41,31 @@ export class DictionaryService {
     }
 
     try {
-      // Try multiple sources
-      let entry = await this.lookupFromFreeDictionary(word, language);
-      
-      if (!entry && language === 'en') {
-        entry = await this.lookupFromWordnik(word);
+      let entry: DictionaryEntry | null = null;
+
+      // If context is provided and Ollama is available, try Ollama first
+      if (context && this.ollamaAvailable) {
+        try {
+          console.log('🤖 Using Ollama for contextual word explanation:', { word, context });
+          entry = await ollamaService.explainWord(word, context, language);
+          console.log('🤖 Ollama response:', entry);
+        } catch (error) {
+          console.warn('Ollama lookup failed, falling back to traditional APIs:', error);
+          // Continue to fallback methods
+        }
       }
-      
+
+      // Fallback to traditional dictionary APIs if Ollama failed or unavailable
       if (!entry) {
-        entry = this.createBasicEntry(word, language);
+        entry = await this.lookupFromFreeDictionary(word, language);
+        
+        if (!entry && language === 'en') {
+          entry = await this.lookupFromWordnik(word);
+        }
+        
+        if (!entry) {
+          entry = this.createBasicEntry(word, language);
+        }
       }
 
       // Cache the result
@@ -146,12 +184,37 @@ export class DictionaryService {
       keys: Array.from(this.cache.keys())
     };
   }
+
+  // Get Ollama availability status
+  isOllamaAvailable(): boolean {
+    return this.ollamaAvailable;
+  }
+
+  // Force refresh Ollama availability
+  async refreshOllamaAvailability(): Promise<boolean> {
+    await this.checkOllamaAvailability();
+    return this.ollamaAvailable;
+  }
+
+  // Get Ollama service configuration
+  getOllamaConfig() {
+    return ollamaService.getConfig();
+  }
 }
 
 // Singleton instance
 export const dictionaryService = new DictionaryService();
 
-// Helper function for quick lookup
+// Helper function for quick lookup (without context)
 export async function lookupWord(word: string, language: string = 'en'): Promise<DictionaryEntry | null> {
   return dictionaryService.lookup(word, language);
+}
+
+// Helper function for contextual lookup using Ollama
+export async function lookupWordWithContext(
+  word: string, 
+  context: string, 
+  language: string = 'en'
+): Promise<DictionaryEntry | null> {
+  return dictionaryService.lookupWithContext(word, context, language);
 }
