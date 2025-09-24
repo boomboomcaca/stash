@@ -11,7 +11,7 @@ export interface OllamaConfig {
 
 // Default configuration
 export const defaultOllamaConfig: OllamaConfig = {
-  baseUrl: 'http://localhost:11434',
+  baseUrl: 'http://192.168.1.113:11434',
   model: 'qwen3:latest',
   timeout: 30000,
   enabled: true,
