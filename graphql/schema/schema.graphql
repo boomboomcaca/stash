@@ -270,6 +270,14 @@ type Query {
 
   # LatestVersion
   latestversion: LatestVersion!
+
+  # Ollama
+  "Get current Ollama configuration and status"
+  ollamaStatus: OllamaStatus!
+  "Get available Ollama models"
+  ollamaModels: [String!]!
+  "Check if Ollama service is available"
+  ollamaAvailable: Boolean!
 }
 
 type Mutation {
@@ -541,6 +549,14 @@ type Mutation {
   Returns the job ID
   """
   uninstallPackages(type: PackageType!, packages: [PackageSpecInput!]!): ID!
+
+  # Ollama
+  "Configure Ollama settings"
+  configureOllama(input: OllamaConfigInput!): OllamaConfig!
+  "Generate text using Ollama"
+  ollamaGenerate(input: OllamaGenerateInput!): OllamaGenerateResult!
+  "Explain a word in context using Ollama"
+  ollamaExplainWord(input: OllamaExplainWordInput!): OllamaDictionaryEntry!
 
   stopJob(job_id: ID!): Boolean!
   stopAllJobs: Boolean!

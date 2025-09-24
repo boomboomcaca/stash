@@ -1,5 +1,4 @@
 import { DictionaryEntry } from './types';
-import { ollamaConfigManager } from './ollamaConfig';
 
 export interface OllamaResponse {
   model: string;
@@ -27,13 +26,24 @@ export interface OllamaRequest {
 }
 
 export class OllamaService {
+  // Default configuration - now using backend service instead
+  private defaultConfig = {
+    baseUrl: 'http://localhost:11434',
+    model: 'qwen3:latest',
+    timeout: 30000,
+    enabled: true,
+    fallbackToTraditionalDict: true,
+    promptTemplate: '解释: 请解释一下这句话中这个词的用法<WORD>： <CONTEXT>\n\n请用中文回答，包含以下信息：\n1. 词性\n2. 在此上下文中的含义\n3. 使用示例（如果适用）\n\n请保持回答简洁明了。'
+  };
+
   constructor() {
-    // Configuration is now managed by ollamaConfigManager
+    // This service is deprecated - use ollamaBackendService instead
+    console.warn('OllamaService is deprecated. Use ollamaBackendService for new implementations.');
   }
 
-  // Get current configuration
+  // Get current configuration (simplified)
   private getConfig() {
-    return ollamaConfigManager.getConfig();
+    return this.defaultConfig;
   }
 
   // Test if Ollama service is available
@@ -44,7 +54,7 @@ export class OllamaService {
     }
 
     try {
-      const response = await fetch(ollamaConfigManager.getVersionUrl(), {
+      const response = await fetch(`${config.baseUrl}/api/version`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000), // 5 second timeout for availability check
       });
@@ -58,7 +68,7 @@ export class OllamaService {
   // Get available models
   async getModels(): Promise<string[]> {
     try {
-      const response = await fetch(ollamaConfigManager.getModelsUrl(), {
+      const response = await fetch(`${this.getConfig().baseUrl}/api/tags`, {
         method: 'GET',
         signal: AbortSignal.timeout(10000),
       });
@@ -91,7 +101,7 @@ export class OllamaService {
     };
 
     try {
-      const response = await fetch(ollamaConfigManager.getGenerateUrl(), {
+      const response = await fetch(`${config.baseUrl}/api/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,7 +124,7 @@ export class OllamaService {
 
   // Explain a word in context using Ollama
   async explainWord(word: string, context: string, language: string = 'en'): Promise<DictionaryEntry> {
-    const prompt = ollamaConfigManager.buildPrompt(word, context);
+    const prompt = this.buildPrompt(word, context);
 
     try {
       const explanation = await this.generate(prompt);
@@ -186,9 +196,16 @@ export class OllamaService {
     };
   }
 
-  // Get current configuration (delegated to config manager)
+  // Build prompt from template
+  private buildPrompt(word: string, context: string): string {
+    return this.getConfig().promptTemplate
+      .replace('<WORD>', word)
+      .replace('<CONTEXT>', context);
+  }
+
+  // Get current configuration (public method)
   getConfig() {
-    return ollamaConfigManager.getConfig();
+    return this.defaultConfig;
   }
 }
 
