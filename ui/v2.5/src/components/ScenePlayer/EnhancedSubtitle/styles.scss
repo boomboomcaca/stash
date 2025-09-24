@@ -1,7 +1,7 @@
 .enhanced-subtitle-overlay {
   position: absolute;
   top: auto;
-  bottom: 25%;
+  bottom: 15%;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
@@ -77,8 +77,8 @@
 
   .subtitle-word {
     cursor: pointer;
-    padding: 4px 6px;
-    margin: 0 2px;
+    padding: 2px 3px;
+    margin: 0 0.5px;
     border-radius: 5px;
     transition: all 0.3s ease;
     display: inline-block;
@@ -262,7 +262,7 @@
     }
 
     .subtitle-word {
-      margin: 0;
+      margin: 0 -0.5px;
       padding: 1px 2px;
     }
   }
