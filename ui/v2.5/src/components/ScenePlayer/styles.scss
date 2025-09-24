@@ -66,6 +66,11 @@ $sceneTabWidth: 450px;
   height: 100%;
   position: absolute;
   width: 100%;
+  
+  // 隐藏原生字幕显示，只保留Enhanced字幕
+  .vjs-text-track-display {
+    display: none !important;
+  }
 
   &:not(.vjs-has-started) .vjs-control-bar {
     display: flex;
@@ -764,5 +769,85 @@ $sceneTabWidth: 450px;
       flex: 0 0 calc(100% - 15px);
       max-width: calc(100% - 15px);
     }
+  }
+}
+
+// Enhanced subtitle dictionary modal styles for fullscreen compatibility
+.dictionary-modal {
+  // Ensure modal appears above fullscreen content (video.js uses z-index: 1000)
+  z-index: 200000 !important;
+  position: fixed !important; // Force fixed positioning
+  
+  .modal-dialog {
+    z-index: 200000 !important;
+    position: relative !important;
+  }
+  
+  .modal-content {
+    z-index: 200000 !important;
+    position: relative !important;
+  }
+  
+  // Special handling for fullscreen dictionary
+  &.fullscreen-dictionary {
+    z-index: 200000 !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    
+    .modal-dialog {
+      z-index: 200000 !important;
+      position: fixed !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      margin: 0 !important;
+    }
+    
+    .modal-content {
+      z-index: 200000 !important;
+      position: relative !important;
+    }
+  }
+}
+
+// Ensure modal backdrop appears above fullscreen content
+.modal-backdrop.show {
+  z-index: 199999 !important;
+  position: fixed !important;
+}
+
+// Special container for fullscreen modals
+#fullscreen-modal-root {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 200000 !important;
+  pointer-events: none !important;
+  
+  .dictionary-modal {
+    pointer-events: auto !important;
+  }
+}
+
+// Special handling for video.js fullscreen mode
+.vjs-full-window {
+  #fullscreen-modal-root {
+    z-index: 200000 !important;
+    position: fixed !important;
+  }
+  
+  .dictionary-modal {
+    z-index: 200000 !important;
+    position: fixed !important;
+  }
+  
+  .modal-backdrop.show {
+    z-index: 199999 !important;
+    position: fixed !important;
   }
 }
