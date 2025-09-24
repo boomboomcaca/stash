@@ -11,6 +11,7 @@ import (
 	"github.com/stashapp/stash/internal/manager"
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
+	"github.com/stashapp/stash/pkg/ollama"
 	"github.com/stashapp/stash/pkg/plugin/hook"
 	"github.com/stashapp/stash/pkg/scraper"
 )
@@ -38,11 +39,35 @@ type Resolver struct {
 	galleryService manager.GalleryService
 	groupService   manager.GroupService
 
-	hookExecutor hookExecutor
+	hookExecutor   hookExecutor
+	ollamaService  *ollama.Service
 }
 
 func (r *Resolver) scraperCache() *scraper.Cache {
 	return manager.GetInstance().ScraperCache
+}
+
+func (r *Resolver) getOllamaService() *ollama.Service {
+	if r.ollamaService == nil {
+		// Initialize with default config, could be loaded from persistent storage
+		config := ollama.DefaultConfig()
+		
+		// TODO: Load saved configuration from database/config store
+		// if savedConfig := r.loadOllamaConfig(); savedConfig != nil {
+		//     config = savedConfig
+		// }
+		
+		r.ollamaService = ollama.NewService(config)
+	}
+	return r.ollamaService
+}
+
+func (r *Resolver) saveOllamaConfig(ctx context.Context, config *ollama.OllamaConfig) error {
+	// TODO: Implement persistent storage of ollama configuration
+	// This could be stored in the database or configuration system
+	// For now, we just log that the config was updated
+	logger.Infof("Ollama configuration updated: %+v", config)
+	return nil
 }
 
 func (r *Resolver) Gallery() GalleryResolver {

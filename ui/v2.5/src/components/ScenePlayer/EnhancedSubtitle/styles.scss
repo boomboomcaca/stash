@@ -1,61 +1,101 @@
 .enhanced-subtitle-overlay {
   position: absolute;
-  top: 50%;
+  top: auto;
+  bottom: 15%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   z-index: 1000;
-  max-width: 80%;
+  // max-width: 80%; // 移除宽度限制
   pointer-events: auto;
 
   &.fullscreen-mode {
     position: fixed;
     top: auto;
-    bottom: 15%;
+    bottom: 10%;
     left: 50%;
     transform: translateX(-50%);
     z-index: 99999;
-    max-width: 85%;
+    // max-width: 85%; // 移除全屏模式宽度限制
     
     .subtitle-text {
-      font-size: 1.8rem;
-      font-weight: 600;
-      text-shadow: 3px 3px 8px rgba(0, 0, 0, 1), 
-                   1px 1px 4px rgba(0, 0, 0, 0.8);
+      font-size: 3.0rem;
+      font-weight: 700;
+      font-family: "Noto Sans", "PingFang SC", "Microsoft YaHei", "SF Pro Display", "Roboto", sans-serif;
+      letter-spacing: 0.8px;
+      text-shadow: 
+        0 0 15px rgba(0, 0, 0, 1),
+        0 0 30px rgba(0, 0, 0, 0.9),
+        3px 3px 6px rgba(0, 0, 0, 1),
+        -3px -3px 6px rgba(0, 0, 0, 0.6);
       color: #ffffff;
+      background: linear-gradient(
+        180deg, 
+        rgba(0, 0, 0, 0.1) 0%, 
+        rgba(0, 0, 0, 0.75) 50%, 
+        rgba(0, 0, 0, 0.1) 100%
+      );
+      border-radius: 12px;
+      padding: 16px 24px;
+      
+      // 全屏模式单行显示，超出部分隐藏
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
   .subtitle-text {
     color: #ffffff;
-    font-size: 1.3rem;
-    font-weight: 600;
-    line-height: 1.4;
+    font-size: 2.2rem;
+    font-weight: 700;
+    font-family: "Noto Sans", "PingFang SC", "Microsoft YaHei", "SF Pro Display", "Roboto", sans-serif;
+    line-height: 1.3;
+    letter-spacing: 0.6px;
     margin: 0;
     text-align: center;
     word-wrap: break-word;
-    text-shadow: 2px 2px 6px rgba(0, 0, 0, 1), 
-                 1px 1px 3px rgba(0, 0, 0, 0.8);
-    max-width: 500px;
-    padding: 0.5rem;
+    text-shadow: 
+      0 0 12px rgba(0, 0, 0, 1),
+      0 0 24px rgba(0, 0, 0, 0.8),
+      2px 2px 4px rgba(0, 0, 0, 1),
+      -2px -2px 4px rgba(0, 0, 0, 0.5);
+    // max-width: 600px; // 移除文本最大宽度限制
+    background: linear-gradient(
+      180deg, 
+      rgba(0, 0, 0, 0.1) 0%, 
+      rgba(0, 0, 0, 0.7) 50%, 
+      rgba(0, 0, 0, 0.1) 100%
+    );
+    border-radius: 10px;
+    padding: 12px 18px;
+    
+    // 单行显示，超出部分显示省略号
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .subtitle-word {
     cursor: pointer;
-    padding: 2px 4px;
-    margin: 0 1px;
-    border-radius: 3px;
-    transition: all 0.2s ease;
+    padding: 2px 3px;
+    margin: 0 0.5px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
     display: inline-block;
 
     &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-      transform: translateY(-1px);
-      text-shadow: 2px 2px 6px rgba(0, 0, 0, 1);
+      background-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+      text-shadow: 
+        0 0 8px rgba(0, 0, 0, 1),
+        2px 2px 4px rgba(0, 0, 0, 1);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
     }
 
     &.selected {
-      background-color: rgba(74, 144, 226, 0.7);
+      background-color: rgba(74, 144, 226, 0.8);
       color: white;
+      box-shadow: 0 2px 6px rgba(74, 144, 226, 0.4);
     }
   }
 
@@ -154,38 +194,34 @@
 // Responsive design
 @media (max-width: 768px) {
   .enhanced-subtitle-overlay {
-    max-width: 95%;
+    // max-width: 95%; // 移除移动端宽度限制
     
     .subtitle-text {
-      font-size: 1rem;
+      font-size: 1.8rem;
+      padding: 10px 14px;
+      letter-spacing: 0.4px;
+    }
+
+    &.fullscreen-mode .subtitle-text {
+      font-size: 2.4rem;
+      padding: 14px 20px;
     }
 
     .subtitle-word {
-      margin: 0;
+      margin: 0 -0.5px;
       padding: 1px 2px;
     }
   }
 
   .dictionary-modal .modal-dialog {
-    max-width: 95%;
+    // max-width: 95%; // 移除字典模态框宽度限制
     margin: 1rem auto;
   }
 }
 
-// Animation for fade in/out
+// Animation for fade in/out removed - subtitles appear instantly
 .enhanced-subtitle-overlay {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
+  // animation: fadeIn 0.3s ease-in-out; // 移除字幕出现动画
 }
 
 // Loading spinner customization
