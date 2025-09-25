@@ -39,13 +39,11 @@ func DefaultConfig() *OllamaConfig {
 **词性：** [词性名称]
 **含义：** [在当前语境中的具体含义]
 **用法说明：** [语法用法和特点说明]
-**例句：** [相似用法的例句]
 
 要求：
 1. 直接回答，不要前言或总结
 2. 每部分内容简洁明了
-3. 例句控制在1-2个
-4. 不要使用markdown标题符号（#）或分割线（---）`,
+3. 不要使用markdown标题符号（#）或分割线（---）`,
 	}
 }
 
@@ -343,7 +341,7 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 	cleanExplanation := s.cleanExplanationText(explanation)
 	
 	// Try to parse structured content
-	partOfSpeech, meaning, usageNote, examples := s.parseStructuredExplanation(cleanExplanation)
+	partOfSpeech, meaning, usageNote, _ := s.parseStructuredExplanation(cleanExplanation)
 	
 	// Build the complete meaning text
 	completeMeaning := meaning
