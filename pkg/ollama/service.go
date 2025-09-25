@@ -287,80 +287,15 @@ func (s *Service) buildPrompt(word, context string) string {
 	return prompt
 }
 
-// parseExplanation parses the Ollama explanation into a DictionaryEntry
+// parseExplanation directly returns the Ollama explanation without parsing
 func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
-	lines := strings.Split(explanation, "\n")
-	
-	var partOfSpeech string = "unknown"
-	var meaning string = explanation
-	var examples []string
-
-	// Try to extract structured information from the response
-	for _, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" {
-			continue
-		}
-
-		// Look for part of speech indicators
-		if strings.Contains(trimmedLine, "词性") || strings.Contains(trimmedLine, "：") {
-			if strings.Contains(trimmedLine, "词性") {
-				parts := strings.Split(trimmedLine, "：")
-				if len(parts) > 1 {
-					partOfSpeech = strings.TrimSpace(parts[1])
-				}
-			}
-		}
-
-		// Look for examples
-		if strings.Contains(trimmedLine, "示例") || strings.Contains(trimmedLine, "例子") || strings.Contains(trimmedLine, "例：") {
-			if strings.Contains(trimmedLine, "：") {
-				parts := strings.Split(trimmedLine, "：")
-				if len(parts) > 1 {
-					example := strings.TrimSpace(parts[1])
-					if example != "" {
-						examples = append(examples, example)
-					}
-				}
-			}
-		}
-	}
-
-	// Try to extract main meaning
-	if meaning == explanation {
-		// Look for meaning line
-		for _, line := range lines {
-			trimmedLine := strings.TrimSpace(line)
-			if strings.Contains(trimmedLine, "含义") && strings.Contains(trimmedLine, "：") {
-				parts := strings.Split(trimmedLine, "：")
-				if len(parts) > 1 {
-					meaning = strings.TrimSpace(parts[1])
-					break
-				}
-			}
-		}
-
-		// If still not found, use first substantial line
-		if meaning == explanation {
-			for _, line := range lines {
-				trimmedLine := strings.TrimSpace(line)
-				if len(trimmedLine) > 10 && 
-					!strings.Contains(trimmedLine, "词性") && 
-					!strings.Contains(trimmedLine, "示例") {
-					meaning = trimmedLine
-					break
-				}
-			}
-		}
-	}
-
 	return &DictionaryEntry{
 		Word: word,
 		Definitions: []DictionaryDefinition{
 			{
-				PartOfSpeech: strings.TrimSpace(partOfSpeech),
-				Meaning:      strings.TrimSpace(meaning),
-				Examples:     examples,
+				PartOfSpeech: "",
+				Meaning:      strings.TrimSpace(explanation),
+				Examples:     []string{},
 			},
 		},
 		Etymology: "AI解释 (Ollama)",
