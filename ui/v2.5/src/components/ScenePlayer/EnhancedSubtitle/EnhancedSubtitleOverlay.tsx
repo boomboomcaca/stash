@@ -14,6 +14,7 @@ interface EnhancedSubtitleOverlayProps {
   isFullscreen?: boolean;
   onToggleVisibility: () => void;
   onPausePlayer?: () => void;
+  onResumePlayer?: () => void;
 }
 
 interface ParsedSubtitle {
@@ -28,6 +29,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   isFullscreen = false,
   onToggleVisibility,
   onPausePlayer,
+  onResumePlayer,
 }) => {
   const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
   const [currentCue, setCurrentCue] = useState<SubtitleCue | null>(null);
@@ -229,6 +231,17 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
   }, [detectedLanguage, currentCue, onPausePlayer]);
 
+  // Handle closing dictionary and resuming playback
+  const handleCloseDictionary = useCallback(() => {
+    setShowDictionary(false);
+    setSelectedWord(null);
+    setDictionary(null);
+    
+    // Resume the player when closing the dictionary
+    if (onResumePlayer) {
+      onResumePlayer();
+    }
+  }, [onResumePlayer]);
 
   // Render segmented text with clickable words
   const renderSegmentedText = useMemo(() => {
@@ -275,7 +288,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const renderDictionaryModal = () => (
     <Modal 
       show={showDictionary} 
-      onHide={() => setShowDictionary(false)}
+      onHide={handleCloseDictionary}
       className="dictionary-modal"
       centered
     >
@@ -337,7 +350,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         <button 
           type="button" 
           className="btn btn-secondary" 
-          onClick={() => setShowDictionary(false)}
+          onClick={handleCloseDictionary}
         >
           Close
         </button>
