@@ -37,6 +37,7 @@ const OLLAMA_EXPLAIN_WORD_MUTATION = gql`
   mutation OllamaExplainWord($input: OllamaExplainWordInput!) {
     ollamaExplainWord(input: $input) {
       word
+      pronunciation
       definitions {
         partOfSpeech
         meaning
@@ -76,6 +77,7 @@ export interface BackendOllamaStatus {
 
 export interface BackendDictionaryEntry {
   word: string;
+  pronunciation?: string;
   definitions: BackendDictionaryDefinition[];
   etymology: string;
 }

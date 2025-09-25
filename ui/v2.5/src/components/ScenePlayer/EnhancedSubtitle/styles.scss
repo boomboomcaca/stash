@@ -254,11 +254,25 @@
       font-style: italic;
       color: var(--bs-info);
       font-size: 1.1rem;
-      font-family: "Lucida Sans Unicode", "Arial Unicode MS", monospace;
-      background: rgba(0, 123, 255, 0.1);
-      padding: 0.3rem 0.6rem;
-      border-radius: 4px;
-      border-left: 3px solid var(--bs-info);
+      font-weight: 500;
+      background: rgba(13, 110, 253, 0.1);
+      border: 1px solid rgba(13, 110, 253, 0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      text-align: center;
+      margin-bottom: 1rem;
+      
+      strong {
+        color: var(--bs-light);
+        margin-right: 8px;
+      }
+      
+      .phonetic {
+        font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif;
+        font-size: 1.2rem;
+        color: var(--bs-info);
+        font-weight: 600;
+      }
     }
 
     .definition {
@@ -270,13 +284,14 @@
         margin-bottom: 0.5rem;
         
         .badge {
-          font-size: 0.7rem;
+          font-size: 0.8rem;
           text-transform: capitalize;
+          padding: 4px 8px;
         }
       }
 
       .meaning {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         line-height: 1.5;
         
         // Better formatting for multiline content
@@ -348,6 +363,27 @@
   .dictionary-modal .modal-dialog {
     // max-width: 95%; // 移除字典模态框宽度限制
     margin: 1rem auto;
+  }
+  
+  .dictionary-modal .dictionary-content {
+    .pronunciation {
+      font-size: 1rem;
+      padding: 6px 10px;
+      
+      .phonetic {
+        font-size: 1.1rem;
+      }
+    }
+    
+    .definition .meaning {
+      font-size: 1rem;
+      line-height: 1.4;
+    }
+    
+    .definition .part-of-speech .badge {
+      font-size: 0.75rem;
+      padding: 3px 6px;
+    }
   }
 }
 

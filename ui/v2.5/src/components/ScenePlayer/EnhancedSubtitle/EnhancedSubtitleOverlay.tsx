@@ -528,7 +528,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           <div className="dictionary-content">
             {dictionary.pronunciation && (
               <div className="pronunciation mb-3">
-                <strong>Pronunciation:</strong> {dictionary.pronunciation}
+                <strong>美音音标：</strong>
+                <span className="phonetic">{dictionary.pronunciation}</span>
               </div>
             )}
             

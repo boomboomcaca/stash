@@ -36,7 +36,7 @@ func DefaultConfig() *OllamaConfig {
 
 请严格按照以下格式回答，不要添加额外的标题、分割线或格式：
 
-**音标：** [美式音标，使用IPA国际音标符号]
+**美音音标：** [/音标/]
 **词性：** [词性名称]
 **含义：** [在当前语境中的具体含义]
 **用法说明：** [语法用法和特点说明]
@@ -44,7 +44,7 @@ func DefaultConfig() *OllamaConfig {
 要求：
 1. 直接回答，不要前言或总结
 2. 每部分内容简洁明了
-3. 音标必须提供准确的美式发音IPA符号
+3. 美音音标请用国际音标（IPA）格式，用斜杠包围
 4. 不要使用markdown标题符号（#）或分割线（---）`,
 	}
 }
@@ -122,10 +122,10 @@ type OllamaVersionResponse struct {
 
 // DictionaryEntry represents a dictionary entry for word explanation
 type DictionaryEntry struct {
-	Word          string                 `json:"word"`
-	Pronunciation string                 `json:"pronunciation"`
-	Definitions   []DictionaryDefinition `json:"definitions"`
-	Etymology     string                 `json:"etymology"`
+	Word         string                 `json:"word"`
+	Pronunciation string                `json:"pronunciation,omitempty"`
+	Definitions  []DictionaryDefinition `json:"definitions"`
+	Etymology    string                 `json:"etymology"`
 }
 
 // DictionaryDefinition represents a word definition
@@ -344,7 +344,7 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 	cleanExplanation := s.cleanExplanationText(explanation)
 	
 	// Try to parse structured content
-	partOfSpeech, meaning, usageNote, pronunciation, _ := s.parseStructuredExplanation(cleanExplanation)
+	pronunciation, partOfSpeech, meaning, usageNote, _ := s.parseStructuredExplanation(cleanExplanation)
 	
 	// Build the complete meaning text
 	completeMeaning := meaning
@@ -352,9 +352,8 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 		completeMeaning += "\n\n" + usageNote
 	}
 	
-	return &DictionaryEntry{
-		Word:          word,
-		Pronunciation: pronunciation,
+	entry := &DictionaryEntry{
+		Word: word,
 		Definitions: []DictionaryDefinition{
 			{
 				PartOfSpeech: partOfSpeech,
@@ -362,6 +361,13 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 			},
 		},
 	}
+	
+	// Add pronunciation to entry if available
+	if pronunciation != "" {
+		entry.Pronunciation = pronunciation
+	}
+	
+	return entry
 }
 
 // cleanExplanationText removes excessive formatting and cleans up the text
@@ -406,7 +412,7 @@ func (s *Service) cleanExplanationText(text string) string {
 }
 
 // parseStructuredExplanation attempts to parse structured response
-func (s *Service) parseStructuredExplanation(text string) (partOfSpeech, meaning, usageNote, pronunciation string, examples []string) {
+func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOfSpeech, meaning, usageNote string, examples []string) {
 	lines := strings.Split(text, "\n")
 	
 	currentSection := ""
@@ -419,8 +425,8 @@ func (s *Service) parseStructuredExplanation(text string) (partOfSpeech, meaning
 		}
 		
 		// Parse structured sections
-		if strings.HasPrefix(line, "**音标：**") || strings.HasPrefix(line, "**音标:**") {
-			pronunciation = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**音标：**"), "**音标:**"))
+		if strings.HasPrefix(line, "**美音音标：**") || strings.HasPrefix(line, "**美音音标:**") {
+			pronunciation = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**美音音标：**"), "**美音音标:**"))
 			pronunciation = strings.Trim(pronunciation, "[]")
 			currentSection = "pronunciation"
 		} else if strings.HasPrefix(line, "**词性：**") || strings.HasPrefix(line, "**词性:**") {
@@ -441,8 +447,6 @@ func (s *Service) parseStructuredExplanation(text string) (partOfSpeech, meaning
 				exampleLines = append(exampleLines, exampleText)
 			}
 			currentSection = "examples"
-		} else if currentSection == "pronunciation" && pronunciation != "" {
-			pronunciation += " " + line
 		} else if currentSection == "meaning" && meaning != "" {
 			meaning += " " + line
 		} else if currentSection == "usage" && usageNote != "" {
@@ -476,7 +480,6 @@ func (s *Service) parseStructuredExplanation(text string) (partOfSpeech, meaning
 	meaning = strings.TrimSpace(meaning)
 	usageNote = strings.TrimSpace(usageNote)
 	partOfSpeech = strings.TrimSpace(partOfSpeech)
-	pronunciation = strings.TrimSpace(pronunciation)
 	
 	// Set default part of speech if not found
 	if partOfSpeech == "" {
@@ -490,5 +493,5 @@ func (s *Service) parseStructuredExplanation(text string) (partOfSpeech, meaning
 		examples = exampleLines
 	}
 	
-	return partOfSpeech, meaning, usageNote, pronunciation, examples
+	return pronunciation, partOfSpeech, meaning, usageNote, examples
 }

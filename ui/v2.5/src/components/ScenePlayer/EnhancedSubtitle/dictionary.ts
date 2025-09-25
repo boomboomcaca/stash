@@ -52,7 +52,7 @@ export class DictionaryService {
           // Convert backend format to local format
           entry = {
             word: backendEntry.word,
-            pronunciation: undefined, // Backend doesn't provide pronunciation yet
+            pronunciation: backendEntry.pronunciation,
             definitions: backendEntry.definitions.map(def => ({
               partOfSpeech: def.partOfSpeech,
               meaning: def.meaning,

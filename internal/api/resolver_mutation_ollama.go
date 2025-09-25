@@ -82,8 +82,9 @@ func (r *mutationResolver) OllamaExplainWord(ctx context.Context, input OllamaEx
 	}
 	
 	return &OllamaDictionaryEntry{
-		Word:        entry.Word,
-		Definitions: definitions,
-		Etymology:   entry.Etymology,
+		Word:          entry.Word,
+		Pronunciation: &entry.Pronunciation,
+		Definitions:   definitions,
+		Etymology:     entry.Etymology,
 	}, nil
 }
