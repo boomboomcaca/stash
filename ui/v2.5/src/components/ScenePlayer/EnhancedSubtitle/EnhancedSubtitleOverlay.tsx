@@ -38,12 +38,127 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [showDictionary, setShowDictionary] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
   const [fullscreenContainer, setFullscreenContainer] = useState<HTMLElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ y: 0 });
+  const [lastSavedPosition, setLastSavedPosition] = useState({ y: 0 });
+  
+  const subtitleRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef({ y: 0, startY: 0 });
   
   const segmenterRef = useRef(createSegmenter({
     language: detectedLanguage,
     enablePunctuation: false,
     minWordLength: 1
   }));
+
+  // Load saved position from localStorage
+  useEffect(() => {
+    const savedPosition = localStorage.getItem('enhancedSubtitlePosition');
+    if (savedPosition) {
+      try {
+        const position = JSON.parse(savedPosition);
+        setDragPosition(position);
+        setLastSavedPosition(position);
+      } catch (error) {
+        console.error('Failed to parse saved subtitle position:', error);
+      }
+    }
+  }, []);
+
+  // Save position to localStorage when it changes
+  useEffect(() => {
+    const saveTimer = setTimeout(() => {
+      if (dragPosition.y !== lastSavedPosition.y) {
+        localStorage.setItem('enhancedSubtitlePosition', JSON.stringify(dragPosition));
+        setLastSavedPosition(dragPosition);
+      }
+    }, 500); // Debounce saves
+
+    return () => clearTimeout(saveTimer);
+  }, [dragPosition, lastSavedPosition]);
+
+  // Mouse drag handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.target !== e.currentTarget) return; // Only start drag from subtitle background, not words
+    
+    setIsDragging(true);
+    dragStartRef.current = {
+      y: e.clientY,
+      startY: dragPosition.y
+    };
+    
+    e.preventDefault();
+  }, [dragPosition.y]);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const deltaY = e.clientY - dragStartRef.current.y;
+    const newY = dragStartRef.current.startY + deltaY;
+    
+    // Limit dragging to reasonable bounds
+    const containerHeight = window.innerHeight;
+    const minY = -containerHeight * 0.4; // Can move up to 40% of screen height
+    const maxY = containerHeight * 0.2;  // Can move down to 20% of screen height
+    
+    setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch drag handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.target !== e.currentTarget) return;
+    
+    const touch = e.touches[0];
+    setIsDragging(true);
+    dragStartRef.current = {
+      y: touch.clientY,
+      startY: dragPosition.y
+    };
+  }, [dragPosition.y]);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (!isDragging) return;
+    
+    const touch = e.touches[0];
+    const deltaY = touch.clientY - dragStartRef.current.y;
+    const newY = dragStartRef.current.startY + deltaY;
+    
+    const containerHeight = window.innerHeight;
+    const minY = -containerHeight * 0.4;
+    const maxY = containerHeight * 0.2;
+    
+    setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
+    e.preventDefault(); // Prevent scrolling while dragging
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Add global event listeners for drag
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd);
+      
+      // Add dragging class to body to prevent text selection
+      document.body.classList.add('subtitle-dragging');
+      
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+        document.body.classList.remove('subtitle-dragging');
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   // Find fullscreen container when entering fullscreen mode
   useEffect(() => {
@@ -351,9 +466,25 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }
 
   const subtitleContent = (
-    <div className={`enhanced-subtitle-overlay ${isFullscreen ? 'fullscreen-mode' : ''}`}>
-      <div className="subtitle-text">
+    <div 
+      ref={subtitleRef}
+      className={`enhanced-subtitle-overlay ${isFullscreen ? 'fullscreen-mode' : ''} ${isDragging ? 'dragging' : ''}`}
+      style={{
+        transform: `translateX(-50%) translateY(${dragPosition.y}px)`,
+      }}
+    >
+      <div 
+        className="subtitle-text"
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        title={isDragging ? "Dragging..." : "Click and drag to move subtitles"}
+      >
         {renderSegmentedText}
+      </div>
+      
+      {/* Drag indicator */}
+      <div className="drag-indicator">
+        <span className="drag-dots">⋮⋮</span>
       </div>
       
       {renderDictionaryModal()}

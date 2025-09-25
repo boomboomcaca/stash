@@ -7,6 +7,14 @@
   z-index: 1000;
   // max-width: 80%; // 移除宽度限制
   pointer-events: auto;
+  transition: transform 0.2s ease-out;
+  user-select: none; // Prevent text selection during drag
+  
+  &.dragging {
+    transition: none; // Disable transition during drag
+    cursor: grabbing;
+    z-index: 1001; // Elevate during drag
+  }
 
   &.fullscreen-mode {
     position: fixed;
@@ -16,6 +24,10 @@
     transform: translateX(-50%);
     z-index: 99999;
     // max-width: 85%; // 移除全屏模式宽度限制
+    
+    &.dragging {
+      z-index: 100000; // Higher z-index for fullscreen drag
+    }
     
     .subtitle-text {
       font-size: 2.6rem;
@@ -73,6 +85,11 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: grab; // Show grab cursor to indicate draggable
+    
+    &:active {
+      cursor: grabbing;
+    }
   }
 
   .subtitle-word {
@@ -96,6 +113,40 @@
       background-color: rgba(74, 144, 226, 0.8);
       color: white;
       box-shadow: 0 2px 6px rgba(74, 144, 226, 0.4);
+    }
+  }
+
+  // Drag indicator
+  .drag-indicator {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    
+    .drag-dots {
+      display: inline-block;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+      letter-spacing: -2px;
+      transform: rotate(90deg);
+    }
+  }
+
+  &:hover .drag-indicator {
+    opacity: 1;
+  }
+
+  &.dragging .drag-indicator {
+    opacity: 1;
+    
+    .drag-dots {
+      color: rgba(255, 255, 255, 1);
+      animation: dragPulse 1s ease-in-out infinite;
     }
   }
 
@@ -252,4 +303,26 @@
   height: 2rem;
   border-color: var(--bs-primary);
   border-right-color: transparent;
+}
+
+// Global styles for dragging
+body.subtitle-dragging {
+  user-select: none !important;
+  cursor: grabbing !important;
+  
+  * {
+    cursor: grabbing !important;
+  }
+}
+
+// Animation for drag indicator
+@keyframes dragPulse {
+  0%, 100% {
+    transform: rotate(90deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: rotate(90deg) scale(1.1);
+    opacity: 0.8;
+  }
 }
