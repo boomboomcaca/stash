@@ -1022,6 +1022,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             isFullscreen={fullscreen}
             language={subtitleLanguage}
             onToggleVisibility={() => setShowEnhancedSubtitles(!showEnhancedSubtitles)}
+            onPausePlayer={() => getPlayer()?.pause()}
           />
         )}
       </div>

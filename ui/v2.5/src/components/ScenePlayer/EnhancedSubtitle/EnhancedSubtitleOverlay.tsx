@@ -13,6 +13,7 @@ interface EnhancedSubtitleOverlayProps {
   language?: string;
   isFullscreen?: boolean;
   onToggleVisibility: () => void;
+  onPausePlayer?: () => void;
 }
 
 interface ParsedSubtitle {
@@ -26,6 +27,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   language = 'en',
   isFullscreen = false,
   onToggleVisibility,
+  onPausePlayer,
 }) => {
   const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
   const [currentCue, setCurrentCue] = useState<SubtitleCue | null>(null);
@@ -199,6 +201,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
 
   // Handle word selection
   const handleWordClick = useCallback(async (word: string) => {
+    // Pause the player when looking up a word
+    if (onPausePlayer) {
+      onPausePlayer();
+    }
+    
     setSelectedWord(word);
     setIsLoading(true);
     setShowDictionary(true);
@@ -220,7 +227,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     } finally {
       setIsLoading(false);
     }
-  }, [detectedLanguage, currentCue]);
+  }, [detectedLanguage, currentCue, onPausePlayer]);
 
 
   // Render segmented text with clickable words
