@@ -55,7 +55,7 @@ airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void) {
+function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void) {
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
@@ -202,6 +202,12 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
         toggleEnhancedSubtitles();
       }
       break;
+    case 82: // r
+      // Reset subtitle font size with 'r' key
+      if (resetSubtitleFontSize) {
+        resetSubtitleFontSize();
+      }
+      break;
   }
 }
 
@@ -281,6 +287,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [showEnhancedSubtitles, setShowEnhancedSubtitles] = useState(true);
     const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<string | null>(null);
     const [subtitleLanguage, setSubtitleLanguage] = useState<string>('en');
+    const [resetFontSizeTrigger, setResetFontSizeTrigger] = useState(0);
 
     const started = useRef(false);
     const auto = useRef(false);
@@ -385,7 +392,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         techOrder: ["chromecast", "html5"],
         userActions: {
           hotkeys: function (this: VideoJsPlayer, event) {
-            handleHotkeys(this, event, () => setShowEnhancedSubtitles(!showEnhancedSubtitles));
+            handleHotkeys(
+              this, 
+              event, 
+              () => setShowEnhancedSubtitles(!showEnhancedSubtitles),
+              () => setResetFontSizeTrigger(prev => prev + 1)
+            );
           },
         },
         plugins: {
@@ -1023,6 +1035,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             language={subtitleLanguage}
             onToggleVisibility={() => setShowEnhancedSubtitles(!showEnhancedSubtitles)}
             onPausePlayer={() => getPlayer()?.pause()}
+            resetFontSizeTrigger={resetFontSizeTrigger}
           />
         )}
       </div>

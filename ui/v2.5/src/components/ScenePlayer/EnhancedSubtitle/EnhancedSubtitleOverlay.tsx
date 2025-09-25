@@ -14,6 +14,7 @@ interface EnhancedSubtitleOverlayProps {
   isFullscreen?: boolean;
   onToggleVisibility: () => void;
   onPausePlayer?: () => void;
+  resetFontSizeTrigger?: number; // Increment this to trigger font size reset
 }
 
 interface ParsedSubtitle {
@@ -28,6 +29,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   isFullscreen = false,
   onToggleVisibility,
   onPausePlayer,
+  resetFontSizeTrigger,
 }) => {
   const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
   const [currentCue, setCurrentCue] = useState<SubtitleCue | null>(null);
@@ -41,9 +43,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState({ y: 0 });
   const [lastSavedPosition, setLastSavedPosition] = useState({ y: 0 });
+  const [fontSize, setFontSize] = useState(1.0); // Scale factor for font size
+  const [lastSavedFontSize, setLastSavedFontSize] = useState(1.0);
+  const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
   
   const subtitleRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef({ y: 0, startY: 0 });
+  const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false });
   
   const segmenterRef = useRef(createSegmenter({
     language: detectedLanguage,
@@ -51,7 +56,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     minWordLength: 1
   }));
 
-  // Load saved position from localStorage
+  // Load saved position and font size from localStorage
   useEffect(() => {
     const savedPosition = localStorage.getItem('enhancedSubtitlePosition');
     if (savedPosition) {
@@ -63,9 +68,22 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         console.error('Failed to parse saved subtitle position:', error);
       }
     }
+
+    const savedFontSize = localStorage.getItem('enhancedSubtitleFontSize');
+    if (savedFontSize) {
+      try {
+        const size = parseFloat(savedFontSize);
+        if (size >= 0.5 && size <= 3.0) { // Reasonable bounds for font size
+          setFontSize(size);
+          setLastSavedFontSize(size);
+        }
+      } catch (error) {
+        console.error('Failed to parse saved subtitle font size:', error);
+      }
+    }
   }, []);
 
-  // Save position to localStorage when it changes
+  // Save position and font size to localStorage when they change
   useEffect(() => {
     const saveTimer = setTimeout(() => {
       if (dragPosition.y !== lastSavedPosition.y) {
@@ -77,32 +95,89 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     return () => clearTimeout(saveTimer);
   }, [dragPosition, lastSavedPosition]);
 
+  useEffect(() => {
+    const saveTimer = setTimeout(() => {
+      if (fontSize !== lastSavedFontSize) {
+        localStorage.setItem('enhancedSubtitleFontSize', fontSize.toString());
+        setLastSavedFontSize(fontSize);
+      }
+    }, 500); // Debounce saves
+
+    return () => clearTimeout(saveTimer);
+  }, [fontSize, lastSavedFontSize]);
+
+  // Reset font size when trigger changes
+  useEffect(() => {
+    if (resetFontSizeTrigger !== undefined && resetFontSizeTrigger > 0) {
+      setFontSize(1.0);
+    }
+  }, [resetFontSizeTrigger]);
+
   // Mouse drag handlers
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.target !== e.currentTarget) return; // Only start drag from subtitle background, not words
     
     setIsDragging(true);
+    
+    // Start in neutral mode, will be determined by drag direction
+    setDragMode('position'); // Default to position initially
+    
     dragStartRef.current = {
       y: e.clientY,
-      startY: dragPosition.y
+      startY: dragPosition.y,
+      x: e.clientX,
+      startX: 0,
+      startFontSize: fontSize,
+      hasDeterminedMode: false // Track if we've determined the drag mode yet
     };
     
     e.preventDefault();
-  }, [dragPosition.y]);
+  }, [dragPosition.y, fontSize]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
+    const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
-    const newY = dragStartRef.current.startY + deltaY;
     
-    // Limit dragging to reasonable bounds
-    const containerHeight = window.innerHeight;
-    const minY = -containerHeight * 0.4; // Can move up to 40% of screen height
-    const maxY = containerHeight * 0.2;  // Can move down to 20% of screen height
+    // Auto-determine drag mode based on initial movement direction
+    if (!dragStartRef.current.hasDeterminedMode) {
+      const threshold = 10; // Minimum pixels to determine direction
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+      
+      if (absX > threshold || absY > threshold) {
+        // Determine mode based on which direction has more movement
+        const newMode = absX > absY ? 'size' : 'position';
+        setDragMode(newMode);
+        dragStartRef.current.hasDeterminedMode = true;
+      } else {
+        return; // Wait for more movement to determine direction
+      }
+    }
     
-    setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
-  }, [isDragging]);
+    if (dragMode === 'position') {
+      // Vertical dragging for position
+      const newY = dragStartRef.current.startY + deltaY;
+      
+      // Limit dragging to reasonable bounds
+      const containerHeight = window.innerHeight;
+      const minY = -containerHeight * 0.4; // Can move up to 40% of screen height
+      const maxY = containerHeight * 0.2;  // Can move down to 20% of screen height
+      
+      setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
+    } else if (dragMode === 'size') {
+      // Horizontal dragging for font size
+      const sensitivity = 0.003; // Adjust sensitivity as needed
+      const newSize = dragStartRef.current.startFontSize + (deltaX * sensitivity);
+      
+      // Limit font size to reasonable bounds
+      const minSize = 0.5;
+      const maxSize = 3.0;
+      
+      setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
+    }
+  }, [isDragging, dragMode]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -114,26 +189,65 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     
     const touch = e.touches[0];
     setIsDragging(true);
+    
+    // Start in neutral mode, will be determined by drag direction
+    setDragMode('position'); // Default to position initially
+    
     dragStartRef.current = {
       y: touch.clientY,
-      startY: dragPosition.y
+      startY: dragPosition.y,
+      x: touch.clientX,
+      startX: 0,
+      startFontSize: fontSize,
+      hasDeterminedMode: false // Track if we've determined the drag mode yet
     };
-  }, [dragPosition.y]);
+  }, [dragPosition.y, fontSize]);
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isDragging) return;
     
     const touch = e.touches[0];
+    const deltaX = touch.clientX - dragStartRef.current.x;
     const deltaY = touch.clientY - dragStartRef.current.y;
-    const newY = dragStartRef.current.startY + deltaY;
     
-    const containerHeight = window.innerHeight;
-    const minY = -containerHeight * 0.4;
-    const maxY = containerHeight * 0.2;
+    // Auto-determine drag mode based on initial movement direction
+    if (!dragStartRef.current.hasDeterminedMode) {
+      const threshold = 15; // Slightly higher threshold for touch
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+      
+      if (absX > threshold || absY > threshold) {
+        // Determine mode based on which direction has more movement
+        const newMode = absX > absY ? 'size' : 'position';
+        setDragMode(newMode);
+        dragStartRef.current.hasDeterminedMode = true;
+      } else {
+        return; // Wait for more movement to determine direction
+      }
+    }
     
-    setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
+    if (dragMode === 'position') {
+      // Vertical dragging for position
+      const newY = dragStartRef.current.startY + deltaY;
+      
+      const containerHeight = window.innerHeight;
+      const minY = -containerHeight * 0.4;
+      const maxY = containerHeight * 0.2;
+      
+      setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
+    } else if (dragMode === 'size') {
+      // Horizontal dragging for font size
+      const sensitivity = 0.003;
+      const newSize = dragStartRef.current.startFontSize + (deltaX * sensitivity);
+      
+      const minSize = 0.5;
+      const maxSize = 3.0;
+      
+      setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
+    }
+    
     e.preventDefault(); // Prevent scrolling while dragging
-  }, [isDragging]);
+  }, [isDragging, dragMode]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -477,15 +591,32 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         className="subtitle-text"
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        title={isDragging ? "Dragging..." : "Click and drag to move subtitles"}
+        title={
+          isDragging 
+            ? (dragMode === 'size' ? `Resizing... (${Math.round(fontSize * 100)}%)` : "Moving...") 
+            : "Drag vertically to move, horizontally to resize, 'R' key to reset size"
+        }
+        style={{
+          fontSize: `${fontSize * (isFullscreen ? 2.6 : 1.9)}rem`,
+          transition: isDragging ? 'none' : 'font-size 0.2s ease'
+        }}
       >
         {renderSegmentedText}
       </div>
       
       {/* Drag indicator */}
       <div className="drag-indicator">
-        <span className="drag-dots">⋮⋮</span>
+        <span className="drag-dots" title={dragMode === 'size' ? 'Font size mode' : 'Position mode'}>
+          {dragMode === 'size' ? '↔' : '⋮⋮'}
+        </span>
       </div>
+      
+      {/* Font size indicator */}
+      {(isDragging && dragMode === 'size') && (
+        <div className="font-size-indicator">
+          {Math.round(fontSize * 100)}%
+        </div>
+      )}
       
       {renderDictionaryModal()}
     </div>
