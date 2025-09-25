@@ -32,7 +32,20 @@ func DefaultConfig() *OllamaConfig {
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
-		PromptTemplate: `解释: 请解释一下这句话中这个词的用法<WORD>： <CONTEXT>`,
+		PromptTemplate: `请解释单词"<WORD>"在句子"<CONTEXT>"中的用法。
+
+请严格按照以下格式回答，不要添加额外的标题、分割线或格式：
+
+**词性：** [词性名称]
+**含义：** [在当前语境中的具体含义]
+**用法说明：** [语法用法和特点说明]
+**例句：** [相似用法的例句]
+
+要求：
+1. 直接回答，不要前言或总结
+2. 每部分内容简洁明了
+3. 例句控制在1-2个
+4. 不要使用markdown标题符号（#）或分割线（---）`,
 	}
 }
 
@@ -324,17 +337,149 @@ func (s *Service) buildPrompt(word, context string) string {
 	return prompt
 }
 
-// parseExplanation directly returns the Ollama explanation without parsing
+// parseExplanation parses structured Ollama explanation into a dictionary entry
 func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
+	// Clean up the explanation text
+	cleanExplanation := s.cleanExplanationText(explanation)
+	
+	// Try to parse structured content
+	partOfSpeech, meaning, usageNote, examples := s.parseStructuredExplanation(cleanExplanation)
+	
+	// Build the complete meaning text
+	completeMeaning := meaning
+	if usageNote != "" {
+		completeMeaning += "\n\n" + usageNote
+	}
+	
 	return &DictionaryEntry{
 		Word: word,
 		Definitions: []DictionaryDefinition{
 			{
-				PartOfSpeech: "",
-				Meaning:      strings.TrimSpace(explanation),
-				Examples:     []string{},
+				PartOfSpeech: partOfSpeech,
+				Meaning:      completeMeaning,
 			},
 		},
-		Etymology: "AI解释 (Ollama)",
 	}
+}
+
+// cleanExplanationText removes excessive formatting and cleans up the text
+func (s *Service) cleanExplanationText(text string) string {
+	// Remove common unwanted phrases and elements
+	unwantedPhrases := []string{
+		"×Close",
+		"Dictionary:",
+		"当然可以！",
+		"我们来详细解释一下",
+		"让我来解释",
+		"根据你的要求",
+		"按照格式",
+	}
+	
+	for _, phrase := range unwantedPhrases {
+		text = strings.ReplaceAll(text, phrase, "")
+	}
+	
+	// Remove excessive separators and formatting
+	text = strings.ReplaceAll(text, "---", "")
+	text = strings.ReplaceAll(text, "===", "")
+	text = strings.ReplaceAll(text, "###", "")
+	text = strings.ReplaceAll(text, "####", "")
+	
+	// Remove multiple consecutive newlines
+	for strings.Contains(text, "\n\n\n") {
+		text = strings.ReplaceAll(text, "\n\n\n", "\n\n")
+	}
+	
+	// Remove leading/trailing whitespace and empty lines
+	lines := strings.Split(text, "\n")
+	var cleanLines []string
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			cleanLines = append(cleanLines, line)
+		}
+	}
+	
+	return strings.Join(cleanLines, "\n")
+}
+
+// parseStructuredExplanation attempts to parse structured response
+func (s *Service) parseStructuredExplanation(text string) (partOfSpeech, meaning, usageNote string, examples []string) {
+	lines := strings.Split(text, "\n")
+	
+	currentSection := ""
+	var exampleLines []string
+	
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		
+		// Parse structured sections
+		if strings.HasPrefix(line, "**词性：**") || strings.HasPrefix(line, "**词性:**") {
+			partOfSpeech = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**词性：**"), "**词性:**"))
+			partOfSpeech = strings.Trim(partOfSpeech, "[]")
+			currentSection = "pos"
+		} else if strings.HasPrefix(line, "**含义：**") || strings.HasPrefix(line, "**含义:**") {
+			meaning = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**含义：**"), "**含义:**"))
+			meaning = strings.Trim(meaning, "[]")
+			currentSection = "meaning"
+		} else if strings.HasPrefix(line, "**用法说明：**") || strings.HasPrefix(line, "**用法说明:**") {
+			usageNote = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**用法说明：**"), "**用法说明:**"))
+			usageNote = strings.Trim(usageNote, "[]")
+			currentSection = "usage"
+		} else if strings.HasPrefix(line, "**例句：**") || strings.HasPrefix(line, "**例句:**") {
+			exampleText := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**例句：**"), "**例句:**"))
+			if exampleText != "" && !strings.HasPrefix(exampleText, "[") {
+				exampleLines = append(exampleLines, exampleText)
+			}
+			currentSection = "examples"
+		} else if currentSection == "meaning" && meaning != "" {
+			meaning += " " + line
+		} else if currentSection == "usage" && usageNote != "" {
+			usageNote += " " + line
+		} else if currentSection == "examples" {
+			// Handle example lines
+			if strings.HasPrefix(line, "-") || strings.HasPrefix(line, "•") || strings.HasPrefix(line, "1.") || strings.HasPrefix(line, "2.") {
+				cleaned := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(line, "-"), "•"), "1."))
+				cleaned = strings.TrimSpace(strings.TrimPrefix(cleaned, "2."))
+				if cleaned != "" {
+					exampleLines = append(exampleLines, cleaned)
+				}
+			} else if line != "" && !strings.HasPrefix(line, "**") {
+				exampleLines = append(exampleLines, line)
+			}
+		}
+		
+		// Fallback: if no structured format detected, treat as meaning
+		if partOfSpeech == "" && meaning == "" && usageNote == "" && len(exampleLines) == 0 {
+			if !strings.HasPrefix(line, "**") && !strings.Contains(line, "###") && !strings.Contains(line, "---") {
+				if meaning == "" {
+					meaning = line
+				} else {
+					meaning += " " + line
+				}
+			}
+		}
+	}
+	
+	// Clean up extracted content
+	meaning = strings.TrimSpace(meaning)
+	usageNote = strings.TrimSpace(usageNote)
+	partOfSpeech = strings.TrimSpace(partOfSpeech)
+	
+	// Set default part of speech if not found
+	if partOfSpeech == "" {
+		partOfSpeech = "词汇"
+	}
+	
+	// Limit examples to avoid clutter
+	if len(exampleLines) > 3 {
+		examples = exampleLines[:3]
+	} else {
+		examples = exampleLines
+	}
+	
+	return partOfSpeech, meaning, usageNote, examples
 }

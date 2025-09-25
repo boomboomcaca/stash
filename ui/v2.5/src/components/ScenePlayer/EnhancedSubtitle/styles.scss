@@ -272,6 +272,19 @@
       .meaning {
         font-size: 1rem;
         line-height: 1.4;
+        
+        // Better formatting for multiline content
+        > div:not(:first-child) {
+          margin-top: 0.5rem;
+          padding-top: 0.5rem;
+          border-top: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        
+        // Style for usage notes
+        > div:nth-child(n+2) {
+          color: rgba(255, 255, 255, 0.9);
+          font-style: italic;
+        }
       }
 
       .examples {

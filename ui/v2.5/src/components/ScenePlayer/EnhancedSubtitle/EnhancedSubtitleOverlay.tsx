@@ -537,25 +537,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
                 <div className="part-of-speech">
                   <span className="badge badge-secondary">{def.partOfSpeech}</span>
                 </div>
-                <div className="meaning mt-2">{def.meaning}</div>
-                {def.examples && def.examples.length > 0 && (
-                  <div className="examples mt-2">
-                    <em>Examples:</em>
-                    <ul className="mt-1">
-                      {def.examples.map((example, i) => (
-                        <li key={i}>{example}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <div className="meaning mt-2">
+                  {def.meaning.split('\n').map((line, lineIndex) => (
+                    <div key={lineIndex} className={lineIndex > 0 ? 'mt-2' : ''}>
+                      {line}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
-            
-            {dictionary.etymology && (
-              <div className="etymology mt-3">
-                <strong>Etymology:</strong> {dictionary.etymology}
-              </div>
-            )}
           </div>
         ) : (
           <div className="text-center p-4">
