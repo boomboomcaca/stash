@@ -33,7 +33,7 @@ export class OllamaService {
     timeout: 30000,
     enabled: true,
     fallbackToTraditionalDict: true,
-    promptTemplate: '解释: 请解释一下这句话中这个词的用法<WORD>： <CONTEXT>\n\n请用中文回答，包含以下信息：\n1. 词性\n2. 在此上下文中的含义\n3. 使用示例（如果适用）\n\n请保持回答简洁明了。'
+    promptTemplate: '解释: 请解释一下这句话中这个词的用法<WORD>： <CONTEXT>'
   };
 
   constructor() {

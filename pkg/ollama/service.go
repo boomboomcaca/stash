@@ -32,14 +32,7 @@ func DefaultConfig() *OllamaConfig {
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
-		PromptTemplate: `解释: 请解释一下这句话中这个词的用法<WORD>： <CONTEXT>
-
-请用中文回答，包含以下信息：
-1. 词性
-2. 在此上下文中的含义
-3. 使用示例（如果适用）
-
-请保持回答简洁明了。`,
+		PromptTemplate: `解释: 请解释一下这句话中这个词的用法<WORD>： <CONTEXT>`,
 	}
 }
 
