@@ -253,6 +253,12 @@
     .pronunciation {
       font-style: italic;
       color: var(--bs-info);
+      font-size: 1.1rem;
+      font-family: "Lucida Sans Unicode", "Arial Unicode MS", monospace;
+      background: rgba(0, 123, 255, 0.1);
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      border-left: 3px solid var(--bs-info);
     }
 
     .definition {
@@ -270,8 +276,8 @@
       }
 
       .meaning {
-        font-size: 1rem;
-        line-height: 1.4;
+        font-size: 1.2rem;
+        line-height: 1.5;
         
         // Better formatting for multiline content
         > div:not(:first-child) {
