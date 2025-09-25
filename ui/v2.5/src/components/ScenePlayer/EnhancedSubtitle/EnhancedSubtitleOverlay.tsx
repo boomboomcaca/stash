@@ -289,8 +289,9 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     <Modal 
       show={showDictionary} 
       onHide={handleCloseDictionary}
-      className="dictionary-modal"
+      className={`dictionary-modal ${isFullscreen ? 'fullscreen-dictionary' : ''}`}
       centered
+      container={isFullscreen && fullscreenContainer ? fullscreenContainer : undefined}
     >
       <Modal.Header closeButton>
         <Modal.Title>

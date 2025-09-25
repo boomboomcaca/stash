@@ -112,6 +112,28 @@
     border: 1px solid var(--bs-secondary);
   }
 
+  // 全屏模式下确保模态框在顶层显示
+  &.show {
+    z-index: 100000 !important;
+  }
+  
+  .modal-backdrop {
+    z-index: 99999 !important;
+  }
+
+  // 全屏模式下的特殊样式
+  &.fullscreen-dictionary {
+    .modal-dialog {
+      z-index: 100001 !important;
+      position: relative;
+    }
+    
+    .modal-content {
+      z-index: 100002 !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+    }
+  }
+
   .modal-header {
     border-bottom: 1px solid var(--bs-secondary);
     
