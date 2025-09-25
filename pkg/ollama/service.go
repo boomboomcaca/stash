@@ -44,6 +44,21 @@ type OllamaRequest struct {
 	Options map[string]interface{} `json:"options,omitempty"`
 }
 
+// OllamaChatMessage represents a message in chat format
+type OllamaChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// OllamaChatRequest represents a chat request to Ollama API
+type OllamaChatRequest struct {
+	Model    string              `json:"model"`
+	Messages []OllamaChatMessage `json:"messages"`
+	Stream   bool                `json:"stream"`
+	Think    bool                `json:"think"`
+	Options  map[string]interface{} `json:"options,omitempty"`
+}
+
 // OllamaResponse represents a response from Ollama API
 type OllamaResponse struct {
 	Model              string    `json:"model"`
@@ -57,6 +72,21 @@ type OllamaResponse struct {
 	PromptEvalDuration int64     `json:"prompt_eval_duration,omitempty"`
 	EvalCount          int       `json:"eval_count,omitempty"`
 	EvalDuration       int64     `json:"eval_duration,omitempty"`
+}
+
+// OllamaChatResponse represents a chat response from Ollama API
+type OllamaChatResponse struct {
+	Model              string            `json:"model"`
+	CreatedAt          time.Time         `json:"created_at"`
+	Message            OllamaChatMessage `json:"message"`
+	Done               bool              `json:"done"`
+	DoneReason         string            `json:"done_reason,omitempty"`
+	TotalDuration      int64             `json:"total_duration,omitempty"`
+	LoadDuration       int64             `json:"load_duration,omitempty"`
+	PromptEvalCount    int               `json:"prompt_eval_count,omitempty"`
+	PromptEvalDuration int64             `json:"prompt_eval_duration,omitempty"`
+	EvalCount          int               `json:"eval_count,omitempty"`
+	EvalDuration       int64             `json:"eval_duration,omitempty"`
 }
 
 // OllamaModel represents a model from Ollama
@@ -203,21 +233,27 @@ func (s *Service) GetModels(ctx context.Context) ([]string, error) {
 	return models, nil
 }
 
-// Generate generates text using Ollama
+// Generate generates text using Ollama chat API with think mode disabled
 func (s *Service) Generate(ctx context.Context, prompt string, model string) (string, error) {
 	if model == "" {
 		model = s.config.Model
 	}
 
-	generateURL, err := url.JoinPath(s.config.BaseURL, "/api/generate")
+	chatURL, err := url.JoinPath(s.config.BaseURL, "/api/chat")
 	if err != nil {
-		return "", fmt.Errorf("failed to build generate URL: %w", err)
+		return "", fmt.Errorf("failed to build chat URL: %w", err)
 	}
 
-	requestData := OllamaRequest{
-		Model:  model,
-		Prompt: prompt,
+	requestData := OllamaChatRequest{
+		Model: model,
+		Messages: []OllamaChatMessage{
+			{
+				Role:    "user",
+				Content: prompt,
+			},
+		},
 		Stream: false,
+		Think:  false, // Disable think mode
 		Options: map[string]interface{}{
 			"temperature": 0.3, // Lower temperature for more consistent explanations
 			"top_k":       40,
@@ -230,16 +266,17 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", generateURL, bytes.NewBuffer(requestBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", chatURL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		return "", fmt.Errorf("failed to create generate request: %w", err)
+		return "", fmt.Errorf("failed to create chat request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	s.logger.WithFields(logrus.Fields{
 		"model":      model,
 		"prompt_len": len(prompt),
-	}).Debug("Generating text with Ollama")
+		"think":      false,
+	}).Debug("Generating text with Ollama (think disabled)")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
@@ -252,18 +289,18 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 		return "", fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var ollamaResp OllamaResponse
-	if err := json.NewDecoder(resp.Body).Decode(&ollamaResp); err != nil {
-		return "", fmt.Errorf("failed to decode generate response: %w", err)
+	var chatResp OllamaChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+		return "", fmt.Errorf("failed to decode chat response: %w", err)
 	}
 
 	s.logger.WithFields(logrus.Fields{
-		"model":         model,
-		"response_len":  len(ollamaResp.Response),
-		"total_duration": ollamaResp.TotalDuration,
+		"model":          model,
+		"response_len":   len(chatResp.Message.Content),
+		"total_duration": chatResp.TotalDuration,
 	}).Debug("Generated text with Ollama")
 
-	return ollamaResp.Response, nil
+	return chatResp.Message.Content, nil
 }
 
 // ExplainWord explains a word in context using Ollama
