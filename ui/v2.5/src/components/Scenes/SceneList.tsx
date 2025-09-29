@@ -23,6 +23,7 @@ import {
   faPencil,
   faPlay,
   faPlus,
+  faSliders,
   faTimes,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
@@ -67,6 +68,7 @@ import {
   SortBySelect,
 } from "../List/ListFilter";
 import { Criterion } from "src/models/list-filter/criteria/criterion";
+import useFocus from "src/utils/focus";
 
 function renderMetadataByline(result: GQL.FindScenesQueryResult) {
   const duration = result?.data?.findScenes?.duration;
@@ -251,6 +253,7 @@ const SidebarContent: React.FC<{
   onClose?: () => void;
   showEditFilter: (editingCriterion?: string) => void;
   count?: number;
+  focus?: ReturnType<typeof useFocus>;
 }> = ({
   filter,
   setFilter,
@@ -260,6 +263,7 @@ const SidebarContent: React.FC<{
   sidebarOpen,
   onClose,
   count,
+  focus,
 }) => {
   const showResultsId =
     count !== undefined ? "actions.show_count_results" : "actions.show_results";
@@ -274,6 +278,7 @@ const SidebarContent: React.FC<{
         filter={filter}
         setFilter={setFilter}
         view={view}
+        focus={focus}
       />
 
       <ScenesFilterSidebarSections>
@@ -342,9 +347,11 @@ const ListToolbarContent: React.FC<{
   operations: IOperations[];
   onToggleSidebar: () => void;
   onSetFilter: (filter: ListFilterModel) => void;
-  onEditCriterion: (c: Criterion) => void;
+  onEditCriterion: (c?: Criterion) => void;
   onRemoveCriterion: (criterion: Criterion, valueIndex?: number) => void;
   onRemoveAllCriterion: () => void;
+  onEditSearchTerm: () => void;
+  onRemoveSearchTerm: () => void;
   onSelectAll: () => void;
   onSelectNone: () => void;
   onEdit: () => void;
@@ -361,6 +368,8 @@ const ListToolbarContent: React.FC<{
   onEditCriterion,
   onRemoveCriterion,
   onRemoveAllCriterion,
+  onEditSearchTerm,
+  onRemoveSearchTerm,
   onSelectAll,
   onSelectNone,
   onEdit,
@@ -370,8 +379,19 @@ const ListToolbarContent: React.FC<{
 }) => {
   const intl = useIntl();
 
-  const { criteria } = filter;
+  const { criteria, searchTerm } = filter;
   const hasSelection = selectedIds.size > 0;
+
+  const sidebarToggle = (
+    <Button
+      className="minimal sidebar-toggle-button ignore-sidebar-outside-click"
+      variant="secondary"
+      onClick={() => onToggleSidebar()}
+      title={intl.formatMessage({ id: "actions.sidebar.toggle" })}
+    >
+      <Icon icon={faSliders} />
+    </Button>
+  );
 
   return (
     <>
@@ -382,17 +402,20 @@ const ListToolbarContent: React.FC<{
           </div>
           <div className="filter-section">
             <FilterButton
-              onClick={() => onToggleSidebar()}
+              onClick={() => onEditCriterion()}
               count={criteria.length}
-              title={intl.formatMessage({ id: "actions.sidebar.toggle" })}
             />
             <FilterTags
+              searchTerm={searchTerm}
               criteria={criteria}
               onEditCriterion={onEditCriterion}
               onRemoveCriterion={onRemoveCriterion}
               onRemoveAll={onRemoveAllCriterion}
+              onEditSearchTerm={onEditSearchTerm}
+              onRemoveSearchTerm={onRemoveSearchTerm}
               truncateOnOverflow
             />
+            {sidebarToggle}
           </div>
         </>
       )}
@@ -410,6 +433,7 @@ const ListToolbarContent: React.FC<{
           <Button variant="link" onClick={() => onSelectAll()}>
             <FormattedMessage id="actions.select_all" />
           </Button>
+          {sidebarToggle}
         </div>
       )}
       <div>
@@ -537,6 +561,9 @@ interface IFilteredScenes {
 export const FilteredSceneList = (props: IFilteredScenes) => {
   const intl = useIntl();
   const history = useHistory();
+
+  const searchFocus = useFocus();
+  const [, setSearchFocus] = searchFocus;
 
   const { filterHook, defaultSort, view, alterQuery, fromGroupId } = props;
 
@@ -792,6 +819,7 @@ export const FilteredSceneList = (props: IFilteredScenes) => {
               sidebarOpen={showSidebar}
               onClose={() => setShowSidebar(false)}
               count={cachedResult.loading ? undefined : totalCount}
+              focus={searchFocus}
             />
           </Sidebar>
           <div>
@@ -807,9 +835,14 @@ export const FilteredSceneList = (props: IFilteredScenes) => {
                 selectedIds={selectedIds}
                 operations={otherOperations}
                 onToggleSidebar={() => setShowSidebar(!showSidebar)}
-                onEditCriterion={(c) => showEditFilter(c.criterionOption.type)}
+                onEditCriterion={(c) => showEditFilter(c?.criterionOption.type)}
                 onRemoveCriterion={removeCriterion}
-                onRemoveAllCriterion={() => clearAllCriteria()}
+                onRemoveAllCriterion={() => clearAllCriteria(true)}
+                onEditSearchTerm={() => {
+                  setShowSidebar(true);
+                  setSearchFocus(true);
+                }}
+                onRemoveSearchTerm={() => setFilter(filter.clearSearchTerm())}
                 onSelectAll={() => onSelectAll()}
                 onSelectNone={() => onSelectNone()}
                 onEdit={onEdit}
