@@ -123,7 +123,7 @@
     top: 50%;
     left: 8px;
     transform: translateY(-50%);
-    opacity: 0;
+    opacity: 0.7; // 一直显示，默认透明度为 0.7
     transition: opacity 0.3s ease;
     pointer-events: none;
     
@@ -147,11 +147,11 @@
   }
 
   &:hover .drag-indicator {
-    opacity: 1;
+    opacity: 1; // 悬停时完全不透明
   }
 
   &.dragging .drag-indicator {
-    opacity: 1;
+    opacity: 1; // 拖动时完全不透明
     
     .drag-dots {
       color: rgba(255, 255, 255, 1);
