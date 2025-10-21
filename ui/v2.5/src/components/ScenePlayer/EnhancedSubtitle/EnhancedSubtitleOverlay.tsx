@@ -432,7 +432,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       // If we have a current cue and haven't triggered pause yet
       if (cue && !autoPauseTriggeredRef.current) {
         const timeUntilEnd = cue.endTime - currentTime;
-        const pauseThreshold = 0.5; // Pause 0.5 seconds before subtitle ends
+        const pauseThreshold = 0.2; // Pause 0.1 seconds before subtitle ends
         
         if (timeUntilEnd <= pauseThreshold && timeUntilEnd > 0) {
           console.log('🎬 Auto-pausing before subtitle ends');
