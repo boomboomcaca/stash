@@ -117,15 +117,39 @@
     }
   }
 
-  // Drag indicator
+  // Drag indicator with auto-pause toggle
   .drag-indicator {
     position: absolute;
     top: 50%;
     left: 8px;
     transform: translateY(-50%);
     opacity: 0.7; // 一直显示，默认透明度为 0.7
-    transition: opacity 0.3s ease;
-    pointer-events: none;
+    transition: all 0.3s ease;
+    pointer-events: auto; // 允许点击
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    
+    &:hover {
+      opacity: 1;
+      transform: translateY(-50%) scale(1.1);
+      background: rgba(0, 0, 0, 0.5);
+    }
+    
+    &:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+    
+    // Auto-pause enabled state
+    &.auto-pause-active {
+      background: rgba(74, 144, 226, 0.4); // 蓝色背景表示启用
+      border: 1px solid rgba(74, 144, 226, 0.6);
+      
+      .drag-dots {
+        animation: autoPausePulse 2s ease-in-out infinite;
+      }
+    }
     
     .drag-dots {
       display: inline-block;
@@ -136,6 +160,7 @@
       letter-spacing: -2px;
       transform: rotate(90deg);
       transition: all 0.3s ease;
+      user-select: none;
       
       // Size mode specific styling
       &[title*="Font size"] {
@@ -145,14 +170,18 @@
       }
     }
   }
-
-  &:hover .drag-indicator {
-    opacity: 1; // 悬停时完全不透明
+  
+  // Animation for auto-pause active indicator
+  @keyframes autoPausePulse {
+    0%, 100% {
+      filter: brightness(1.0);
+    }
+    50% {
+      filter: brightness(1.6);
+    }
   }
 
   &.dragging .drag-indicator {
-    opacity: 1; // 拖动时完全不透明
-    
     .drag-dots {
       color: rgba(255, 255, 255, 1);
       animation: dragPulse 1s ease-in-out infinite;

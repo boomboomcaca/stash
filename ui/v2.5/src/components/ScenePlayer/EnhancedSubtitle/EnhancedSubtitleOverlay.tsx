@@ -46,9 +46,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [fontSize, setFontSize] = useState(1.0); // Scale factor for font size
   const [lastSavedFontSize, setLastSavedFontSize] = useState(1.0);
   const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
+  const [autoPauseEnabled, setAutoPauseEnabled] = useState(false);
   
   const subtitleRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false });
+  const lastCueRef = useRef<SubtitleCue | null>(null);
+  const autoPauseTriggeredRef = useRef(false);
   
   const segmenterRef = useRef(createSegmenter({
     language: detectedLanguage,
@@ -56,7 +59,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     minWordLength: 1
   }));
 
-  // Load saved position and font size from localStorage
+  // Load saved position, font size, and auto-pause setting from localStorage
   useEffect(() => {
     const savedPosition = localStorage.getItem('enhancedSubtitlePosition');
     if (savedPosition) {
@@ -79,6 +82,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         }
       } catch (error) {
         console.error('Failed to parse saved subtitle font size:', error);
+      }
+    }
+
+    const savedAutoPause = localStorage.getItem('enhancedSubtitleAutoPause');
+    if (savedAutoPause) {
+      try {
+        setAutoPauseEnabled(savedAutoPause === 'true');
+      } catch (error) {
+        console.error('Failed to parse saved auto-pause setting:', error);
       }
     }
   }, []);
@@ -105,6 +117,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
 
     return () => clearTimeout(saveTimer);
   }, [fontSize, lastSavedFontSize]);
+
+  // Save auto-pause setting to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('enhancedSubtitleAutoPause', autoPauseEnabled.toString());
+  }, [autoPauseEnabled]);
 
   // Reset font size when trigger changes
   useEffect(() => {
@@ -393,7 +410,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     loadSubtitles();
   }, [subtitleTrack, parseVTT]);
 
-  // Find current subtitle cue
+  // Find current subtitle cue and handle auto-pause
   useEffect(() => {
     if (!parsedSubtitles) {
       setCurrentCue(null);
@@ -404,8 +421,35 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       c => currentTime >= c.startTime && currentTime <= c.endTime
     );
     
+    // Auto-pause logic: pause before subtitle disappears
+    if (autoPauseEnabled && onPausePlayer) {
+      // When a new cue appears, reset the trigger flag
+      if (cue && cue !== lastCueRef.current) {
+        autoPauseTriggeredRef.current = false;
+        lastCueRef.current = cue;
+      }
+      
+      // If we have a current cue and haven't triggered pause yet
+      if (cue && !autoPauseTriggeredRef.current) {
+        const timeUntilEnd = cue.endTime - currentTime;
+        const pauseThreshold = 0.5; // Pause 0.5 seconds before subtitle ends
+        
+        if (timeUntilEnd <= pauseThreshold && timeUntilEnd > 0) {
+          console.log('🎬 Auto-pausing before subtitle ends');
+          onPausePlayer();
+          autoPauseTriggeredRef.current = true;
+        }
+      }
+      
+      // Clear last cue when no cue is active
+      if (!cue) {
+        lastCueRef.current = null;
+        autoPauseTriggeredRef.current = false;
+      }
+    }
+    
     setCurrentCue(cue || null);
-  }, [currentTime, parsedSubtitles]);
+  }, [currentTime, parsedSubtitles, autoPauseEnabled, onPausePlayer]);
 
   // Segment current cue text
   useEffect(() => {
@@ -457,6 +501,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       setIsLoading(false);
     }
   }, [detectedLanguage, currentCue, onPausePlayer]);
+
+  // Handle drag indicator click to toggle auto-pause
+  const handleDragIndicatorClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent starting a drag
+    const newValue = !autoPauseEnabled;
+    setAutoPauseEnabled(newValue);
+    localStorage.setItem('enhancedSubtitleAutoPause', newValue.toString());
+    console.log('🎬 Auto-pause', newValue ? 'enabled' : 'disabled');
+  }, [autoPauseEnabled]);
 
 
   // Render segmented text with clickable words
@@ -613,9 +666,13 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         {renderSegmentedText}
       </div>
       
-      {/* Drag indicator */}
-      <div className="drag-indicator">
-        <span className="drag-dots" title={dragMode === 'size' ? 'Font size mode' : 'Position mode'}>
+      {/* Drag indicator with auto-pause toggle */}
+      <div 
+        className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''}`}
+        onClick={handleDragIndicatorClick}
+        title={autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable)'}
+      >
+        <span className="drag-dots">
           {dragMode === 'size' ? '↔' : '⋮⋮'}
         </span>
       </div>
