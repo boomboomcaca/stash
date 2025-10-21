@@ -44,13 +44,8 @@
         3px 3px 6px rgba(0, 0, 0, 1),
         -3px -3px 6px rgba(0, 0, 0, 0.6);
       color: #ffff00;
-      background: linear-gradient(
-        180deg, 
-        rgba(0, 0, 0, 0.1) 0%, 
-        rgba(0, 0, 0, 0.75) 50%, 
-        rgba(0, 0, 0, 0.1) 100%
-      );
-      border-radius: 12px;
+      background: transparent;
+      border: none;
       padding: 16px 24px;
       
       // 全屏模式支持自动换行，完整显示字幕
@@ -75,13 +70,8 @@
       0 0 24px rgba(0, 0, 0, 0.8),
       2px 2px 4px rgba(0, 0, 0, 1),
       -2px -2px 4px rgba(0, 0, 0, 0.5);
-    background: linear-gradient(
-      180deg, 
-      rgba(0, 0, 0, 0.1) 0%, 
-      rgba(0, 0, 0, 0.7) 50%, 
-      rgba(0, 0, 0, 0.1) 100%
-    );
-    border-radius: 10px;
+    background: transparent;
+    border: none;
     padding: 12px 18px;
     
     // 支持自动换行，完整显示字幕内容
