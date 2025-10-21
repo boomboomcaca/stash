@@ -162,8 +162,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       
       // Limit dragging to reasonable bounds
       const containerHeight = window.innerHeight;
-      const minY = -containerHeight * 0.4; // Can move up to 40% of screen height
-      const maxY = containerHeight * 0.2;  // Can move down to 20% of screen height
+      const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
+      const maxY = containerHeight * 0.2;   // Can move down to 20% of screen height
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
@@ -231,8 +231,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       const newY = dragStartRef.current.startY + deltaY;
       
       const containerHeight = window.innerHeight;
-      const minY = -containerHeight * 0.4;
-      const maxY = containerHeight * 0.2;
+      const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
+      const maxY = containerHeight * 0.2;   // Can move down to 20% of screen height
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
