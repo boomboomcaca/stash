@@ -347,7 +347,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         // Collect text lines until empty line or next timestamp
         while (i < lines.length && lines[i].trim() !== '' && 
                !lines[i].match(/^\d{2}:\d{2}:\d{2}\.\d{3} -->/)) {
-          if (text) text += ' ';
+          if (text) text += '\n';
           text += lines[i].trim().replace(/<[^>]*>/g, ''); // Remove HTML tags
           i++;
         }
@@ -462,17 +462,35 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   // Render segmented text with clickable words
   const renderSegmentedText = useMemo(() => {
     if (!currentCue || wordSegments.length === 0) {
-      return currentCue?.text || '';
+      // If no segments, render text with line breaks
+      return currentCue?.text.split('\n').map((line, idx, arr) => (
+        <React.Fragment key={idx}>
+          {line}
+          {idx < arr.length - 1 && <br />}
+        </React.Fragment>
+      )) || '';
     }
 
     const elements: React.ReactNode[] = [];
     let lastIndex = 0;
 
+    // Helper function to render text with line breaks
+    const renderTextWithBreaks = (text: string, keyPrefix: string) => {
+      const lines = text.split('\n');
+      return lines.flatMap((line, idx) => {
+        const parts: React.ReactNode[] = [<span key={`${keyPrefix}-${idx}`}>{line}</span>];
+        if (idx < lines.length - 1) {
+          parts.push(<br key={`${keyPrefix}-br-${idx}`} />);
+        }
+        return parts;
+      });
+    };
+
     wordSegments.forEach((segment, index) => {
       // Add text before this segment
       if (segment.startIndex > lastIndex) {
         const betweenText = currentCue.text.slice(lastIndex, segment.startIndex);
-        elements.push(<span key={`between-${index}`}>{betweenText}</span>);
+        elements.push(...renderTextWithBreaks(betweenText, `between-${index}`));
       }
 
       // Add the word segment as clickable
@@ -493,7 +511,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     // Add any remaining text
     if (lastIndex < currentCue.text.length) {
       elements.push(
-        <span key="remaining">{currentCue.text.slice(lastIndex)}</span>
+        ...renderTextWithBreaks(currentCue.text.slice(lastIndex), 'remaining')
       );
     }
 
