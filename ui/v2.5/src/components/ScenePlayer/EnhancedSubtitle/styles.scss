@@ -121,8 +121,8 @@
   .drag-indicator {
     position: absolute;
     top: 50%;
-    left: 8px;
-    transform: translateY(-50%);
+    left: 0;
+    transform: translate(-50%, -50%);
     opacity: 0.8; // 一直显示，默认透明度为 0.8
     transition: all 0.3s ease;
     pointer-events: auto; // 允许点击
@@ -136,54 +136,43 @@
     justify-content: center;
     border-radius: 50%; // 圆形
     background: transparent;
-    border: 2px solid rgba(134, 239, 172, 0.7); // 绿色边框 (green-300)
+    border: 2px solid rgba(156, 163, 175, 0.7); // 灰色边框 (gray-400) - 未启用
     
     &:hover {
       opacity: 1;
-      transform: translateY(-50%) scale(1.1);
-      border-color: rgba(134, 239, 172, 1);
-      box-shadow: 0 0 10px rgba(134, 239, 172, 0.5);
+      transform: translate(-50%, -50%) scale(1.1);
+      border-color: rgba(156, 163, 175, 1);
+      box-shadow: 0 0 10px rgba(156, 163, 175, 0.5);
     }
     
     &:active {
-      transform: translateY(-50%) scale(0.95);
+      transform: translate(-50%, -50%) scale(0.95);
     }
     
     // Auto-pause enabled state
     &.auto-pause-active {
-      border-color: rgba(96, 165, 250, 0.9); // 蓝色边框 (blue-400)
-      background: rgba(96, 165, 250, 0.15); // 淡蓝色背景
+      border-color: rgba(34, 197, 94, 0.9); // 绿色边框 (green-500) - 已启用
+      background: rgba(34, 197, 94, 0.15); // 淡绿色背景
       
       &:hover {
-        border-color: rgba(96, 165, 250, 1);
-        box-shadow: 0 0 12px rgba(96, 165, 250, 0.6);
+        border-color: rgba(34, 197, 94, 1);
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
       }
       
       .drag-dots {
-        color: rgba(96, 165, 250, 1);
-        animation: autoPausePulse 2s ease-in-out infinite;
+        color: rgba(34, 197, 94, 1); // 绿色文字
       }
     }
     
     .drag-dots {
       display: inline-block;
-      color: rgba(134, 239, 172, 0.9); // 绿色文字
+      color: rgba(156, 163, 175, 0.9); // 灰色文字 - 未启用
       font-size: 1rem;
       font-weight: bold;
       text-shadow: none;
       letter-spacing: -1px;
       transition: all 0.3s ease;
       user-select: none;
-    }
-  }
-  
-  // Animation for auto-pause active indicator
-  @keyframes autoPausePulse {
-    0%, 100% {
-      filter: brightness(1.0);
-    }
-    50% {
-      filter: brightness(1.6);
     }
   }
 
