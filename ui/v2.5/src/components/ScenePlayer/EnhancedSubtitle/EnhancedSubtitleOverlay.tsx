@@ -47,6 +47,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [lastSavedFontSize, setLastSavedFontSize] = useState(1.0);
   const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
   const [autoPauseEnabled, setAutoPauseEnabled] = useState(false);
+  const [dragStartTime, setDragStartTime] = useState(0); // Track when drag started
   
   const subtitleRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false });
@@ -131,26 +132,6 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, [resetFontSizeTrigger]);
 
   // Mouse drag handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.target !== e.currentTarget) return; // Only start drag from subtitle background, not words
-    
-    setIsDragging(true);
-    
-    // Start in neutral mode, will be determined by drag direction
-    setDragMode('position'); // Default to position initially
-    
-    dragStartRef.current = {
-      y: e.clientY,
-      startY: dragPosition.y,
-      x: e.clientX,
-      startX: 0,
-      startFontSize: fontSize,
-      hasDeterminedMode: false // Track if we've determined the drag mode yet
-    };
-    
-    e.preventDefault();
-  }, [dragPosition.y, fontSize]);
-
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
@@ -201,25 +182,6 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, []);
 
   // Touch drag handlers for mobile
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.target !== e.currentTarget) return;
-    
-    const touch = e.touches[0];
-    setIsDragging(true);
-    
-    // Start in neutral mode, will be determined by drag direction
-    setDragMode('position'); // Default to position initially
-    
-    dragStartRef.current = {
-      y: touch.clientY,
-      startY: dragPosition.y,
-      x: touch.clientX,
-      startX: 0,
-      startFontSize: fontSize,
-      hasDeterminedMode: false // Track if we've determined the drag mode yet
-    };
-  }, [dragPosition.y, fontSize]);
-
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (!isDragging) return;
     
@@ -502,14 +464,59 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
   }, [detectedLanguage, currentCue, onPausePlayer]);
 
-  // Handle drag indicator click to toggle auto-pause
-  const handleDragIndicatorClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent starting a drag
-    const newValue = !autoPauseEnabled;
-    setAutoPauseEnabled(newValue);
-    localStorage.setItem('enhancedSubtitleAutoPause', newValue.toString());
-    console.log('🎬 Auto-pause', newValue ? 'enabled' : 'disabled');
-  }, [autoPauseEnabled]);
+  // Handle AP indicator mouse down - start drag
+  const handleAPMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDragStartTime(Date.now());
+    setIsDragging(true);
+    setDragMode('position'); // Default to position initially
+    
+    dragStartRef.current = {
+      y: e.clientY,
+      startY: dragPosition.y,
+      x: e.clientX,
+      startX: 0,
+      startFontSize: fontSize,
+      hasDeterminedMode: false
+    };
+    
+    e.preventDefault();
+  }, [dragPosition.y, fontSize]);
+
+  // Handle AP indicator touch start - start drag
+  const handleAPTouchStart = useCallback((e: React.TouchEvent) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    setDragStartTime(Date.now());
+    setIsDragging(true);
+    setDragMode('position'); // Default to position initially
+    
+    dragStartRef.current = {
+      y: touch.clientY,
+      startY: dragPosition.y,
+      x: touch.clientX,
+      startX: 0,
+      startFontSize: fontSize,
+      hasDeterminedMode: false
+    };
+  }, [dragPosition.y, fontSize]);
+
+  // Handle AP indicator click to toggle auto-pause (only if not dragged)
+  const handleAPClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Only toggle if this was a click (not a drag)
+    // Check if drag time was less than 200ms and no significant movement
+    const dragDuration = Date.now() - dragStartTime;
+    const wasClick = dragDuration < 200 && !dragStartRef.current.hasDeterminedMode;
+    
+    if (wasClick) {
+      const newValue = !autoPauseEnabled;
+      setAutoPauseEnabled(newValue);
+      localStorage.setItem('enhancedSubtitleAutoPause', newValue.toString());
+      console.log('🎬 Auto-pause', newValue ? 'enabled' : 'disabled');
+    }
+  }, [autoPauseEnabled, dragStartTime]);
 
 
   // Render segmented text with clickable words
@@ -651,12 +658,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     >
       <div 
         className="subtitle-text"
-        onMouseDown={handleMouseDown}
-        onTouchStart={handleTouchStart}
         title={
           isDragging 
             ? (dragMode === 'size' ? `Resizing... (${Math.round(fontSize * 100)}%)` : "Moving...") 
-            : "Drag vertically to move, horizontally to resize, 'R' key to reset size"
+            : "Use AP button to drag or resize, 'R' key to reset size"
         }
         style={{
           fontSize: `${fontSize * (isFullscreen ? 2.6 : 1.9)}rem`,
@@ -666,11 +671,13 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         {renderSegmentedText}
       </div>
       
-      {/* Auto-pause toggle button */}
+      {/* Auto-pause toggle button with drag support */}
       <div 
         className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''}`}
-        onClick={handleDragIndicatorClick}
-        title={autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable)'}
+        onMouseDown={handleAPMouseDown}
+        onTouchStart={handleAPTouchStart}
+        onClick={handleAPClick}
+        title={autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize.'}
       >
         <span className="drag-dots">
           AP
