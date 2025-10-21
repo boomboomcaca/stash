@@ -4,6 +4,7 @@ import { Modal } from 'react-bootstrap';
 import { WordSegment, DictionaryEntry, SubtitleCue, SegmentationOptions } from './types';
 import { createSegmenter, detectLanguage } from './segmentation';
 import { lookupWord, lookupWordWithContext } from './dictionary';
+import { playWordPronunciation } from './pronunciation';
 import './styles.scss';
 
 interface EnhancedSubtitleOverlayProps {
@@ -434,6 +435,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     setWordSegments(segments);
   }, [currentCue, detectedLanguage]);
 
+  // Handle word pronunciation
+  const handlePronunciation = useCallback(async (word: string) => {
+    try {
+      await playWordPronunciation(word, detectedLanguage);
+    } catch (error) {
+      console.error('Failed to play pronunciation:', error);
+    }
+  }, [detectedLanguage]);
+
   // Handle word selection
   const handleWordClick = useCallback(async (word: string) => {
     // Pause the player when looking up a word
@@ -607,7 +617,21 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
             {dictionary.pronunciation && (
               <div className="pronunciation mb-3">
                 <strong>美音音标：</strong>
-                <span className="phonetic">{dictionary.pronunciation}</span>
+                <span 
+                  className="phonetic clickable" 
+                  onClick={() => selectedWord && handlePronunciation(selectedWord)}
+                  title="点击播放发音"
+                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  {dictionary.pronunciation}
+                </span>
+                <button
+                  className="btn btn-sm btn-link ml-2"
+                  onClick={() => selectedWord && handlePronunciation(selectedWord)}
+                  title="播放发音"
+                >
+                  🔊
+                </button>
               </div>
             )}
             

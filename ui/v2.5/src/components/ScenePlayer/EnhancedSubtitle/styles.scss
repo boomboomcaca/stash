@@ -387,6 +387,22 @@
       
       .phonetic {
         font-size: 1.1rem;
+        
+        &.clickable {
+          cursor: pointer;
+          text-decoration: underline;
+          color: var(--bs-primary);
+          transition: color 0.2s ease;
+          
+          &:hover {
+            color: var(--bs-info);
+            text-decoration-style: double;
+          }
+          
+          &:active {
+            color: var(--bs-success);
+          }
+        }
       }
     }
     
