@@ -666,14 +666,14 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         {renderSegmentedText}
       </div>
       
-      {/* Drag indicator with auto-pause toggle */}
+      {/* Auto-pause toggle button */}
       <div 
         className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''}`}
         onClick={handleDragIndicatorClick}
         title={autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable)'}
       >
         <span className="drag-dots">
-          {dragMode === 'size' ? '↔' : '⋮⋮'}
+          AP
         </span>
       </div>
       
