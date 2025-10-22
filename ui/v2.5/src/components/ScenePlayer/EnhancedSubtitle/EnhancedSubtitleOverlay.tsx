@@ -657,27 +657,26 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       <Modal.Header closeButton>
         <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="word-text">{selectedWord}</span>
-          {detectedLanguage !== 'en' && (
-            <span className="language-badge">{detectedLanguage}</span>
-          )}
           <button
             className={`favorite-toggle-btn ${isFavorite ? 'favorited' : ''}`}
             onClick={toggleFavorite}
             title={isFavorite ? '取消收藏' : '添加到收藏'}
             style={{
-              marginLeft: 'auto',
-              padding: '6px 12px',
+              padding: '2px 6px',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '1.2rem',
-              background: isFavorite ? '#00cc00' : '#666',
-              color: 'white',
+              fontSize: '1.1rem',
+              background: 'transparent',
+              color: isFavorite ? '#ff6b35' : '#999',
               transition: 'all 0.2s ease',
             }}
           >
             {isFavorite ? '⭐' : '☆'}
           </button>
+          {detectedLanguage !== 'en' && (
+            <span className="language-badge">{detectedLanguage}</span>
+          )}
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>

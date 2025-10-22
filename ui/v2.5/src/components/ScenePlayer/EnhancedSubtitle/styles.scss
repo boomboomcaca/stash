@@ -107,14 +107,19 @@
     }
 
     &.favorited {
-      color: #00ff00; // 收藏的单词显示为绿色
+      color: #ff6b35; // 收藏的单词显示为亮橙色，更清晰易读
       font-weight: 600;
       text-shadow: 
-        0 0 8px rgba(0, 255, 0, 0.5),
-        2px 2px 4px rgba(0, 0, 0, 0.8);
+        0 0 12px rgba(255, 107, 53, 0.8),
+        2px 2px 4px rgba(0, 0, 0, 1),
+        0 0 20px rgba(255, 107, 53, 0.4);
       
       &:hover {
-        color: #00ff66;
+        color: #ff8c42;
+        text-shadow: 
+          0 0 15px rgba(255, 140, 66, 0.9),
+          2px 2px 4px rgba(0, 0, 0, 1),
+          0 0 25px rgba(255, 140, 66, 0.5);
       }
     }
   }
