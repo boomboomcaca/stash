@@ -669,10 +669,20 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     const wasClick = dragDuration < 200 && !dragStartRef.current.hasDeterminedMode;
     
     if (wasClick) {
-      const newValue = !autoPauseEnabled;
-      setAutoPauseEnabled(newValue);
-      localStorage.setItem('enhancedSubtitleAutoPause', newValue.toString());
-      console.log('🎬 Auto-pause', newValue ? 'enabled' : 'disabled');
+      // 如果 AP 当前是启用状态（绿色或红色），点击后关闭到灰色
+      // 如果 AP 当前是灰色，点击后启用
+      if (autoPauseEnabled) {
+        // 关闭 AP 到灰色状态
+        setAutoPauseEnabled(false);
+        setIsAutoPaused(false); // 清除自动暂停状态
+        localStorage.setItem('enhancedSubtitleAutoPause', 'false');
+        console.log('🎬 Auto-pause disabled (turned to gray)');
+      } else {
+        // 从灰色启用 AP
+        setAutoPauseEnabled(true);
+        localStorage.setItem('enhancedSubtitleAutoPause', 'true');
+        console.log('🎬 Auto-pause enabled (turned to green/red)');
+      }
     }
   }, [autoPauseEnabled, dragStartTime]);
 
