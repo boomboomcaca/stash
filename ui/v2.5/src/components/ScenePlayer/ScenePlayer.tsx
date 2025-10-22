@@ -284,7 +284,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     const [fullscreen, setFullscreen] = useState(false);
     const [showScrubber, setShowScrubber] = useState(false);
-    const [showEnhancedSubtitles, setShowEnhancedSubtitles] = useState(true);
+    const [showEnhancedSubtitles, setShowEnhancedSubtitles] = useState(false);
     const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<string | null>(null);
     const [subtitleLanguage, setSubtitleLanguage] = useState<string>('en');
     const [resetFontSizeTrigger, setResetFontSizeTrigger] = useState(0);
