@@ -100,6 +100,9 @@
     // 添加相对定位，使 AP 图标可以相对于此定位
     position: relative;
     
+    // 🚀 性能优化：禁用触摸滚动，防止拖拽时滚动页面
+    touch-action: none;
+    
     &:active {
       cursor: grabbing;
     }
@@ -156,6 +159,8 @@
     transition: all 0.3s ease;
     pointer-events: auto; // 允许点击
     cursor: pointer;
+    // 🚀 性能优化：禁用触摸滚动
+    touch-action: none;
     
     // 圆形容器样式
     width: 40px;

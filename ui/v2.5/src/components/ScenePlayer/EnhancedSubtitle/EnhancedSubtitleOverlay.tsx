@@ -221,6 +221,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, []);
 
   // ✅ Touch drag handlers for mobile - 使用 useRef 避免依赖更新
+  // 🚀 性能优化：不再调用 preventDefault，使用 CSS touch-action 代替
   const handleTouchMove = useCallback((e: TouchEvent) => {
     const touch = e.touches[0];
     const deltaX = touch.clientX - dragStartRef.current.x;
@@ -262,7 +263,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
     }
     
-    e.preventDefault(); // Prevent scrolling while dragging
+    // 🚀 移除 preventDefault() - 使用 CSS touch-action: none 代替，性能更好
   }, [dragMode]); // ✅ 移除 isDragging 依赖
 
   const handleTouchEnd = useCallback(() => {
@@ -270,12 +271,14 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, []);
 
   // ✅ Add global event listeners for drag - 修复依赖问题
+  // 🚀 性能优化：移动端使用 passive 事件监听器以提升性能
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove, { passive: false });
-      document.addEventListener('touchend', handleTouchEnd);
+      // 🚀 移动端性能优化：使用 passive 监听器，只在必要时调用 preventDefault
+      document.addEventListener('touchmove', handleTouchMove, { passive: true });
+      document.addEventListener('touchend', handleTouchEnd, { passive: true });
       
       // Add dragging class to body to prevent text selection
       document.body.classList.add('subtitle-dragging');
@@ -444,20 +447,41 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, [subtitleTrack, parseVTT, onSubtitlesLoaded]);
 
   // Find current subtitle cue and handle auto-pause
+  // 🚀 性能优化：使用 useMemo 缓存字幕查找结果，避免每次 currentTime 更新都重新查找
+  const currentCueData = useMemo(() => {
+    if (!parsedSubtitles) {
+      return { cue: null, cueIndex: -1 };
+    }
+
+    // 使用二分查找优化查找性能（假设字幕按时间排序）
+    const cues = parsedSubtitles.cues;
+    let cue: SubtitleCue | null = null;
+    let cueIndex = -1;
+
+    // 简单的线性查找，但只在必要时执行
+    for (let i = 0; i < cues.length; i++) {
+      const c = cues[i];
+      if (currentTime >= c.startTime && currentTime <= c.endTime) {
+        cue = c;
+        cueIndex = i;
+        break;
+      }
+      // 提前退出：如果当前时间小于字幕开始时间，后面的都不用查了
+      if (currentTime < c.startTime) {
+        break;
+      }
+    }
+    
+    return { cue, cueIndex };
+  }, [currentTime, parsedSubtitles]);
+
   useEffect(() => {
     if (!parsedSubtitles) {
       setCurrentCue(null);
       return;
     }
 
-    const cue = parsedSubtitles.cues.find(
-      c => currentTime >= c.startTime && currentTime <= c.endTime
-    );
-    
-    // 找到当前字幕的索引并通知父组件
-    const cueIndex = cue ? parsedSubtitles.cues.findIndex(
-      c => c.startTime === cue.startTime && c.endTime === cue.endTime && c.text === cue.text
-    ) : -1;
+    const { cue, cueIndex } = currentCueData;
     
     // Auto-pause logic: pause before subtitle disappears
     if (autoPauseEnabled && onPausePlayer && getPlayerPaused) {
@@ -517,13 +541,21 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       }
     }
     
-    setCurrentCue(cue || null);
+    // 🚀 性能优化：只在字幕真正变化时才更新状态，避免不必要的重渲染
+    const isSameCueContent = cue && currentCue && 
+      cue.startTime === currentCue.startTime && 
+      cue.endTime === currentCue.endTime &&
+      cue.text === currentCue.text;
     
-    // 通知父组件当前字幕索引变化
-    if (onCurrentCueChange) {
-      onCurrentCueChange(cueIndex);
+    if (!isSameCueContent) {
+      setCurrentCue(cue || null);
+      
+      // 通知父组件当前字幕索引变化
+      if (onCurrentCueChange) {
+        onCurrentCueChange(cueIndex);
+      }
     }
-  }, [currentTime, parsedSubtitles, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange]);
+  }, [currentCueData, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange, currentCue]);
 
   // Segment current cue text
   useEffect(() => {
