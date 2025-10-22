@@ -17,6 +17,8 @@ interface EnhancedSubtitleOverlayProps {
   onToggleVisibility: () => void;
   onPausePlayer?: () => void;
   resetFontSizeTrigger?: number; // Increment this to trigger font size reset
+  onSubtitlesLoaded?: (cues: SubtitleCue[]) => void; // 字幕加载完成回调
+  onCurrentCueChange?: (index: number) => void; // 当前字幕索引变化回调
 }
 
 interface ParsedSubtitle {
@@ -32,6 +34,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   onToggleVisibility,
   onPausePlayer,
   resetFontSizeTrigger,
+  onSubtitlesLoaded,
+  onCurrentCueChange,
 }) => {
   const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
   const [currentCue, setCurrentCue] = useState<SubtitleCue | null>(null);
@@ -386,6 +390,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           const content = await response.text();
           const cues = parseVTT(content);
           setParsedSubtitles({ cues });
+          // 通知父组件字幕已加载
+          if (onSubtitlesLoaded) {
+            onSubtitlesLoaded(cues);
+          }
         }
       } catch (error) {
         console.error('Failed to load subtitles:', error);
@@ -394,7 +402,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     };
 
     loadSubtitles();
-  }, [subtitleTrack, parseVTT]);
+  }, [subtitleTrack, parseVTT, onSubtitlesLoaded]);
 
   // Find current subtitle cue and handle auto-pause
   useEffect(() => {
@@ -406,6 +414,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     const cue = parsedSubtitles.cues.find(
       c => currentTime >= c.startTime && currentTime <= c.endTime
     );
+    
+    // 找到当前字幕的索引并通知父组件
+    const cueIndex = cue ? parsedSubtitles.cues.findIndex(
+      c => c.startTime === cue.startTime && c.endTime === cue.endTime && c.text === cue.text
+    ) : -1;
     
     // Auto-pause logic: pause before subtitle disappears
     if (autoPauseEnabled && onPausePlayer) {
@@ -435,7 +448,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
     
     setCurrentCue(cue || null);
-  }, [currentTime, parsedSubtitles, autoPauseEnabled, onPausePlayer]);
+    
+    // 通知父组件当前字幕索引变化
+    if (onCurrentCueChange) {
+      onCurrentCueChange(cueIndex);
+    }
+  }, [currentTime, parsedSubtitles, autoPauseEnabled, onPausePlayer, onCurrentCueChange]);
 
   // Segment current cue text
   useEffect(() => {

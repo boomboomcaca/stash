@@ -289,6 +289,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<string | null>(null);
     const [subtitleLanguage, setSubtitleLanguage] = useState<string>('en');
     const [resetFontSizeTrigger, setResetFontSizeTrigger] = useState(0);
+    const [subtitleCues, setSubtitleCues] = useState<Array<{ startTime: number; endTime: number; text: string }>>([]);
+    const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState<number>(-1);
 
     const started = useRef(false);
     const auto = useRef(false);
@@ -490,6 +492,39 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         (button as any).setEnabled(showEnhancedSubtitles);
       }
     }, [getPlayer, showEnhancedSubtitles]);
+
+    // 同步增强字幕状态到移动触摸控件
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+      
+      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
+      if (touchPlugin && typeof touchPlugin.setEnhancedSubtitlesEnabled === 'function') {
+        touchPlugin.setEnhancedSubtitlesEnabled(showEnhancedSubtitles);
+      }
+    }, [getPlayer, showEnhancedSubtitles]);
+
+    // 同步字幕列表到移动触摸控件
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+      
+      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
+      if (touchPlugin && typeof touchPlugin.setSubtitleCues === 'function') {
+        touchPlugin.setSubtitleCues(subtitleCues);
+      }
+    }, [getPlayer, subtitleCues]);
+
+    // 同步当前字幕索引获取函数到移动触摸控件
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+      
+      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
+      if (touchPlugin && typeof touchPlugin.setGetCurrentSubtitleIndex === 'function') {
+        touchPlugin.setGetCurrentSubtitleIndex(() => currentSubtitleIndex);
+      }
+    }, [getPlayer, currentSubtitleIndex]);
 
     useEffect(() => {
       if (scene.interactive && interactiveInitialised) {
@@ -1057,6 +1092,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             onToggleVisibility={() => setShowEnhancedSubtitles(!showEnhancedSubtitles)}
             onPausePlayer={() => getPlayer()?.pause()}
             resetFontSizeTrigger={resetFontSizeTrigger}
+            onSubtitlesLoaded={(cues) => setSubtitleCues(cues)}
+            onCurrentCueChange={(index) => setCurrentSubtitleIndex(index)}
           />
         )}
       </div>

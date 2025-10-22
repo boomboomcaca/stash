@@ -6,6 +6,8 @@ interface TouchControlState {
   lastTapTime: number;
   lastTapPosition: { x: number; y: number };
   doubleTapTimer: number | null;
+  tripleTapTimer: number | null;
+  tapCount: number;
   originalPlaybackRate: number;
   
   // 拖拽进度相关状态
@@ -30,6 +32,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     lastTapTime: 0,
     lastTapPosition: { x: 0, y: 0 },
     doubleTapTimer: null,
+    tripleTapTimer: null,
+    tapCount: 0,
     originalPlaybackRate: 1,
     
     // 拖拽进度相关状态初始化
@@ -63,8 +67,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private speedFeedbackElement: HTMLElement | null = null;
   private speedFeedbackTimer: number | null = null;
 
+  // 增强字幕相关
+  private enhancedSubtitlesEnabled: boolean = false;
+  private subtitleCues: Array<{ startTime: number; endTime: number; text: string }> = [];
+  private getCurrentSubtitleIndex: (() => number) | null = null;
+
   private readonly LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
   private readonly DOUBLE_TAP_DURATION = 300; // 双击检测时间（毫秒）
+  private readonly TRIPLE_TAP_DURATION = 400; // 三连击检测时间（毫秒）
   private readonly DOUBLE_TAP_DISTANCE = 50; // 双击检测距离（像素）
   private readonly SEEK_STEP = 10; // 快进/快退步长（秒）
   
@@ -349,6 +359,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       clearTimeout(this.state.doubleTapTimer);
       this.state.doubleTapTimer = null;
     }
+    
+    if (this.state.tripleTapTimer) {
+      clearTimeout(this.state.tripleTapTimer);
+      this.state.tripleTapTimer = null;
+    }
 
     // 无论长按状态如何，都恢复原始播放速度
     // 这确保在屏幕旋转时播放速度被正确重置
@@ -365,7 +380,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 重置触摸控制状态
     this.state.isLongPress = false;
     this.state.lastTapTime = 0;
+    this.state.tapCount = 0;
     this.state.doubleTapTimer = null;
+    this.state.tripleTapTimer = null;
     this.state.longPressTimer = null;
     
     // 重置拖拽状态
@@ -466,7 +483,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       return;
     }
 
-    // 检测单击和双击
+    // 检测单击、双击和三连击
     const now = Date.now();
     const timeSinceLastTap = now - this.state.lastTapTime;
     const distance = Math.sqrt(
@@ -474,27 +491,66 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       Math.pow(y - this.state.lastTapPosition.y, 2)
     );
 
-    if (timeSinceLastTap < this.DOUBLE_TAP_DURATION && distance < this.DOUBLE_TAP_DISTANCE) {
-      // 双击 - 清除可能存在的单击延时计时器
+    // 如果距离上次点击时间在检测范围内且距离足够近，增加点击计数
+    if (timeSinceLastTap < this.TRIPLE_TAP_DURATION && distance < this.DOUBLE_TAP_DISTANCE) {
+      this.state.tapCount++;
+      this.state.lastTapTime = now;
+      this.state.lastTapPosition = { x, y };
+      
+      // 清除之前的计时器
       if (this.state.doubleTapTimer) {
         clearTimeout(this.state.doubleTapTimer);
         this.state.doubleTapTimer = null;
       }
-      this.handleDoubleTap(x, y);
-      this.state.lastTapTime = 0; // 重置，避免连续双击
+      if (this.state.tripleTapTimer) {
+        clearTimeout(this.state.tripleTapTimer);
+        this.state.tripleTapTimer = null;
+      }
+      
+      // 检查点击次数
+      if (this.state.tapCount === 3) {
+        // 三连击
+        this.handleTripleTap(x, y);
+        this.state.tapCount = 0;
+        this.state.lastTapTime = 0;
+      } else if (this.state.tapCount === 2) {
+        // 可能是双击，等待看是否有第三击
+        this.state.tripleTapTimer = window.setTimeout(() => {
+          this.handleDoubleTap(x, y);
+          this.state.tapCount = 0;
+          this.state.lastTapTime = 0;
+          this.state.tripleTapTimer = null;
+        }, this.TRIPLE_TAP_DURATION);
+      } else if (this.state.tapCount === 1) {
+        // 可能是单击，等待看是否有第二击
+        this.state.doubleTapTimer = window.setTimeout(() => {
+          this.handleSingleTap(x, y);
+          this.state.tapCount = 0;
+          this.state.lastTapTime = 0;
+          this.state.doubleTapTimer = null;
+        }, this.DOUBLE_TAP_DURATION);
+      }
     } else {
-      // 可能是单击 - 延迟执行以等待可能的双击
+      // 时间间隔过长或距离过远，重置为第一次点击
+      this.state.tapCount = 1;
       this.state.lastTapTime = now;
       this.state.lastTapPosition = { x, y };
       
-      // 清除之前的单击计时器
+      // 清除之前的计时器
       if (this.state.doubleTapTimer) {
         clearTimeout(this.state.doubleTapTimer);
+        this.state.doubleTapTimer = null;
+      }
+      if (this.state.tripleTapTimer) {
+        clearTimeout(this.state.tripleTapTimer);
+        this.state.tripleTapTimer = null;
       }
       
-      // 延迟执行单击操作，等待可能的双击
+      // 等待可能的双击或三连击
       this.state.doubleTapTimer = window.setTimeout(() => {
         this.handleSingleTap(x, y);
+        this.state.tapCount = 0;
+        this.state.lastTapTime = 0;
         this.state.doubleTapTimer = null;
       }, this.DOUBLE_TAP_DURATION);
     }
@@ -585,6 +641,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private handleDoubleTap(x: number, y: number): void {
+    // 如果增强字幕已启用，双击重播当前字幕
+    if (this.enhancedSubtitlesEnabled && this.getCurrentSubtitleIndex && this.subtitleCues.length > 0) {
+      const currentIndex = this.getCurrentSubtitleIndex();
+      if (currentIndex >= 0 && currentIndex < this.subtitleCues.length) {
+        const currentCue = this.subtitleCues[currentIndex];
+        console.log("[MobileTouchControls] 双击重播当前字幕:", currentCue.text);
+        this.player.currentTime(currentCue.startTime);
+        if (this.player.paused()) {
+          this.player.play()?.catch((error) => {
+            console.warn("播放失败:", error);
+          });
+        }
+        return;
+      }
+    }
+
+    // 默认行为：左侧后退，右侧前进
     const playerEl = this.player.el() as HTMLElement;
     const videoWidth = playerEl?.offsetWidth || 0;
     const isLeftSide = x < videoWidth / 2;
@@ -595,6 +668,50 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     } else {
       // 右侧双击：前进10秒
       this.seekRelative(this.SEEK_STEP);
+    }
+  }
+
+  private handleTripleTap(x: number, y: number): void {
+    // 三连击仅在增强字幕启用时生效
+    if (!this.enhancedSubtitlesEnabled || !this.getCurrentSubtitleIndex || this.subtitleCues.length === 0) {
+      console.log("[MobileTouchControls] 三连击需要增强字幕启用");
+      return;
+    }
+
+    const playerEl = this.player.el() as HTMLElement;
+    const videoWidth = playerEl?.offsetWidth || 0;
+    const isLeftSide = x < videoWidth / 2;
+    
+    const currentIndex = this.getCurrentSubtitleIndex();
+    
+    if (isLeftSide) {
+      // 左侧三连击：播放上一个字幕
+      if (currentIndex > 0) {
+        const prevCue = this.subtitleCues[currentIndex - 1];
+        console.log("[MobileTouchControls] 三连击左侧，播放上一个字幕:", prevCue.text);
+        this.player.currentTime(prevCue.startTime);
+        if (this.player.paused()) {
+          this.player.play()?.catch((error) => {
+            console.warn("播放失败:", error);
+          });
+        }
+      } else {
+        console.log("[MobileTouchControls] 已经是第一个字幕");
+      }
+    } else {
+      // 右侧三连击：播放下一个字幕
+      if (currentIndex < this.subtitleCues.length - 1) {
+        const nextCue = this.subtitleCues[currentIndex + 1];
+        console.log("[MobileTouchControls] 三连击右侧，播放下一个字幕:", nextCue.text);
+        this.player.currentTime(nextCue.startTime);
+        if (this.player.paused()) {
+          this.player.play()?.catch((error) => {
+            console.warn("播放失败:", error);
+          });
+        }
+      } else {
+        console.log("[MobileTouchControls] 已经是最后一个字幕");
+      }
     }
   }
 
@@ -847,6 +964,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.state.currentSpeedRate = 1;
       console.log("[MobileTouchControls] 播放速度重置为1x正常速度");
     }
+  }
+
+  // 公共方法：设置增强字幕状态
+  public setEnhancedSubtitlesEnabled(enabled: boolean): void {
+    this.enhancedSubtitlesEnabled = enabled;
+    console.log("[MobileTouchControls] 增强字幕状态:", enabled ? "已启用" : "已禁用");
+  }
+
+  // 公共方法：设置字幕列表
+  public setSubtitleCues(cues: Array<{ startTime: number; endTime: number; text: string }>): void {
+    this.subtitleCues = cues;
+    console.log("[MobileTouchControls] 已设置字幕列表，共", cues.length, "条");
+  }
+
+  // 公共方法：设置获取当前字幕索引的回调函数
+  public setGetCurrentSubtitleIndex(callback: () => number): void {
+    this.getCurrentSubtitleIndex = callback;
   }
 }
 
