@@ -244,6 +244,7 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      font-size: 1rem;
     }
 
     .language-badge {
@@ -382,11 +383,11 @@
   
   .dictionary-modal .dictionary-content {
     .pronunciation {
-      font-size: 1rem;
+      font-size: 1.1rem; // 修改：与桌面版保持一致
       padding: 6px 10px;
       
       .phonetic {
-        font-size: 1.1rem;
+        font-size: 1.2rem; // 修改：与桌面版保持一致
         
         &.clickable {
           cursor: pointer;
@@ -407,12 +408,12 @@
     }
     
     .definition .meaning {
-      font-size: 1rem;
-      line-height: 1.4;
+      font-size: 1.1rem; // 修改：与桌面版保持一致
+      line-height: 1.5; // 修改：与桌面版保持一致
     }
     
     .definition .part-of-speech .badge {
-      font-size: 0.75rem;
+      font-size: 0.8rem; // 修改：与桌面版保持一致
       padding: 3px 6px;
     }
   }
