@@ -2,7 +2,7 @@
   position: absolute;
   top: auto;
   bottom: 15%;
-  left: 45%;
+  left: 47%;
   transform: translateX(-50%);
   z-index: 1002; // 高于视频控制栏的1001，确保横屏时字幕在控制栏上方
   width: 90%; // 设置固定宽度，让字幕在两行内完整显示
@@ -23,7 +23,7 @@
     position: fixed;
     top: auto;
     bottom: 10%;
-    left: 45%;
+    left: 47%;
     transform: translateX(-50%);
     z-index: 99999;
     width: 92%; // 全屏模式固定宽度
@@ -48,7 +48,7 @@
       color: #ffff00;
       background: rgba(0, 0, 0, 0.6);
       border: none;
-      padding: 16px 24px;
+      padding: 8px 20px;
       border-radius: 8px;
       margin-left: 60px; // 为 AP 图标预留空间
       
@@ -85,7 +85,7 @@
       -1px -1px 2px rgba(0, 0, 0, 0.4);
     background: rgba(0, 0, 0, 0.6);
     border: none;
-    padding: 12px 18px;
+    padding: 6px 14px;
     border-radius: 8px;
     
     // 支持自动换行，完整显示字幕内容
@@ -384,14 +384,14 @@
     
     .subtitle-text {
       font-size: 1.5rem;
-      padding: 10px 14px;
+      padding: 5px 12px;
       letter-spacing: 0.4px;
       word-spacing: -5px;
     }
 
     &.fullscreen-mode .subtitle-text {
       font-size: 2.1rem;
-      padding: 14px 20px;
+      padding: 7px 16px;
       word-spacing: -7px;
     }
 
