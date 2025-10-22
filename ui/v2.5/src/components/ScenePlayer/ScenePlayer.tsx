@@ -1116,6 +1116,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             language={subtitleLanguage}
             onToggleVisibility={() => setShowEnhancedSubtitles(!showEnhancedSubtitles)}
             onPausePlayer={() => getPlayer()?.pause()}
+            getPlayerPaused={() => getPlayer()?.paused() ?? true}
             resetFontSizeTrigger={resetFontSizeTrigger}
             onSubtitlesLoaded={(cues) => setSubtitleCues(cues)}
             onCurrentCueChange={(index) => setCurrentSubtitleIndex(index)}

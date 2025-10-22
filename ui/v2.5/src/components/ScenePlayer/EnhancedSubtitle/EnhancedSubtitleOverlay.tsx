@@ -16,6 +16,7 @@ interface EnhancedSubtitleOverlayProps {
   isFullscreen?: boolean;
   onToggleVisibility: () => void;
   onPausePlayer?: () => void;
+  getPlayerPaused?: () => boolean; // Get player paused state
   resetFontSizeTrigger?: number; // Increment this to trigger font size reset
   onSubtitlesLoaded?: (cues: SubtitleCue[]) => void; // 字幕加载完成回调
   onCurrentCueChange?: (index: number) => void; // 当前字幕索引变化回调
@@ -33,6 +34,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   isFullscreen = false,
   onToggleVisibility,
   onPausePlayer,
+  getPlayerPaused,
   resetFontSizeTrigger,
   onSubtitlesLoaded,
   onCurrentCueChange,
@@ -61,6 +63,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false });
   const lastCueRef = useRef<SubtitleCue | null>(null);
   const autoPauseTriggeredRef = useRef(false);
+  const lastPausedStateRef = useRef<boolean | null>(null);
+  const userResumedPlaybackRef = useRef(false);
   
   const segmenterRef = useRef(createSegmenter({
     language: detectedLanguage,
@@ -421,17 +425,47 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     ) : -1;
     
     // Auto-pause logic: pause before subtitle disappears
-    if (autoPauseEnabled && onPausePlayer) {
-      // When a new cue appears, reset the trigger flag
-      if (cue && cue !== lastCueRef.current) {
+    if (autoPauseEnabled && onPausePlayer && getPlayerPaused) {
+      const isPaused = getPlayerPaused();
+      
+      // When a new cue appears, reset the flags
+      // Compare by content (startTime, endTime, text) instead of reference to avoid false positives
+      const isSameCue = cue && lastCueRef.current && 
+        cue.startTime === lastCueRef.current.startTime && 
+        cue.endTime === lastCueRef.current.endTime &&
+        cue.text === lastCueRef.current.text;
+      
+      if (cue && !isSameCue) {
+        console.log('🎬 New subtitle detected, resetting auto-pause flags', {
+          newCue: { start: cue.startTime, end: cue.endTime, text: cue.text.substring(0, 20) },
+          oldCue: lastCueRef.current ? { start: lastCueRef.current.startTime, end: lastCueRef.current.endTime } : null
+        });
         autoPauseTriggeredRef.current = false;
+        userResumedPlaybackRef.current = false;
         lastCueRef.current = cue;
+        lastPausedStateRef.current = isPaused; // Initialize paused state for new subtitle
       }
       
-      // If we have a current cue and haven't triggered pause yet
-      if (cue && !autoPauseTriggeredRef.current) {
+      // Detect if user manually resumed playback BEFORE we try to auto-pause
+      // This checks if the player state changed from paused to playing
+      if (lastPausedStateRef.current === true && isPaused === false) {
+        // Only mark as user-resumed if we previously auto-paused
+        // This prevents normal playback from being flagged as "user resumed"
+        if (autoPauseTriggeredRef.current) {
+          console.log('🎬 User manually resumed playback after auto-pause, disabling auto-pause for current subtitle');
+          userResumedPlaybackRef.current = true;
+          lastPausedStateRef.current = isPaused;
+          // Don't check for auto-pause in this cycle since user just resumed
+          return;
+        }
+      }
+      
+      lastPausedStateRef.current = isPaused;
+      
+      // If we have a current cue and haven't triggered pause yet and user hasn't manually resumed
+      if (cue && !autoPauseTriggeredRef.current && !userResumedPlaybackRef.current && !isPaused) {
         const timeUntilEnd = cue.endTime - currentTime;
-        const pauseThreshold = 0.2; // Pause 0.1 seconds before subtitle ends
+        const pauseThreshold = 0.2; // Pause 0.2 seconds before subtitle ends
         
         if (timeUntilEnd <= pauseThreshold && timeUntilEnd > 0) {
           console.log('🎬 Auto-pausing before subtitle ends');
@@ -444,6 +478,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       if (!cue) {
         lastCueRef.current = null;
         autoPauseTriggeredRef.current = false;
+        userResumedPlaybackRef.current = false;
       }
     }
     
@@ -453,7 +488,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     if (onCurrentCueChange) {
       onCurrentCueChange(cueIndex);
     }
-  }, [currentTime, parsedSubtitles, autoPauseEnabled, onPausePlayer, onCurrentCueChange]);
+  }, [currentTime, parsedSubtitles, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange]);
 
   // Segment current cue text
   useEffect(() => {
