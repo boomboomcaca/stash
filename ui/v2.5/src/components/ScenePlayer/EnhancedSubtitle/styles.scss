@@ -57,6 +57,9 @@
       display: inline-block;
       width: fit-content;
       max-width: 100%;
+      
+      // 添加相对定位，使 AP 图标可以相对于此定位
+      position: relative;
     }
   }
 
@@ -90,6 +93,9 @@
     display: inline-block;
     width: fit-content;
     max-width: 100%;
+    
+    // 添加相对定位，使 AP 图标可以相对于此定位
+    position: relative;
     
     &:active {
       cursor: grabbing;
@@ -141,7 +147,7 @@
   .drag-indicator {
     position: absolute;
     top: 50%;
-    left: -50px; // 固定在字幕左侧边缘外面，距离左边缘 50px
+    left: -50px; // 显示在背景框左侧外面，距离左边缘 50px
     transform: translateY(-50%);
     opacity: 0.8; // 一直显示，默认透明度为 0.8
     transition: all 0.3s ease;

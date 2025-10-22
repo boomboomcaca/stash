@@ -745,20 +745,20 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           transition: isDragging ? 'none' : 'font-size 0.2s ease'
         }}
       >
+        {/* Auto-pause toggle button with drag support */}
+        <div 
+          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''}`}
+          onMouseDown={handleAPMouseDown}
+          onTouchStart={handleAPTouchStart}
+          onClick={handleAPClick}
+          title={autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize.'}
+        >
+          <span className="drag-dots">
+            AP
+          </span>
+        </div>
+        
         {renderSegmentedText}
-      </div>
-      
-      {/* Auto-pause toggle button with drag support */}
-      <div 
-        className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''}`}
-        onMouseDown={handleAPMouseDown}
-        onTouchStart={handleAPTouchStart}
-        onClick={handleAPClick}
-        title={autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize.'}
-      >
-        <span className="drag-dots">
-          AP
-        </span>
       </div>
       
       {/* Font size indicator */}
