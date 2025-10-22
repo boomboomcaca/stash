@@ -24,6 +24,7 @@ import "./big-buttons";
 import "./track-activity";
 import "./vrmode";
 import "./mobile-touch-controls";
+import "./enhanced-subtitle-button";
 import cx from "classnames";
 import {
   useSceneSaveActivity,
@@ -365,6 +366,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             inline: false,
           },
           chaptersButton: false,
+          subsCapsButton: false, // 禁用原生字幕按钮
         },
         html5: {
           dash: {
@@ -450,6 +452,13 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       vjs.focus();
       setPlayer(vjs);
 
+      // 初始化增强字幕按钮
+      vjs.enhancedSubtitleButton({
+        onToggle: (enabled: boolean) => {
+          setShowEnhancedSubtitles(enabled);
+        }
+      });
+
       // Video player destructor
       return () => {
         vjs.dispose();
@@ -470,6 +479,17 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       skipButtons.setForwardHandler(onNext);
       skipButtons.setBackwardHandler(onPrevious);
     }, [getPlayer, onNext, onPrevious]);
+
+    // 同步增强字幕按钮状态
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+      
+      const button = player.getChild("ControlBar")?.getChild("EnhancedSubtitleButton");
+      if (button && typeof (button as any).setEnabled === 'function') {
+        (button as any).setEnabled(showEnhancedSubtitles);
+      }
+    }, [getPlayer, showEnhancedSubtitles]);
 
     useEffect(() => {
       if (scene.interactive && interactiveInitialised) {
@@ -696,13 +716,14 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             defaultLang = lang;
           }
           
+          // 原生字幕默认不显示，由增强字幕按钮控制增强字幕
           sourceSelector.addTextTrack(
             {
               src: trackSrc,
               kind: "captions",
               srclang: lang,
               label: label,
-              default: setAsDefault,
+              default: false, // 不自动显示原生字幕
             },
             false
           );

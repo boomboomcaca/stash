@@ -1,0 +1,19 @@
+.vjs-enhanced-subtitles-button {
+  cursor: pointer;
+  
+  // 确保图标正确显示
+  .vjs-icon-placeholder::before {
+    font-family: VideoJS;
+  }
+  
+  // 字幕开启状态 - 使用不同的图标
+  &.subtitles-enabled .vjs-icon-placeholder::before {
+    content: "\f10d"; // VideoJS 字幕图标
+  }
+  
+  // 字幕关闭状态 - 使用默认的字幕图标但添加斜线效果
+  &:not(.subtitles-enabled) .vjs-icon-placeholder::before {
+    content: "\f10c"; // VideoJS 字幕关闭图标
+  }
+}
+
