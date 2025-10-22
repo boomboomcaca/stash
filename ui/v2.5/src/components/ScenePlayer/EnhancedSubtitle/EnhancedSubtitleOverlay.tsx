@@ -588,7 +588,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     return elements;
   }, [currentCue, wordSegments, handleWordClick]);
 
-  // Dictionary modal content
+  // Dictionary modal content - compact mode only
   const renderDictionaryModal = () => (
     <Modal 
       show={showDictionary} 
@@ -599,7 +599,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     >
       <Modal.Header closeButton>
         <Modal.Title>
-          {selectedWord}
+          <span className="word-text">{selectedWord}</span>
           {detectedLanguage !== 'en' && (
             <span className="language-badge">{detectedLanguage}</span>
           )}
@@ -607,64 +607,43 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       </Modal.Header>
       <Modal.Body>
         {isLoading ? (
-          <div className="text-center p-4">
-            <div className="spinner-border" role="status">
+          <div className="text-center py-3">
+            <div className="spinner-border spinner-border-sm" role="status">
               <span className="sr-only">Loading...</span>
             </div>
           </div>
         ) : dictionary ? (
           <div className="dictionary-content">
-            {dictionary.pronunciation && (
-              <div className="pronunciation mb-3">
-                <strong>美音音标：</strong>
-                <span 
-                  className="phonetic clickable" 
-                  onClick={() => selectedWord && handlePronunciation(selectedWord)}
-                  title="点击播放发音"
-                  style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  {dictionary.pronunciation}
-                </span>
-                <button
-                  className="btn btn-sm btn-link ml-2"
-                  onClick={() => selectedWord && handlePronunciation(selectedWord)}
-                  title="播放发音"
-                >
-                  🔊
-                </button>
-              </div>
-            )}
-            
             {dictionary.definitions.map((def, index) => (
-              <div key={index} className="definition mb-3">
-                <div className="part-of-speech">
-                  <span className="badge badge-secondary">{def.partOfSpeech}</span>
+              <div key={index} className="definition">
+                <div className="pos-phonetic-line">
+                  <span className="pos-tag">{def.partOfSpeech}</span>
+                  {dictionary.pronunciation && index === 0 && (
+                    <span 
+                      className="phonetic clickable" 
+                      onClick={() => selectedWord && handlePronunciation(selectedWord)}
+                      title="点击播放发音"
+                    >
+                      /{dictionary.pronunciation}/
+                    </span>
+                  )}
                 </div>
-                <div className="meaning mt-2">
+                <div className="meaning">
                   {def.meaning.split('\n').map((line, lineIndex) => (
-                    <div key={lineIndex} className={lineIndex > 0 ? 'mt-2' : ''}>
+                    <p key={lineIndex} className="meaning-line">
                       {line}
-                    </div>
+                    </p>
                   ))}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center p-4">
-            <p>No definition found for "{selectedWord}"</p>
+          <div className="text-center py-3">
+            <p className="mb-0 text-muted">未找到释义</p>
           </div>
         )}
       </Modal.Body>
-      <Modal.Footer>
-        <button 
-          type="button" 
-          className="btn btn-secondary" 
-          onClick={() => setShowDictionary(false)}
-        >
-          Close
-        </button>
-      </Modal.Footer>
     </Modal>
   );
 
