@@ -146,6 +146,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     loadFavorites();
   }, []);
 
+  // ✅ 清理 PronunciationService 缓存（组件卸载时）
+  useEffect(() => {
+    return () => {
+      // 组件卸载时清理音频缓存
+      const { pronunciationService } = require('./pronunciation');
+      pronunciationService.clearCache();
+    };
+  }, []);
+
   // Check if selected word is favorite
   useEffect(() => {
     if (selectedWord) {
@@ -163,10 +172,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
   }, [resetFontSizeTrigger]);
 
-  // Mouse drag handlers
+  // ✅ Mouse drag handlers - 使用 useRef 避免依赖更新
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    
     const deltaX = e.clientX - dragStartRef.current.x;
     const deltaY = e.clientY - dragStartRef.current.y;
     
@@ -207,16 +214,14 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       
       setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
     }
-  }, [isDragging, dragMode]);
+  }, [dragMode]); // ✅ 移除 isDragging 依赖
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  // Touch drag handlers for mobile
+  // ✅ Touch drag handlers for mobile - 使用 useRef 避免依赖更新
   const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (!isDragging) return;
-    
     const touch = e.touches[0];
     const deltaX = touch.clientX - dragStartRef.current.x;
     const deltaY = touch.clientY - dragStartRef.current.y;
@@ -258,13 +263,13 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
     
     e.preventDefault(); // Prevent scrolling while dragging
-  }, [isDragging, dragMode]);
+  }, [dragMode]); // ✅ 移除 isDragging 依赖
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
   }, []);
 
-  // Add global event listeners for drag
+  // ✅ Add global event listeners for drag - 修复依赖问题
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
@@ -283,9 +288,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         document.body.classList.remove('subtitle-dragging');
       };
     }
+    // ✅ 只依赖 isDragging，callback 函数现在稳定不变
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
-  // Find fullscreen container when entering fullscreen mode
+  // ✅ Find fullscreen container when entering fullscreen mode
   useEffect(() => {
     if (!isFullscreen) {
       setFullscreenContainer(null);
@@ -328,7 +334,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     // If not found, try again after a short delay (for animation completion)
     const timer = setTimeout(findFullscreenContainer, 100);
 
-    return () => clearTimeout(timer);
+    // ✅ 清理函数
+    return () => {
+      clearTimeout(timer);
+      // 退出全屏时确保清理容器引用
+      setFullscreenContainer(null);
+    };
   }, [isFullscreen]);
 
   // Parse VTT subtitles
@@ -387,11 +398,23 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       return;
     }
 
+    // ✅ 使用 AbortController 来取消请求
+    const abortController = new AbortController();
+    let cancelled = false;
+
     const loadSubtitles = async () => {
       try {
-        const response = await fetch(subtitleTrack);
+        const response = await fetch(subtitleTrack, {
+          signal: abortController.signal
+        });
+        
+        if (cancelled) return; // 防止状态更新
+        
         if (response.ok) {
           const content = await response.text();
+          
+          if (cancelled) return; // 防止状态更新
+          
           const cues = parseVTT(content);
           setParsedSubtitles({ cues });
           // 通知父组件字幕已加载
@@ -400,12 +423,24 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           }
         }
       } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Subtitle loading cancelled');
+          return;
+        }
         console.error('Failed to load subtitles:', error);
-        setParsedSubtitles(null);
+        if (!cancelled) {
+          setParsedSubtitles(null);
+        }
       }
     };
 
     loadSubtitles();
+
+    // ✅ 清理函数：取消请求
+    return () => {
+      cancelled = true;
+      abortController.abort();
+    };
   }, [subtitleTrack, parseVTT, onSubtitlesLoaded]);
 
   // Find current subtitle cue and handle auto-pause

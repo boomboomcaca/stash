@@ -80,6 +80,8 @@ export class PronunciationService {
   private browserProvider: BrowserTTSProvider;
   private audioCache = new Map<string, HTMLAudioElement>();
   private useBackend = true; // Prefer backend by default
+  // ✅ 添加最大缓存大小限制
+  private readonly MAX_CACHE_SIZE = 50; // 最多缓存50个音频
 
   constructor() {
     // Use backend TTS proxy (works on all platforms)
@@ -121,6 +123,21 @@ export class PronunciationService {
     let audio = this.audioCache.get(cacheKey);
     
     if (!audio) {
+      // ✅ 检查缓存大小，如果超过限制则清理最旧的条目
+      if (this.audioCache.size >= this.MAX_CACHE_SIZE) {
+        // 删除第一个（最旧的）条目
+        const firstKey = this.audioCache.keys().next().value;
+        const oldAudio = this.audioCache.get(firstKey);
+        if (oldAudio) {
+          // 清理音频资源
+          oldAudio.pause();
+          oldAudio.src = '';
+          oldAudio.load(); // 释放资源
+        }
+        this.audioCache.delete(firstKey);
+        console.log(`🗑️ Pronunciation cache evicted: ${firstKey} (cache size: ${this.audioCache.size})`);
+      }
+      
       // Create new audio element
       const url = this.getPronunciationUrl(word, language);
       audio = new Audio(url);
@@ -129,6 +146,12 @@ export class PronunciationService {
       audio.onerror = (e) => {
         console.error('Audio playback error:', e);
         this.audioCache.delete(cacheKey); // Remove from cache on error
+      };
+      
+      // ✅ 添加结束事件清理
+      audio.onended = () => {
+        // 播放结束后可以考虑清理（可选）
+        // 这里保留在缓存中以便重复播放
       };
       
       // Cache the audio element
@@ -168,7 +191,14 @@ export class PronunciationService {
   // Clear audio cache
   clearCache(): void {
     this.stopAll();
+    // ✅ 正确清理所有音频资源
+    this.audioCache.forEach((audio) => {
+      audio.pause();
+      audio.src = '';
+      audio.load(); // 释放资源
+    });
     this.audioCache.clear();
+    console.log('🗑️ Pronunciation cache cleared');
   }
 
   // Get cache size

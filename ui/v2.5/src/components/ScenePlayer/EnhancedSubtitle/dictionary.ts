@@ -5,6 +5,8 @@ import { ollamaBackendService } from './ollamaBackendService';
 export class DictionaryService {
   private cache = new Map<string, DictionaryEntry>();
   private ollamaAvailable = false;
+  // ✅ 添加最大缓存大小限制
+  private readonly MAX_CACHE_SIZE = 100; // 最多缓存100个词条
 
   constructor() {
     // Initialize with some common words for demonstration
@@ -71,8 +73,20 @@ export class DictionaryService {
         entry = this.createBasicEntry(word, language, 'Ollama服务未启用');
       }
 
-      // Cache the result
+      // ✅ Cache the result with size limit
       if (entry) {
+        // 检查缓存大小，如果超过限制则清理最旧的条目（保留常用词）
+        if (this.cache.size >= this.MAX_CACHE_SIZE) {
+          // 找到第一个非常用词的条目并删除
+          for (const key of this.cache.keys()) {
+            // 保留常用词（the, is, and 等）
+            if (!key.startsWith('the_') && !key.startsWith('is_') && !key.startsWith('and_')) {
+              this.cache.delete(key);
+              console.log(`🗑️ Dictionary cache evicted: ${key} (cache size: ${this.cache.size})`);
+              break;
+            }
+          }
+        }
         this.cache.set(cacheKey, entry);
       }
 
