@@ -189,9 +189,9 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
-      // Horizontal dragging for font size
+      // Horizontal dragging for font size (left = larger, right = smaller)
       const sensitivity = 0.003; // Adjust sensitivity as needed
-      const newSize = dragStartRef.current.startFontSize + (deltaX * sensitivity);
+      const newSize = dragStartRef.current.startFontSize - (deltaX * sensitivity);
       
       // Limit font size to reasonable bounds
       const minSize = 0.5;
@@ -239,9 +239,9 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
-      // Horizontal dragging for font size
+      // Horizontal dragging for font size (left = larger, right = smaller)
       const sensitivity = 0.003;
-      const newSize = dragStartRef.current.startFontSize + (deltaX * sensitivity);
+      const newSize = dragStartRef.current.startFontSize - (deltaX * sensitivity);
       
       const minSize = 0.5;
       const maxSize = 3.0;
