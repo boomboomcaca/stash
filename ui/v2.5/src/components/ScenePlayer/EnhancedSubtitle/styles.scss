@@ -130,8 +130,8 @@
   .drag-indicator {
     position: absolute;
     top: 50%;
-    left: 0;
-    transform: translate(-50%, -50%);
+    left: -50px; // 固定在字幕左侧边缘外面，距离左边缘 50px
+    transform: translateY(-50%);
     opacity: 0.8; // 一直显示，默认透明度为 0.8
     transition: all 0.3s ease;
     pointer-events: auto; // 允许点击
@@ -149,13 +149,13 @@
     
     &:hover {
       opacity: 1;
-      transform: translate(-50%, -50%) scale(1.1);
+      transform: translateY(-50%) scale(1.1);
       border-color: rgba(156, 163, 175, 1);
       box-shadow: 0 0 10px rgba(156, 163, 175, 0.5);
     }
     
     &:active {
-      transform: translate(-50%, -50%) scale(0.95);
+      transform: translateY(-50%) scale(0.95);
     }
     
     // Auto-pause enabled state
