@@ -599,7 +599,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     >
       <Modal.Header closeButton>
         <Modal.Title>
-          Dictionary: {selectedWord}
+          {selectedWord}
           {detectedLanguage !== 'en' && (
             <span className="language-badge">{detectedLanguage}</span>
           )}
