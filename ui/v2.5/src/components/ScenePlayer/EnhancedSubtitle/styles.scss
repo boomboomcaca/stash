@@ -10,6 +10,7 @@
   pointer-events: auto;
   transition: transform 0.2s ease-out;
   user-select: none; // Prevent text selection during drag
+  text-align: center; // 让字幕文本框在容器内居中显示
   
   &.dragging {
     transition: none; // Disable transition during drag
@@ -51,6 +52,11 @@
       
       // 全屏模式支持自动换行，完整显示字幕
       white-space: pre-wrap;
+      
+      // 让背景框自适应内容宽度
+      display: inline-block;
+      width: fit-content;
+      max-width: 100%;
     }
   }
 
@@ -79,6 +85,11 @@
     // 支持自动换行，完整显示字幕内容
     white-space: pre-wrap;
     cursor: grab;
+    
+    // 让背景框自适应内容宽度
+    display: inline-block;
+    width: fit-content;
+    max-width: 100%;
     
     &:active {
       cursor: grabbing;
