@@ -11,6 +11,7 @@
   transition: transform 0.2s ease-out;
   user-select: none; // Prevent text selection during drag
   text-align: center; // 让字幕文本框在容器内居中显示
+  overflow: visible; // 确保 AP 图标不会被裁剪
   
   &.dragging {
     transition: none; // Disable transition during drag
@@ -49,6 +50,7 @@
       border: none;
       padding: 16px 24px;
       border-radius: 8px;
+      margin-left: 60px; // 为 AP 图标预留空间
       
       // 全屏模式支持自动换行，完整显示字幕
       white-space: pre-wrap;
@@ -56,7 +58,7 @@
       // 让背景框自适应内容宽度
       display: inline-block;
       width: fit-content;
-      max-width: 100%;
+      max-width: calc(100% - 60px); // 减去左侧预留的空间
       
       // 添加相对定位，使 AP 图标可以相对于此定位
       position: relative;
@@ -72,6 +74,7 @@
     letter-spacing: 0.6px;
     word-spacing: -5px;
     margin: 0;
+    margin-left: 60px; // 为 AP 图标预留空间（40px 图标宽度 + 10px 间距 + 10px 余量）
     text-align: center;
     word-wrap: break-word;
     overflow-wrap: break-word;
@@ -92,7 +95,7 @@
     // 让背景框自适应内容宽度
     display: inline-block;
     width: fit-content;
-    max-width: 100%;
+    max-width: calc(100% - 60px); // 减去左侧预留的空间
     
     // 添加相对定位，使 AP 图标可以相对于此定位
     position: relative;
