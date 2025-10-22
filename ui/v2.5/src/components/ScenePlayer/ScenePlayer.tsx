@@ -461,6 +461,31 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         }
       });
 
+      // 永久禁用所有原生字幕轨道的显示
+      const disableNativeSubtitles = () => {
+        const tracks = vjs.textTracks();
+        if (tracks) {
+          for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            if (track.mode !== 'disabled') {
+              track.mode = 'disabled';
+            }
+          }
+        }
+      };
+
+      // 立即禁用
+      disableNativeSubtitles();
+
+      // 监听字幕轨道的变化并立即禁用
+      vjs.textTracks().addEventListener('change', disableNativeSubtitles);
+      vjs.textTracks().addEventListener('addtrack', disableNativeSubtitles);
+
+      // 在视频加载时也禁用
+      vjs.on('loadstart', disableNativeSubtitles);
+      vjs.on('loadedmetadata', disableNativeSubtitles);
+      vjs.on('canplay', disableNativeSubtitles);
+
       // Video player destructor
       return () => {
         vjs.dispose();
