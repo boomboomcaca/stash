@@ -55,6 +55,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [lastSavedFontSize, setLastSavedFontSize] = useState(1.0);
   const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
   const [autoPauseEnabled, setAutoPauseEnabled] = useState(false);
+  const [isAutoPaused, setIsAutoPaused] = useState(false); // Track if currently auto-paused
   const [dragStartTime, setDragStartTime] = useState(0); // Track when drag started
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const [isFavorite, setIsFavorite] = useState(false);
@@ -501,6 +502,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         });
         autoPauseTriggeredRef.current = false;
         userResumedPlaybackRef.current = false;
+        setIsAutoPaused(false); // Clear auto-paused state for new subtitle
         lastCueRef.current = cue;
         lastPausedStateRef.current = isPaused; // Initialize paused state for new subtitle
       }
@@ -513,6 +515,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         if (autoPauseTriggeredRef.current) {
           console.log('🎬 User manually resumed playback after auto-pause, disabling auto-pause for current subtitle');
           userResumedPlaybackRef.current = true;
+          setIsAutoPaused(false); // Clear auto-paused state when user resumes
           lastPausedStateRef.current = isPaused;
           // Don't check for auto-pause in this cycle since user just resumed
           return;
@@ -530,6 +533,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           console.log('🎬 Auto-pausing before subtitle ends');
           onPausePlayer();
           autoPauseTriggeredRef.current = true;
+          setIsAutoPaused(true); // Set auto-paused state when pausing
         }
       }
       
@@ -538,6 +542,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         lastCueRef.current = null;
         autoPauseTriggeredRef.current = false;
         userResumedPlaybackRef.current = false;
+        setIsAutoPaused(false); // Clear auto-paused state when no subtitle
       }
     }
     
@@ -867,11 +872,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       >
         {/* Auto-pause toggle button with drag support */}
         <div 
-          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''}`}
+          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${isAutoPaused ? 'auto-pause-paused' : ''}`}
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
-          title={autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize.'}
+          title={isAutoPaused ? 'Auto-paused (click or press space to resume)' : autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize.'}
         >
           <span className="drag-dots">
             AP
