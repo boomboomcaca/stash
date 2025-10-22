@@ -105,6 +105,18 @@
       color: white;
       box-shadow: 0 2px 6px rgba(74, 144, 226, 0.4);
     }
+
+    &.favorited {
+      color: #00ff00; // 收藏的单词显示为绿色
+      font-weight: 600;
+      text-shadow: 
+        0 0 8px rgba(0, 255, 0, 0.5),
+        2px 2px 4px rgba(0, 0, 0, 0.8);
+      
+      &:hover {
+        color: #00ff66;
+      }
+    }
   }
 
   // Drag indicator with auto-pause toggle

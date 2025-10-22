@@ -220,6 +220,7 @@ func Initialize() (*Server, error) {
 	r.Mount("/downloads", server.getDownloadsRoutes())
 	r.Mount("/plugin", server.getPluginRoutes())
 	r.Mount("/tts", server.getTTSRoutes())
+	r.Mount("/favorites", server.getFavoritesRoutes())
 
 	r.HandleFunc("/css", cssHandler(cfg))
 	r.HandleFunc("/javascript", javascriptHandler(cfg))
@@ -393,6 +394,10 @@ func (s *Server) getPluginRoutes() chi.Router {
 
 func (s *Server) getTTSRoutes() chi.Router {
 	return ttsRoutes{}.Routes()
+}
+
+func (s *Server) getFavoritesRoutes() chi.Router {
+	return favoritesRoutes{}.Routes()
 }
 
 func copyFile(w io.Writer, path string) error {

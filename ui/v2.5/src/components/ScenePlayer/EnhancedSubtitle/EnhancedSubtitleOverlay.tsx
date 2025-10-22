@@ -5,6 +5,7 @@ import { WordSegment, DictionaryEntry, SubtitleCue, SegmentationOptions } from '
 import { createSegmenter, detectLanguage } from './segmentation';
 import { lookupWord, lookupWordWithContext } from './dictionary';
 import { playWordPronunciation } from './pronunciation';
+import { getFavorites, addFavorite, removeFavorite, checkFavorite, FavoriteWord } from './favorites';
 import './styles.scss';
 
 interface EnhancedSubtitleOverlayProps {
@@ -49,6 +50,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
   const [autoPauseEnabled, setAutoPauseEnabled] = useState(false);
   const [dragStartTime, setDragStartTime] = useState(0); // Track when drag started
+  const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
+  const [isFavorite, setIsFavorite] = useState(false);
   
   const subtitleRef = useRef<HTMLDivElement>(null);
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false });
@@ -124,6 +127,26 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   useEffect(() => {
     localStorage.setItem('enhancedSubtitleAutoPause', autoPauseEnabled.toString());
   }, [autoPauseEnabled]);
+
+  // Load favorites on mount
+  useEffect(() => {
+    const loadFavorites = async () => {
+      const favorites = await getFavorites();
+      const favSet = new Set(favorites.map(f => `${f.word}:${f.language}`));
+      setFavoriteWords(favSet);
+    };
+    loadFavorites();
+  }, []);
+
+  // Check if selected word is favorite
+  useEffect(() => {
+    if (selectedWord) {
+      const key = `${selectedWord}:${detectedLanguage}`;
+      setIsFavorite(favoriteWords.has(key));
+    } else {
+      setIsFavorite(false);
+    }
+  }, [selectedWord, detectedLanguage, favoriteWords]);
 
   // Reset font size when trigger changes
   useEffect(() => {
@@ -528,6 +551,36 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
   }, [autoPauseEnabled, dragStartTime]);
 
+  // Toggle favorite for selected word
+  const toggleFavorite = useCallback(async () => {
+    if (!selectedWord) return;
+    
+    const key = `${selectedWord}:${detectedLanguage}`;
+    const newIsFavorite = !isFavorite;
+    
+    if (newIsFavorite) {
+      // Add to favorites
+      const success = await addFavorite(selectedWord, detectedLanguage);
+      if (success) {
+        setFavoriteWords(prev => new Set(prev).add(key));
+        setIsFavorite(true);
+        console.log('⭐ Added to favorites:', selectedWord);
+      }
+    } else {
+      // Remove from favorites
+      const success = await removeFavorite(selectedWord, detectedLanguage);
+      if (success) {
+        setFavoriteWords(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(key);
+          return newSet;
+        });
+        setIsFavorite(false);
+        console.log('☆ Removed from favorites:', selectedWord);
+      }
+    }
+  }, [selectedWord, detectedLanguage, isFavorite]);
+
 
   // Render segmented text with clickable words
   const renderSegmentedText = useMemo(() => {
@@ -563,13 +616,17 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         elements.push(...renderTextWithBreaks(betweenText, `between-${index}`));
       }
 
+      // Check if word is favorited
+      const wordKey = `${segment.word}:${detectedLanguage}`;
+      const isFavorited = favoriteWords.has(wordKey);
+
       // Add the word segment as clickable
       elements.push(
         <span
           key={`word-${index}`}
-          className={`subtitle-word ${segment.isSelected ? 'selected' : ''}`}
+          className={`subtitle-word ${segment.isSelected ? 'selected' : ''} ${isFavorited ? 'favorited' : ''}`}
           onClick={() => handleWordClick(segment.word)}
-          title={`Click to look up "${segment.word}"`}
+          title={isFavorited ? `⭐ "${segment.word}" (favorited)` : `Click to look up "${segment.word}"`}
         >
           {segment.word}
         </span>
@@ -586,7 +643,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
 
     return elements;
-  }, [currentCue, wordSegments, handleWordClick]);
+  }, [currentCue, wordSegments, handleWordClick, detectedLanguage, favoriteWords]);
 
   // Dictionary modal content - compact mode only
   const renderDictionaryModal = () => (
@@ -598,11 +655,29 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       container={isFullscreen && fullscreenContainer ? fullscreenContainer : undefined}
     >
       <Modal.Header closeButton>
-        <Modal.Title>
+        <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="word-text">{selectedWord}</span>
           {detectedLanguage !== 'en' && (
             <span className="language-badge">{detectedLanguage}</span>
           )}
+          <button
+            className={`favorite-toggle-btn ${isFavorite ? 'favorited' : ''}`}
+            onClick={toggleFavorite}
+            title={isFavorite ? '取消收藏' : '添加到收藏'}
+            style={{
+              marginLeft: 'auto',
+              padding: '6px 12px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              background: isFavorite ? '#00cc00' : '#666',
+              color: 'white',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {isFavorite ? '⭐' : '☆'}
+          </button>
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
