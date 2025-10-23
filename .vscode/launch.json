@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Go Backend",
+      "name": "Backend",
       "type": "go",
       "request": "launch",
       "mode": "auto",
@@ -14,7 +14,7 @@
       "preLaunchTask": "create-local-dir"
     },
     {
-      "name": "React Frontend",
+      "name": "Frontend",
       "type": "node-terminal",
       "request": "launch",
       "command": "npm run start",
@@ -24,7 +24,7 @@
   "compounds": [
     {
       "name": "🚀 Full Stack Debug",
-      "configurations": ["Go Backend", "React Frontend"],
+      "configurations": ["Backend", "Frontend"],
       "stopAll": true,
       "preLaunchTask": "create-local-dir",
       "presentation": {
