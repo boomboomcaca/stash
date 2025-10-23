@@ -1,5 +1,18 @@
 {
   "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "🚀 Full Stack Debug",
+      "configurations": ["Backend", "Frontend"],
+      "stopAll": true,
+      "preLaunchTask": "create-local-dir",
+      "presentation": {
+        "hidden": false,
+        "group": "fullstack",
+        "order": 1
+      }
+    }
+  ],
   "configurations": [
     {
       "name": "Backend",
@@ -11,26 +24,19 @@
         "STASH_CONFIG_FILE": "config.yml"
       },
       "cwd": "${workspaceFolder}/.local",
-      "preLaunchTask": "create-local-dir"
+      "preLaunchTask": "create-local-dir",
+      "presentation": {
+        "hidden": true
+      }
     },
     {
       "name": "Frontend",
       "type": "node-terminal",
       "request": "launch",
       "command": "npm run start",
-      "cwd": "${workspaceFolder}/ui/v2.5"
-    }
-  ],
-  "compounds": [
-    {
-      "name": "🚀 Full Stack Debug",
-      "configurations": ["Backend", "Frontend"],
-      "stopAll": true,
-      "preLaunchTask": "create-local-dir",
+      "cwd": "${workspaceFolder}/ui/v2.5",
       "presentation": {
-        "hidden": false,
-        "group": "fullstack",
-        "order": 1
+        "hidden": true
       }
     }
   ]
