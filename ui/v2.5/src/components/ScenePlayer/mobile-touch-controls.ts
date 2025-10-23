@@ -71,6 +71,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private enhancedSubtitlesEnabled: boolean = false;
   private subtitleCues: Array<{ startTime: number; endTime: number; text: string }> = [];
   private getCurrentSubtitleIndex: (() => number) | null = null;
+  private showControlBar: (() => void) | null = null;
 
   private readonly LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
   private readonly DOUBLE_TAP_DURATION = 300; // 双击检测时间（毫秒）
@@ -607,6 +608,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
           this.state.longPressTimer = null;
         }
         
+        // 当拖动进度条时，如果增强字幕已开启，显示控制栏
+        if (this.enhancedSubtitlesEnabled && this.showControlBar) {
+          this.showControlBar();
+        }
+        
         console.log("[MobileTouchControls] 开始拖拽进度模式，播放状态:", this.state.wasPlayingBeforeDrag);
       }
     }
@@ -981,6 +987,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   // 公共方法：设置获取当前字幕索引的回调函数
   public setGetCurrentSubtitleIndex(callback: () => number): void {
     this.getCurrentSubtitleIndex = callback;
+  }
+  
+  // 公共方法：设置显示控制栏的回调函数
+  public setShowControlBar(callback: () => void): void {
+    this.showControlBar = callback;
   }
 }
 

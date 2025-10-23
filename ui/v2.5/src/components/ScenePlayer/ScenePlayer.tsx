@@ -56,7 +56,7 @@ airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void) {
+function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void) {
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
@@ -66,6 +66,13 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
       player.currentTime(time);
     } else {
       player.currentTime(duration);
+    }
+    
+    // 当调整播放进度时，如果增强字幕已开启，显示控制栏
+    console.log('🎯 seekStep called, showControlBar exists:', !!showControlBar);
+    if (showControlBar) {
+      console.log('🎯 Calling showControlBar from seekStep');
+      showControlBar();
     }
   }
 
@@ -298,9 +305,16 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const auto = useRef(false);
     const interactiveReady = useRef(false);
     const unlockTimerRef = useRef<number | null>(null);
+    const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
+    const temporarilyUnlockControlBarRef = useRef<(() => void) | null>(null);
     const minimumPlayPercent = uiConfig?.minimumPlayPercent ?? 0;
     const trackActivity = uiConfig?.trackActivity ?? true;
     const vrTag = uiConfig?.vrTag ?? undefined;
+
+    // 保持 ref 与 state 同步
+    useEffect(() => {
+      showEnhancedSubtitlesRef.current = showEnhancedSubtitles;
+    }, [showEnhancedSubtitles]);
 
     useScript(
       "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1",
@@ -408,7 +422,13 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                   setShowEnhancedSubtitles(!showEnhancedSubtitles);
                 }
               },
-              () => setResetFontSizeTrigger(prev => prev + 1)
+              () => setResetFontSizeTrigger(prev => prev + 1),
+              () => {
+                // 使用 ref 来调用最新的 temporarilyUnlockControlBar 函数
+                if (temporarilyUnlockControlBarRef.current) {
+                  temporarilyUnlockControlBarRef.current();
+                }
+              }
             );
           },
         },
@@ -601,8 +621,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         }
         
         // 触发一次用户活跃报告，让Video.js按正常流程处理（显示控制栏，2秒后自动隐藏）
-        if (player.reportUserActivity) {
-          player.reportUserActivity();
+        if ((player as any).reportUserActivity) {
+          (player as any).reportUserActivity(new Event('useractive'));
         }
         
         console.log('🔓 控制栏锁定已解除（增强字幕已关闭）');
@@ -612,9 +632,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     // 临时解锁控制栏的函数（由AP图标双击调用）
     const temporarilyUnlockControlBar = useCallback(() => {
       const player = getPlayer();
-      if (!player || !showEnhancedSubtitles) return;
+      if (!player) {
+        console.log('❌ temporarilyUnlockControlBar: player not found');
+        return;
+      }
 
-      console.log('🔓 临时显示控制栏');
+      console.log('🔓 临时显示控制栏, showEnhancedSubtitlesRef.current:', showEnhancedSubtitlesRef.current);
       
       const playerEl = player.el();
       if (playerEl) {
@@ -629,15 +652,15 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         
         // 强制触发用户活跃状态，这会让Video.js显示控制栏
         // 由于我们修改了reportUserActivity，这里会因为有vjs-controls-unlocked-once类而正常工作
-        if (player.reportUserActivity) {
-          player.reportUserActivity();
+        if ((player as any).reportUserActivity) {
+          (player as any).reportUserActivity(new Event('useractive'));
         }
         player.userActive(true);
         
         // 2秒后自动隐藏并重新锁定
         unlockTimerRef.current = window.setTimeout(() => {
           // 只有在增强字幕仍然开启时才重新锁定
-          if (!showEnhancedSubtitles || !playerEl) {
+          if (!showEnhancedSubtitlesRef.current || !playerEl) {
             unlockTimerRef.current = null;
             return;
           }
@@ -653,7 +676,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           unlockTimerRef.current = null;
         }, 2000);
       }
-    }, [getPlayer, showEnhancedSubtitles]);
+    }, [getPlayer]);
+
+    // 保持 ref 与函数同步，确保 hotkeys 始终调用最新的函数
+    useEffect(() => {
+      temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
+    }, [temporarilyUnlockControlBar]);
 
     // 同步增强字幕状态到移动触摸控件
     useEffect(() => {
@@ -687,6 +715,17 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         touchPlugin.setGetCurrentSubtitleIndex(() => currentSubtitleIndex);
       }
     }, [getPlayer, currentSubtitleIndex]);
+
+    // 同步显示控制栏函数到移动触摸控件
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+      
+      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
+      if (touchPlugin && typeof touchPlugin.setShowControlBar === 'function') {
+        touchPlugin.setShowControlBar(temporarilyUnlockControlBar);
+      }
+    }, [getPlayer, temporarilyUnlockControlBar]);
 
     useEffect(() => {
       if (scene.interactive && interactiveInitialised) {
@@ -1148,6 +1187,11 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     function onScrubberScroll() {
       if (started.current) {
         getPlayer()?.pause();
+      }
+      
+      // 当拖动进度条时，如果增强字幕已开启，显示控制栏
+      if (showEnhancedSubtitles) {
+        temporarilyUnlockControlBar();
       }
     }
 
