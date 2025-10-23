@@ -10,6 +10,7 @@ interface EnhancedSubtitleButtonOptions {
 class EnhancedSubtitleButton extends Button {
   private subtitlesEnabled: boolean = false;
   private toggleCallback?: (enabled: boolean) => void;
+  private subtitlesAvailable: boolean = true;
 
   constructor(player: videojs.Player, options: EnhancedSubtitleButtonOptions = {}) {
     super(player, options);
@@ -24,6 +25,11 @@ class EnhancedSubtitleButton extends Button {
   }
 
   handleClick() {
+    // 如果字幕不可用，阻止点击
+    if (!this.subtitlesAvailable) {
+      return;
+    }
+
     this.subtitlesEnabled = !this.subtitlesEnabled;
     this.updateIcon();
     
@@ -39,6 +45,21 @@ class EnhancedSubtitleButton extends Button {
     } else {
       this.removeClass("subtitles-enabled");
     }
+    
+    // 更新禁用状态的类
+    if (!this.subtitlesAvailable) {
+      this.addClass("vjs-disabled");
+      this.disable();
+      // 强制设置 disabled 属性
+      this.el().setAttribute('disabled', 'disabled');
+      this.el().setAttribute('aria-disabled', 'true');
+    } else {
+      this.removeClass("vjs-disabled");
+      this.enable();
+      // 移除 disabled 属性
+      this.el().removeAttribute('disabled');
+      this.el().removeAttribute('aria-disabled');
+    }
   }
 
   setEnabled(enabled: boolean) {
@@ -48,6 +69,23 @@ class EnhancedSubtitleButton extends Button {
 
   isEnabled() {
     return this.subtitlesEnabled;
+  }
+
+  // 设置字幕是否可用
+  setSubtitlesAvailable(available: boolean) {
+    this.subtitlesAvailable = available;
+    // 如果字幕不可用，关闭字幕
+    if (!available && this.subtitlesEnabled) {
+      this.subtitlesEnabled = false;
+      if (this.toggleCallback) {
+        this.toggleCallback(false);
+      }
+    }
+    this.updateIcon();
+  }
+
+  getSubtitlesAvailable() {
+    return this.subtitlesAvailable;
   }
 }
 

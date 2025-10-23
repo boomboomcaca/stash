@@ -15,5 +15,22 @@
   &:not(.subtitles-enabled) .vjs-icon-placeholder::before {
     content: "\f10c"; // VideoJS 字幕关闭图标
   }
+  
+  // 禁用状态样式
+  &.vjs-disabled,
+  &[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+    
+    // 禁用时可以添加额外的视觉效果
+    .vjs-icon-placeholder::before {
+      color: #666 !important;
+    }
+    
+    &:hover {
+      background-color: transparent !important;
+    }
+  }
 }
 

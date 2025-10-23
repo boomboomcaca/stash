@@ -294,6 +294,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [controlBarLockedHidden, setControlBarLockedHidden] = useState(false);
 
     const started = useRef(false);
+    const enhancedSubtitleButtonRef = useRef<any>(null);
     const auto = useRef(false);
     const interactiveReady = useRef(false);
     const unlockTimerRef = useRef<number | null>(null);
@@ -401,7 +402,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             handleHotkeys(
               this, 
               event, 
-              () => setShowEnhancedSubtitles(!showEnhancedSubtitles),
+              () => {
+                // 只有在有字幕文件时才允许切换增强字幕
+                if (currentSubtitleTrack !== null) {
+                  setShowEnhancedSubtitles(!showEnhancedSubtitles);
+                }
+              },
               () => setResetFontSizeTrigger(prev => prev + 1)
             );
           },
@@ -457,11 +463,19 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       setPlayer(vjs);
 
       // 初始化增强字幕按钮
-      vjs.enhancedSubtitleButton({
+      const subtitleButton = vjs.enhancedSubtitleButton({
         onToggle: (enabled: boolean) => {
           setShowEnhancedSubtitles(enabled);
         }
       });
+      
+      // 保存按钮引用
+      enhancedSubtitleButtonRef.current = subtitleButton;
+      
+      // 初始化时设置字幕可用性（默认为不可用，等待场景加载）
+      if (subtitleButton && typeof subtitleButton.setSubtitlesAvailable === 'function') {
+        subtitleButton.setSubtitlesAvailable(false);
+      }
 
       // 永久禁用所有原生字幕轨道的显示
       const disableNativeSubtitles = () => {
@@ -519,6 +533,16 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         (button as any).setEnabled(showEnhancedSubtitles);
       }
     }, [getPlayer, showEnhancedSubtitles]);
+
+    // 根据字幕可用性更新增强字幕按钮的禁用状态
+    useEffect(() => {
+      const button = enhancedSubtitleButtonRef.current;
+      if (button && typeof button.setSubtitlesAvailable === 'function') {
+        const hasSubtitles = currentSubtitleTrack !== null;
+        console.log('🔄 更新增强字幕按钮状态:', hasSubtitles ? '启用' : '禁用', 'Track:', currentSubtitleTrack);
+        button.setSubtitlesAvailable(hasSubtitles);
+      }
+    }, [currentSubtitleTrack]);
 
     // 控制栏锁定逻辑：当增强字幕开启时，锁定隐藏控制栏
     useEffect(() => {
@@ -913,6 +937,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           );
           setSubtitleLanguage(firstCaption.language_code);
         }
+      } else {
+        // 没有字幕时，重置字幕轨道为null
+        setCurrentSubtitleTrack(null);
       }
 
       auto.current =
