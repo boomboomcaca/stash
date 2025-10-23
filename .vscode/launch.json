@@ -24,10 +24,7 @@
         "STASH_CONFIG_FILE": "config.yml"
       },
       "cwd": "${workspaceFolder}/.local",
-      "preLaunchTask": "create-local-dir",
-      "presentation": {
-        "hidden": true
-      }
+      "preLaunchTask": "create-local-dir"
     },
     {
       "name": "Frontend",
@@ -35,9 +32,6 @@
       "request": "launch",
       "command": "npm run start",
       "cwd": "${workspaceFolder}/ui/v2.5",
-      "presentation": {
-        "hidden": true
-      },
       "serverReadyAction": {
         "pattern": "Local:.*http://localhost:([0-9]+)",
         "uriFormat": "http://localhost:%s",
