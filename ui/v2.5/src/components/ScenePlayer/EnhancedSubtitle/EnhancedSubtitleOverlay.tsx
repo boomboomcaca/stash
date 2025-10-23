@@ -898,7 +898,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     </Modal>
   );
 
-  if (!isVisible || !currentCue) {
+  if (!isVisible) {
     return null;
   }
 
@@ -911,7 +911,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       }}
     >
       <div 
-        className="subtitle-text"
+        className={`subtitle-text ${!currentCue ? 'no-content' : ''}`}
         title={
           isDragging 
             ? (dragMode === 'size' ? `Resizing... (${Math.round(fontSize * 100)}%)` : "Moving...") 
@@ -922,7 +922,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           transition: isDragging ? 'none' : 'font-size 0.2s ease'
         }}
       >
-        {/* Auto-pause toggle button with drag support */}
+        {/* Auto-pause toggle button with drag support - 增强字幕开启时一直显示 */}
         <div 
           className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${isAutoPaused ? 'auto-pause-paused' : ''}`}
           onMouseDown={handleAPMouseDown}
@@ -935,7 +935,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           </span>
         </div>
         
-        {renderSegmentedText}
+        {/* 只有在有字幕内容时才显示字幕文本 */}
+        {currentCue && renderSegmentedText}
       </div>
       
       {/* Font size indicator */}
