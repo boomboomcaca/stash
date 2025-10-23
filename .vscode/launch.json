@@ -37,6 +37,11 @@
       "cwd": "${workspaceFolder}/ui/v2.5",
       "presentation": {
         "hidden": true
+      },
+      "serverReadyAction": {
+        "pattern": "Local:.*http://localhost:([0-9]+)",
+        "uriFormat": "http://localhost:%s",
+        "action": "openExternally"
       }
     }
   ]
