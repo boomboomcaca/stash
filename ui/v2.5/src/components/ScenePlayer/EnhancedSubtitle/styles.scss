@@ -68,6 +68,9 @@
         background: transparent;
         padding: 0;
         margin-left: 0; // 移除左边距，让AP图标居中
+        min-height: 40px; // 确保有足够的高度来容纳AP图标，与AP图标高度一致
+        height: 40px; // 固定高度，确保与AP图标高度一致
+        line-height: 40px; // 行高与高度一致
       }
     }
   }
@@ -119,6 +122,9 @@
       background: transparent;
       padding: 0;
       margin-left: 0; // 移除左边距，让AP图标居中
+      min-height: 40px; // 确保有足够的高度来容纳AP图标，与AP图标高度一致
+      height: 40px; // 固定高度，确保与AP图标高度一致
+      line-height: 40px; // 行高与高度一致
     }
   }
 
@@ -166,9 +172,10 @@
   // Drag indicator with auto-pause toggle
   .drag-indicator {
     position: absolute;
-    top: 50%;
+    top: 50%; // 相对于父元素（.subtitle-text）垂直居中
     left: -50px; // 显示在背景框左侧外面，距离左边缘 50px
-    transform: translateY(-50%);
+    transform: translateY(-50%); // 垂直居中偏移
+    margin-top: 0; // 确保没有额外的margin
     opacity: 0.8; // 一直显示，默认透明度为 0.8
     pointer-events: auto; // 允许点击
     cursor: pointer;
@@ -192,7 +199,7 @@
     }
     
     &:active {
-      transform: translateY(-50%);
+      transform: translateY(-50%); // 保持与未激活状态相同的位置（垂直居中）
     }
     
     // Auto-pause enabled state
