@@ -1,0 +1,56 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "create-local-dir",
+      "type": "shell",
+      "command": "mkdir -p ${workspaceFolder}/.local",
+      "windows": {
+        "command": "if not exist \"${workspaceFolder}\\.local\" mkdir \"${workspaceFolder}\\.local\""
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "close": true
+      }
+    },
+    {
+      "label": "start-frontend",
+      "type": "shell",
+      "command": "cd ${workspaceFolder}/ui/v2.5 && yarn start --host",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "VITE.*ready in",
+          "endsPattern": "Local:.*http"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "frontend"
+      }
+    },
+    {
+      "label": "stop-frontend",
+      "type": "shell",
+      "command": "kill $(lsof -t -i:5173) || true",
+      "windows": {
+        "command": "for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :5173') do taskkill /F /PID %a || echo No process found"
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "close": true
+      }
+    }
+  ]
+}
+
