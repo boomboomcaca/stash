@@ -78,6 +78,38 @@ $sceneTabWidth: 450px;
   }
   /* stylelint-enable declaration-no-important */
 
+  // 控制栏锁定隐藏样式（增强字幕启用时）
+  &.vjs-controls-locked-hidden {
+    // 强制隐藏控制栏，即使用户处于活跃状态
+    .vjs-control-bar {
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+      transition: opacity 0.3s, visibility 0s 0.3s;
+    }
+    
+    // 禁用所有用户交互导致的控制栏显示
+    &.vjs-user-active .vjs-control-bar {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+    
+    &:hover .vjs-control-bar {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+  }
+
+  // 临时解锁控制栏（双击AP图标后）
+  &.vjs-controls-unlocked-once {
+    .vjs-control-bar {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      transition: opacity 0.3s, visibility 0s;
+    }
+  }
+
   // allow interaction with the controls when error is displayed
   .vjs-error-display,
   .vjs-error-display .vjs-modal-dialog-content {

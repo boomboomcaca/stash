@@ -20,6 +20,7 @@ interface EnhancedSubtitleOverlayProps {
   resetFontSizeTrigger?: number; // Increment this to trigger font size reset
   onSubtitlesLoaded?: (cues: SubtitleCue[]) => void; // 字幕加载完成回调
   onCurrentCueChange?: (index: number) => void; // 当前字幕索引变化回调
+  onAPDoubleClick?: () => void; // AP图标双击回调
 }
 
 interface ParsedSubtitle {
@@ -38,6 +39,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   resetFontSizeTrigger,
   onSubtitlesLoaded,
   onCurrentCueChange,
+  onAPDoubleClick,
 }) => {
   const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
   const [currentCue, setCurrentCue] = useState<SubtitleCue | null>(null);
@@ -66,6 +68,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const autoPauseTriggeredRef = useRef(false);
   const lastPausedStateRef = useRef<boolean | null>(null);
   const userResumedPlaybackRef = useRef(false);
+  
+  // AP图标双击检测
+  const lastAPClickTimeRef = useRef<number>(0);
+  const APDoubleClickTimeoutRef = useRef<number | null>(null);
   
   const segmenterRef = useRef(createSegmenter({
     language: detectedLanguage,
@@ -669,22 +675,58 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     const wasClick = dragDuration < 200 && !dragStartRef.current.hasDeterminedMode;
     
     if (wasClick) {
-      // 如果 AP 当前是启用状态（绿色或红色），点击后关闭到灰色
-      // 如果 AP 当前是灰色，点击后启用
-      if (autoPauseEnabled) {
-        // 关闭 AP 到灰色状态
-        setAutoPauseEnabled(false);
-        setIsAutoPaused(false); // 清除自动暂停状态
-        localStorage.setItem('enhancedSubtitleAutoPause', 'false');
-        console.log('🎬 Auto-pause disabled (turned to gray)');
-      } else {
-        // 从灰色启用 AP
-        setAutoPauseEnabled(true);
-        localStorage.setItem('enhancedSubtitleAutoPause', 'true');
-        console.log('🎬 Auto-pause enabled (turned to green/red)');
+      const now = Date.now();
+      const timeSinceLastClick = now - lastAPClickTimeRef.current;
+      
+      // 检测双击（300ms内的第二次点击）
+      if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
+        // 双击AP图标
+        console.log('🎬 AP图标双击 - 临时显示控制栏');
+        if (onAPDoubleClick) {
+          onAPDoubleClick();
+        }
+        
+        // 清除计时器和重置点击时间
+        if (APDoubleClickTimeoutRef.current) {
+          clearTimeout(APDoubleClickTimeoutRef.current);
+          APDoubleClickTimeoutRef.current = null;
+        }
+        lastAPClickTimeRef.current = 0;
+        
+        // 双击后不执行单击的切换AP功能
+        return;
       }
+      
+      // 记录点击时间
+      lastAPClickTimeRef.current = now;
+      
+      // 清除之前的单击计时器
+      if (APDoubleClickTimeoutRef.current) {
+        clearTimeout(APDoubleClickTimeoutRef.current);
+      }
+      
+      // 等待可能的双击
+      APDoubleClickTimeoutRef.current = window.setTimeout(() => {
+        // 单击：切换AP功能
+        // 如果 AP 当前是启用状态（绿色或红色），点击后关闭到灰色
+        // 如果 AP 当前是灰色，点击后启用
+        if (autoPauseEnabled) {
+          // 关闭 AP 到灰色状态
+          setAutoPauseEnabled(false);
+          setIsAutoPaused(false); // 清除自动暂停状态
+          localStorage.setItem('enhancedSubtitleAutoPause', 'false');
+          console.log('🎬 Auto-pause disabled (turned to gray)');
+        } else {
+          // 从灰色启用 AP
+          setAutoPauseEnabled(true);
+          localStorage.setItem('enhancedSubtitleAutoPause', 'true');
+          console.log('🎬 Auto-pause enabled (turned to green/red)');
+        }
+        
+        APDoubleClickTimeoutRef.current = null;
+      }, 300);
     }
-  }, [autoPauseEnabled, dragStartTime]);
+  }, [autoPauseEnabled, dragStartTime, onAPDoubleClick]);
 
   // Toggle favorite for selected word
   const toggleFavorite = useCallback(async () => {

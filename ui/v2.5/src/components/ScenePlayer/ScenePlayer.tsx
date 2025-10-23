@@ -291,6 +291,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [resetFontSizeTrigger, setResetFontSizeTrigger] = useState(0);
     const [subtitleCues, setSubtitleCues] = useState<Array<{ startTime: number; endTime: number; text: string }>>([]);
     const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState<number>(-1);
+    const [controlBarLockedHidden, setControlBarLockedHidden] = useState(false);
 
     const started = useRef(false);
     const auto = useRef(false);
@@ -515,6 +516,97 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       const button = player.getChild("ControlBar")?.getChild("EnhancedSubtitleButton");
       if (button && typeof (button as any).setEnabled === 'function') {
         (button as any).setEnabled(showEnhancedSubtitles);
+      }
+    }, [getPlayer, showEnhancedSubtitles]);
+
+    // 控制栏锁定逻辑：当增强字幕开启时，锁定隐藏控制栏
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+
+      if (showEnhancedSubtitles) {
+        // 增强字幕开启时，锁定隐藏控制栏
+        setControlBarLockedHidden(true);
+        
+        // 禁用Video.js的用户活跃检测
+        player.userActive(false);
+        
+        // 阻止Video.js监听用户活跃事件
+        // 通过临时修改player的reportUserActivity方法来实现
+        const originalReportUserActivity = player.reportUserActivity;
+        (player as any).reportUserActivity = () => {
+          // 在锁定期间，不报告任何用户活跃
+          // 除非是临时解锁状态
+          const playerEl = player.el();
+          if (playerEl && !playerEl.classList.contains('vjs-controls-unlocked-once')) {
+            return;
+          }
+          originalReportUserActivity.call(player);
+        };
+        
+        // 添加自定义类来强制隐藏控制栏
+        const playerEl = player.el();
+        if (playerEl) {
+          playerEl.classList.add('vjs-controls-locked-hidden');
+        }
+        
+        console.log('🔒 控制栏已锁定隐藏（增强字幕已启用）');
+        
+        // 清理函数：恢复原始方法
+        return () => {
+          (player as any).reportUserActivity = originalReportUserActivity;
+        };
+      } else {
+        // 增强字幕关闭时，解除锁定
+        setControlBarLockedHidden(false);
+        
+        // 恢复Video.js的用户活跃检测
+        player.userActive(true);
+        
+        // 移除自定义类
+        const playerEl = player.el();
+        if (playerEl) {
+          playerEl.classList.remove('vjs-controls-locked-hidden');
+          playerEl.classList.remove('vjs-controls-unlocked-once');
+        }
+        
+        console.log('🔓 控制栏锁定已解除（增强字幕已关闭）');
+      }
+    }, [getPlayer, showEnhancedSubtitles]);
+
+    // 临时解锁控制栏的函数（由AP图标双击调用）
+    const temporarilyUnlockControlBar = useCallback(() => {
+      const player = getPlayer();
+      if (!player || !showEnhancedSubtitles) return;
+
+      console.log('🔓 临时显示控制栏');
+      
+      const playerEl = player.el();
+      if (playerEl) {
+        // 添加临时解锁类（先添加后移除锁定类，确保临时解锁优先级更高）
+        playerEl.classList.add('vjs-controls-unlocked-once');
+        playerEl.classList.remove('vjs-controls-locked-hidden');
+        
+        // 强制触发用户活跃状态，这会让Video.js显示控制栏
+        // 由于我们修改了reportUserActivity，这里会因为有vjs-controls-unlocked-once类而正常工作
+        if (player.reportUserActivity) {
+          player.reportUserActivity();
+        }
+        player.userActive(true);
+        
+        // 2秒后自动隐藏并重新锁定
+        setTimeout(() => {
+          if (!playerEl) return;
+          
+          // 先强制设置为不活跃
+          player.userActive(false);
+          
+          // 然后重新添加锁定类并移除解锁类
+          playerEl.classList.remove('vjs-controls-unlocked-once');
+          playerEl.classList.add('vjs-controls-locked-hidden');
+          
+          console.log('🔒 控制栏已重新锁定');
+        }, 2000);
       }
     }, [getPlayer, showEnhancedSubtitles]);
 
@@ -1120,6 +1212,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             resetFontSizeTrigger={resetFontSizeTrigger}
             onSubtitlesLoaded={(cues) => setSubtitleCues(cues)}
             onCurrentCueChange={(index) => setCurrentSubtitleIndex(index)}
+            onAPDoubleClick={temporarilyUnlockControlBar}
           />
         )}
       </div>
