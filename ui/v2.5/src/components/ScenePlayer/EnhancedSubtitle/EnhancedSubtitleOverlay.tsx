@@ -68,6 +68,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const autoPauseTriggeredRef = useRef(false);
   const lastPausedStateRef = useRef<boolean | null>(null);
   const userResumedPlaybackRef = useRef(false);
+  const lastCurrentTimeRef = useRef<number>(0); // Track last currentTime to detect replays
   
   // AP图标双击检测
   const lastAPClickTimeRef = useRef<number>(0);
@@ -501,6 +502,26 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         cue.endTime === lastCueRef.current.endTime &&
         cue.text === lastCueRef.current.text;
       
+      // 🔄 检测重播当前字幕的情况（双击重播）
+      // 如果是同一个字幕，但时间跳转回了字幕开始附近（误差0.5秒内），说明是重播
+      if (cue && isSameCue && autoPauseTriggeredRef.current) {
+        const timeDiff = currentTime - lastCurrentTimeRef.current;
+        const isNearStart = Math.abs(currentTime - cue.startTime) < 0.5;
+        
+        // 如果时间倒退了（或跳转），且当前时间接近字幕开始位置，说明是重播
+        if (timeDiff < -0.5 && isNearStart) {
+          console.log('🔄 Detected replay of current subtitle (double-tap), resetting auto-pause flags', {
+            currentTime,
+            cueStartTime: cue.startTime,
+            timeDiff,
+            lastTime: lastCurrentTimeRef.current
+          });
+          autoPauseTriggeredRef.current = false;
+          userResumedPlaybackRef.current = false;
+          setIsAutoPaused(false);
+        }
+      }
+      
       if (cue && !isSameCue) {
         console.log('🎬 New subtitle detected, resetting auto-pause flags', {
           newCue: { start: cue.startTime, end: cue.endTime, text: cue.text.substring(0, 20) },
@@ -566,7 +587,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         onCurrentCueChange(cueIndex);
       }
     }
-  }, [currentCueData, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange, currentCue]);
+    
+    // 更新上一次的时间，用于检测时间跳转（重播）
+    lastCurrentTimeRef.current = currentTime;
+  }, [currentCueData, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange, currentCue, currentTime]);
 
   // Segment current cue text
   useEffect(() => {
