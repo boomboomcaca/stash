@@ -296,6 +296,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const started = useRef(false);
     const auto = useRef(false);
     const interactiveReady = useRef(false);
+    const unlockTimerRef = useRef<number | null>(null);
     const minimumPlayPercent = uiConfig?.minimumPlayPercent ?? 0;
     const trackActivity = uiConfig?.trackActivity ?? true;
     const vrTag = uiConfig?.vrTag ?? undefined;
@@ -533,15 +534,16 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         
         // 阻止Video.js监听用户活跃事件
         // 通过临时修改player的reportUserActivity方法来实现
-        const originalReportUserActivity = player.reportUserActivity;
-        (player as any).reportUserActivity = () => {
+        const originalReportUserActivity = (player as any).reportUserActivity;
+        
+        (player as any).reportUserActivity = function(this: typeof player) {
           // 在锁定期间，不报告任何用户活跃
           // 除非是临时解锁状态
           const playerEl = player.el();
           if (playerEl && !playerEl.classList.contains('vjs-controls-unlocked-once')) {
             return;
           }
-          originalReportUserActivity.call(player);
+          return originalReportUserActivity.call(this);
         };
         
         // 添加自定义类来强制隐藏控制栏
@@ -560,14 +562,23 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         // 增强字幕关闭时，解除锁定
         setControlBarLockedHidden(false);
         
-        // 恢复Video.js的用户活跃检测
-        player.userActive(true);
+        // 清除临时解锁计时器（如果有）
+        if (unlockTimerRef.current) {
+          clearTimeout(unlockTimerRef.current);
+          unlockTimerRef.current = null;
+          console.log('🧹 清除临时解锁计时器（增强字幕已关闭）');
+        }
         
         // 移除自定义类
         const playerEl = player.el();
         if (playerEl) {
           playerEl.classList.remove('vjs-controls-locked-hidden');
           playerEl.classList.remove('vjs-controls-unlocked-once');
+        }
+        
+        // 触发一次用户活跃报告，让Video.js按正常流程处理（显示控制栏，2秒后自动隐藏）
+        if (player.reportUserActivity) {
+          player.reportUserActivity();
         }
         
         console.log('🔓 控制栏锁定已解除（增强字幕已关闭）');
@@ -583,6 +594,11 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       
       const playerEl = player.el();
       if (playerEl) {
+        // 清除之前的计时器（如果有）
+        if (unlockTimerRef.current) {
+          clearTimeout(unlockTimerRef.current);
+        }
+        
         // 添加临时解锁类（先添加后移除锁定类，确保临时解锁优先级更高）
         playerEl.classList.add('vjs-controls-unlocked-once');
         playerEl.classList.remove('vjs-controls-locked-hidden');
@@ -595,8 +611,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         player.userActive(true);
         
         // 2秒后自动隐藏并重新锁定
-        setTimeout(() => {
-          if (!playerEl) return;
+        unlockTimerRef.current = window.setTimeout(() => {
+          // 只有在增强字幕仍然开启时才重新锁定
+          if (!showEnhancedSubtitles || !playerEl) {
+            unlockTimerRef.current = null;
+            return;
+          }
           
           // 先强制设置为不活跃
           player.userActive(false);
@@ -606,6 +626,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           playerEl.classList.add('vjs-controls-locked-hidden');
           
           console.log('🔒 控制栏已重新锁定');
+          unlockTimerRef.current = null;
         }, 2000);
       }
     }, [getPlayer, showEnhancedSubtitles]);
