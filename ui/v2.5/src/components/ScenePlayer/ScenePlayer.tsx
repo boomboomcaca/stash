@@ -1208,6 +1208,10 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             if (draggingState.current.wasPlaying) {
               player.pause();
             }
+            // 拖拽开始时，如果启用了增强字幕，显示控制栏
+            if (showEnhancedSubtitles) {
+              temporarilyUnlockControlBar();
+            }
           }
           
           // 拖拽过程中，使用优化的视频帧更新
