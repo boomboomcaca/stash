@@ -6,7 +6,16 @@
       "type": "shell",
       "command": "mkdir -p ${workspaceFolder}/.local",
       "windows": {
-        "command": "if not exist \"${workspaceFolder}\\.local\" mkdir \"${workspaceFolder}\\.local\""
+        "command": "powershell",
+        "args": ["-Command", "if (!(Test-Path \"${workspaceFolder}\\.local\")) { New-Item -ItemType Directory -Path \"${workspaceFolder}\\.local\" }"]
+      },
+      "linux": {
+        "command": "mkdir",
+        "args": ["-p", "${workspaceFolder}/.local"]
+      },
+      "osx": {
+        "command": "mkdir",
+        "args": ["-p", "${workspaceFolder}/.local"]
       },
       "problemMatcher": [],
       "presentation": {
@@ -43,7 +52,16 @@
       "type": "shell",
       "command": "kill $(lsof -t -i:5173) || true",
       "windows": {
-        "command": "for /f \"tokens=5\" %a in ('netstat -aon ^| findstr :5173') do taskkill /F /PID %a || echo No process found"
+        "command": "powershell",
+        "args": ["-Command", "Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"]
+      },
+      "linux": {
+        "command": "bash",
+        "args": ["-c", "kill $(lsof -t -i:5173) || true"]
+      },
+      "osx": {
+        "command": "bash",
+        "args": ["-c", "kill $(lsof -t -i:5173) || true"]
       },
       "problemMatcher": [],
       "presentation": {
