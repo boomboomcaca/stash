@@ -2,12 +2,32 @@ import React, { useCallback, useEffect } from "react";
 
 const readImage = (file: File, onLoadEnd: (imageData: string) => void) => {
   const reader: FileReader = new FileReader();
+  
+  // ✅ 添加错误处理和资源清理
+  const cleanup = () => {
+    reader.onloadend = null;
+    reader.onerror = null;
+    reader.onabort = null;
+  };
+  
   reader.onloadend = () => {
     // only proceed if no error encountered
     if (!reader.error) {
       onLoadEnd(reader.result as string);
     }
+    cleanup(); // ✅ 清理事件监听器
   };
+  
+  reader.onerror = () => {
+    console.error('FileReader error:', reader.error);
+    cleanup(); // ✅ 错误时也要清理
+  };
+  
+  reader.onabort = () => {
+    console.warn('FileReader aborted');
+    cleanup(); // ✅ 中止时也要清理
+  };
+  
   reader.readAsDataURL(file);
 };
 
@@ -58,10 +78,35 @@ const imageToDataURL = async (url: string) => {
   const blob = await response.blob();
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
+    
+    // ✅ 添加超时处理和资源清理
+    const timeoutId = setTimeout(() => {
+      reader.abort();
+      reject(new Error('FileReader timeout'));
+    }, 30000); // 30秒超时
+    
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      reader.onloadend = null;
+      reader.onerror = null;
+      reader.onabort = null;
+    };
+    
     reader.onloadend = () => {
+      cleanup();
       resolve(reader.result as string);
     };
-    reader.onerror = reject;
+    
+    reader.onerror = () => {
+      cleanup();
+      reject(reader.error || new Error('FileReader error'));
+    };
+    
+    reader.onabort = () => {
+      cleanup();
+      reject(new Error('FileReader aborted'));
+    };
+    
     reader.readAsDataURL(blob);
   });
 };

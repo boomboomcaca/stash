@@ -56,8 +56,16 @@ const useInterval = (
 
     if (savedDelay !== null) {
       savedIntervalId.current = setInterval(tick, savedDelay);
-      return cancel;
+      // ✅ 确保返回清理函数
+      return () => {
+        cancel();
+      };
     }
+    
+    // ✅ 即使没有设置定时器也要返回清理函数
+    return () => {
+      cancel();
+    };
   }, [callback, savedDelay]);
 
   return delay ? [cancel, reset] : [noop, noop];

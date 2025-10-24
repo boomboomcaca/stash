@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -725,8 +724,43 @@ func (sm *StreamManager) startTranscode(stream *runningStream, segment int, done
 	stream.tp = tp
 
 	go func() {
-		errStr, _ := io.ReadAll(stderr)
-		outStr, _ := io.ReadAll(stdout)
+		// Use limited buffer to prevent memory overflow
+		const maxBufferSize = 1024 * 1024 // 1MB limit
+
+		errStr := make([]byte, 0, 4096) // Start with 4KB buffer
+		outStr := make([]byte, 0, 4096)
+
+		// Read stderr with size limit
+		stderrBuf := make([]byte, 4096)
+		for {
+			n, err := stderr.Read(stderrBuf)
+			if n > 0 {
+				if len(errStr)+n > maxBufferSize {
+					errStr = append(errStr, []byte("... (truncated)")...)
+					break
+				}
+				errStr = append(errStr, stderrBuf[:n]...)
+			}
+			if err != nil {
+				break
+			}
+		}
+
+		// Read stdout with size limit
+		stdoutBuf := make([]byte, 4096)
+		for {
+			n, err := stdout.Read(stdoutBuf)
+			if n > 0 {
+				if len(outStr)+n > maxBufferSize {
+					outStr = append(outStr, []byte("... (truncated)")...)
+					break
+				}
+				outStr = append(outStr, stdoutBuf[:n]...)
+			}
+			if err != nil {
+				break
+			}
+		}
 
 		errCmd := cmd.Wait()
 

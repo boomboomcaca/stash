@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -76,8 +77,17 @@ func (e *ThumbnailEncoder) GetThumbnail(f models.File, maxSize int) ([]byte, err
 	}
 	defer reader.Close()
 
+	// Use limited buffer to prevent memory overflow for large files
+	const maxBufferSize = 50 * 1024 * 1024 // 50MB limit
+
+	// First, check file size if possible - skip size check for now as it's complex with the current API
+	// We'll rely on the io.LimitReader to prevent excessive memory usage
+
+	// Use io.LimitReader to prevent reading more than maxBufferSize
+	limitedReader := io.LimitReader(reader, maxBufferSize)
+
 	buf := new(bytes.Buffer)
-	if _, err := buf.ReadFrom(reader); err != nil {
+	if _, err := buf.ReadFrom(limitedReader); err != nil {
 		return nil, err
 	}
 

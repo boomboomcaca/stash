@@ -82,11 +82,36 @@ export class PronunciationService {
   private useBackend = true; // Prefer backend by default
   // ✅ 添加最大缓存大小限制
   private readonly MAX_CACHE_SIZE = 50; // 最多缓存50个音频
+  private readonly CACHE_CLEANUP_THRESHOLD = 40; // 当缓存达到40个时开始清理
 
   constructor() {
     // Use backend TTS proxy (works on all platforms)
     this.provider = new BackendTTSProvider();
     this.browserProvider = new BrowserTTSProvider();
+  }
+
+  // ✅ 添加缓存清理方法
+  private cleanupCache(): void {
+    if (this.audioCache.size >= this.CACHE_CLEANUP_THRESHOLD) {
+      console.log(`[PronunciationService] 清理音频缓存，当前大小: ${this.audioCache.size}`);
+      
+      // 清理最旧的缓存项（Map保持插入顺序）
+      const entriesToRemove = this.audioCache.size - this.MAX_CACHE_SIZE;
+      const keysToRemove = Array.from(this.audioCache.keys()).slice(0, entriesToRemove);
+      
+      for (const key of keysToRemove) {
+        const audio = this.audioCache.get(key);
+        if (audio) {
+          // 清理音频资源
+          audio.pause();
+          audio.src = '';
+          audio.load(); // 释放资源
+        }
+        this.audioCache.delete(key);
+      }
+      
+      console.log(`[PronunciationService] 缓存清理完成，剩余: ${this.audioCache.size} 个音频`);
+    }
   }
 
   // Get pronunciation URL for a word
@@ -125,17 +150,7 @@ export class PronunciationService {
     if (!audio) {
       // ✅ 检查缓存大小，如果超过限制则清理最旧的条目
       if (this.audioCache.size >= this.MAX_CACHE_SIZE) {
-        // 删除第一个（最旧的）条目
-        const firstKey = this.audioCache.keys().next().value;
-        const oldAudio = this.audioCache.get(firstKey);
-        if (oldAudio) {
-          // 清理音频资源
-          oldAudio.pause();
-          oldAudio.src = '';
-          oldAudio.load(); // 释放资源
-        }
-        this.audioCache.delete(firstKey);
-        console.log(`🗑️ Pronunciation cache evicted: ${firstKey} (cache size: ${this.audioCache.size})`);
+        this.cleanupCache();
       }
       
       // Create new audio element

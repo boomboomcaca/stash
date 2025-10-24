@@ -158,8 +158,18 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   useEffect(() => {
     return () => {
       // 组件卸载时清理音频缓存
-      const { pronunciationService } = require('./pronunciation');
-      pronunciationService.clearCache();
+      try {
+        // 使用动态导入避免require问题
+        import('./pronunciation').then(({ pronunciationService }) => {
+          if (pronunciationService && typeof pronunciationService.clearCache === 'function') {
+            pronunciationService.clearCache();
+          }
+        }).catch((error) => {
+          console.warn('Failed to clear pronunciation cache:', error);
+        });
+      } catch (error) {
+        console.warn('Failed to clear pronunciation cache:', error);
+      }
     };
   }, []);
 
