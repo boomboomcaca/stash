@@ -225,7 +225,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     console.log("[MobileTouchControls] 插件初始化，保存的默认倍速:", this.state.savedSpeedRate);
 
-    // 只在移动设备横屏模式下启用
+    // 只在移动设备上启用
     if (this.shouldEnableTouchControls()) {
       console.log("[MobileTouchControls] 满足启用条件，初始化触摸控制");
       this.initializeTouchControls();
@@ -261,16 +261,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private shouldEnableTouchControls(): boolean {
-    // 检查是否为移动设备且处于横屏模式
+    // 检查是否为移动触摸设备
     const isMobile = window.matchMedia("(max-width: 1199px)").matches;
-    const isLandscape = window.matchMedia("(orientation: landscape)").matches;
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
     
-    // 更精确的横屏检测：检查屏幕宽高比
-    const isLandscapeByRatio = window.innerWidth > window.innerHeight;
-    
-    // 只有在移动设备、触摸设备、且处于横屏模式时才启用触摸控制
-    return isMobile && isTouch && (isLandscape || isLandscapeByRatio);
+    // 只有在移动设备且支持触摸时才启用触摸控制
+    return isMobile && isTouch;
   }
 
   private updateTouchControlsState(): void {
