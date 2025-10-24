@@ -24,7 +24,9 @@
         "STASH_CONFIG_FILE": "config.yml"
       },
       "cwd": "${workspaceFolder}/.local",
-      "preLaunchTask": "create-local-dir"
+      "preLaunchTask": "create-local-dir",
+      "console": "integratedTerminal",
+      "showLog": true
     },
     {
       "name": "Frontend",
