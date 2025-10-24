@@ -138,7 +138,6 @@ export const useToast = () => {
       error(error: unknown) {
         const message = errorToString(error);
 
-        console.error(error);
         addToast({
           variant: "danger",
           content: message,

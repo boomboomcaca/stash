@@ -174,7 +174,6 @@ class SourceSelectorPlugin extends videojs.getPlugin("plugin") {
         return;
 
       const currentSource = player.currentSource() as ISource;
-      console.log(`Source '${currentSource.label}' is unsupported`);
 
       // mark current source as errored
       currentSource.errored = true;

@@ -44,7 +44,6 @@ export async function getFavorites(): Promise<FavoriteWord[]> {
     updateCache(favorites);
     return favorites;
   } catch (error) {
-    console.error('Error getting favorites:', error);
     return [];
   }
 }
@@ -72,7 +71,6 @@ export async function addFavorite(word: string, language: string): Promise<boole
     
     return result.success;
   } catch (error) {
-    console.error('Error adding favorite:', error);
     return false;
   }
 }
@@ -100,7 +98,6 @@ export async function removeFavorite(word: string, language: string): Promise<bo
     
     return result.success;
   } catch (error) {
-    console.error('Error removing favorite:', error);
     return false;
   }
 }
@@ -120,11 +117,10 @@ export async function checkFavorite(word: string, language: string): Promise<boo
     const result: CheckFavoriteResponse = await response.json();
     return result.isFavorite;
   } catch (error) {
-    console.error('Error checking favorite:', error);
     return false;
   }
 }
 
 // Load favorites into cache on module load
-getFavorites().catch(console.error);
+getFavorites().catch(() => {});
 

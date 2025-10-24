@@ -19,7 +19,6 @@ export class DictionaryService {
   private async checkOllamaAvailability() {
     try {
       this.ollamaAvailable = await ollamaBackendService.isAvailable();
-      console.log('Ollama backend service availability:', this.ollamaAvailable);
     } catch (error) {
       console.warn('Failed to check Ollama availability:', error);
       this.ollamaAvailable = false;
@@ -48,7 +47,6 @@ export class DictionaryService {
       // Only use Ollama for word lookup - no fallback to traditional APIs
       if (this.ollamaAvailable) {
         try {
-          console.log('🤖 Using Ollama backend for word explanation:', { word, context });
           const backendEntry = await ollamaBackendService.explainWord(word, context, language);
           
           // Convert backend format to local format
@@ -63,13 +61,11 @@ export class DictionaryService {
             etymology: backendEntry.etymology
           };
           
-          console.log('🤖 Ollama backend response:', entry);
         } catch (error) {
           console.warn('Ollama backend lookup failed:', error);
           entry = this.createBasicEntry(word, language, 'Ollama服务暂时不可用');
         }
       } else {
-        console.warn('Ollama backend service not available');
         entry = this.createBasicEntry(word, language, 'Ollama服务未启用');
       }
 
@@ -82,7 +78,6 @@ export class DictionaryService {
             // 保留常用词（the, is, and 等）
             if (!key.startsWith('the_') && !key.startsWith('is_') && !key.startsWith('and_')) {
               this.cache.delete(key);
-              console.log(`🗑️ Dictionary cache evicted: ${key} (cache size: ${this.cache.size})`);
               break;
             }
           }
@@ -92,7 +87,6 @@ export class DictionaryService {
 
       return entry;
     } catch (error) {
-      console.warn('Dictionary lookup failed:', error);
       return this.createBasicEntry(word, language, '查词失败');
     }
   }

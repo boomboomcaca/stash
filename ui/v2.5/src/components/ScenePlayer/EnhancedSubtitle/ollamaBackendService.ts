@@ -117,7 +117,6 @@ export class OllamaBackendService {
       
       return result.data.ollamaStatus;
     } catch (error) {
-      console.error('Failed to get Ollama status:', error);
       throw error;
     }
   }
@@ -130,7 +129,6 @@ export class OllamaBackendService {
       const status = await this.getStatus();
       return status.available;
     } catch (error) {
-      console.warn('Failed to check Ollama availability:', error);
       return false;
     }
   }
@@ -143,7 +141,6 @@ export class OllamaBackendService {
       const status = await this.getStatus();
       return status.models;
     } catch (error) {
-      console.error('Failed to get Ollama models:', error);
       return [];
     }
   }
@@ -162,7 +159,6 @@ export class OllamaBackendService {
 
       return result.data.configureOllama;
     } catch (error) {
-      console.error('Failed to update Ollama config:', error);
       throw error;
     }
   }
@@ -184,7 +180,6 @@ export class OllamaBackendService {
 
       return result.data.ollamaGenerate;
     } catch (error) {
-      console.error('Failed to generate text with Ollama:', error);
       throw error;
     }
   }
@@ -208,7 +203,6 @@ export class OllamaBackendService {
 
       return result.data.ollamaExplainWord;
     } catch (error) {
-      console.error('Failed to explain word with Ollama:', error);
       throw error;
     }
   }

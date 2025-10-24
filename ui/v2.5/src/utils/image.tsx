@@ -19,7 +19,6 @@ const readImage = (file: File, onLoadEnd: (imageData: string) => void) => {
   };
   
   reader.onerror = () => {
-    console.error('FileReader error:', reader.error);
     cleanup(); // ✅ 错误时也要清理
   };
   

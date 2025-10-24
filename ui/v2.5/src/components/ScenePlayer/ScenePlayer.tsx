@@ -69,9 +69,7 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
     }
     
     // 当调整播放进度时，如果增强字幕已开启，显示控制栏
-    console.log('🎯 seekStep called, showControlBar exists:', !!showControlBar);
     if (showControlBar) {
-      console.log('🎯 Calling showControlBar from seekStep');
       showControlBar();
     }
   }
@@ -559,7 +557,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       const button = enhancedSubtitleButtonRef.current;
       if (button && typeof button.setSubtitlesAvailable === 'function') {
         const hasSubtitles = currentSubtitleTrack !== null;
-        console.log('🔄 更新增强字幕按钮状态:', hasSubtitles ? '启用' : '禁用', 'Track:', currentSubtitleTrack);
         button.setSubtitlesAvailable(hasSubtitles);
       }
     }, [currentSubtitleTrack]);
@@ -596,7 +593,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           playerEl.classList.add('vjs-controls-locked-hidden');
         }
         
-        console.log('🔒 控制栏已锁定隐藏（增强字幕已启用）');
         
         // 清理函数：恢复原始方法
         return () => {
@@ -610,7 +606,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         if (unlockTimerRef.current) {
           clearTimeout(unlockTimerRef.current);
           unlockTimerRef.current = null;
-          console.log('🧹 清除临时解锁计时器（增强字幕已关闭）');
         }
         
         // 移除自定义类
@@ -625,7 +620,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           (player as any).reportUserActivity(new Event('useractive'));
         }
         
-        console.log('🔓 控制栏锁定已解除（增强字幕已关闭）');
       }
     }, [getPlayer, showEnhancedSubtitles]);
 
@@ -633,11 +627,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const temporarilyUnlockControlBar = useCallback(() => {
       const player = getPlayer();
       if (!player) {
-        console.log('❌ temporarilyUnlockControlBar: player not found');
         return;
       }
 
-      console.log('🔓 临时显示控制栏, showEnhancedSubtitlesRef.current:', showEnhancedSubtitlesRef.current);
       
       const playerEl = player.el();
       if (playerEl) {
@@ -672,7 +664,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           playerEl.classList.remove('vjs-controls-unlocked-once');
           playerEl.classList.add('vjs-controls-locked-hidden');
           
-          console.log('🔒 控制栏已重新锁定');
           unlockTimerRef.current = null;
         }, 2000);
       }
@@ -1225,7 +1216,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
               videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
             }
           } catch (error) {
-            console.warn("更新视频帧失败:", error);
           }
           
           // 更新本地时间状态以确保UI同步

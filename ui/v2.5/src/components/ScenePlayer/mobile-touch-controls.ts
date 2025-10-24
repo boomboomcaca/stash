@@ -101,7 +101,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         }
       }
     } catch (error) {
-      console.warn("[MobileTouchControls] 加载倍速设置失败:", error);
     }
     return 1; // 默认1倍速
   }

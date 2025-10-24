@@ -98,7 +98,6 @@ export function useDefaultFilter(emptyFilter: ListFilterModel, view?: View) {
       try {
         newFilter.configureFromSavedFilter(savedFilter);
       } catch (err) {
-        console.log(err);
         // ignore
       }
       // #1507 - reset random seed when loaded

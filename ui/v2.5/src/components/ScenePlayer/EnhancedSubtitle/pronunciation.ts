@@ -93,7 +93,6 @@ export class PronunciationService {
   // ✅ 添加缓存清理方法
   private cleanupCache(): void {
     if (this.audioCache.size >= this.CACHE_CLEANUP_THRESHOLD) {
-      console.log(`[PronunciationService] 清理音频缓存，当前大小: ${this.audioCache.size}`);
       
       // 清理最旧的缓存项（Map保持插入顺序）
       const entriesToRemove = this.audioCache.size - this.MAX_CACHE_SIZE;
@@ -110,7 +109,6 @@ export class PronunciationService {
         this.audioCache.delete(key);
       }
       
-      console.log(`[PronunciationService] 缓存清理完成，剩余: ${this.audioCache.size} 个音频`);
     }
   }
 
@@ -179,7 +177,6 @@ export class PronunciationService {
     // Play the audio
     try {
       await audio.play();
-      console.log(`🔊 Playing pronunciation: ${word} (${language})`);
     } catch (error) {
       // Remove from cache if playback fails
       this.audioCache.delete(cacheKey);
@@ -213,7 +210,6 @@ export class PronunciationService {
       audio.load(); // 释放资源
     });
     this.audioCache.clear();
-    console.log('🗑️ Pronunciation cache cleared');
   }
 
   // Get cache size
@@ -224,7 +220,6 @@ export class PronunciationService {
   // Toggle between backend and browser TTS
   setUseBackend(useBackend: boolean): void {
     this.useBackend = useBackend;
-    console.log(`TTS provider: ${useBackend ? 'Backend Proxy' : 'Browser Speech'}`);
   }
 }
 
