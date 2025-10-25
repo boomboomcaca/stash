@@ -212,7 +212,7 @@
       }
     }
     
-    // Auto-paused state (currently paused by auto-pause)
+    // Auto-paused state (currently paused by auto-pause or manually)
     &.auto-pause-paused {
       border-color: rgba(239, 68, 68, 0.9); // 红色边框 (red-500) - 正在暂停
       background: rgba(0, 0, 0, 0.75); // 保持一致的黑色背景

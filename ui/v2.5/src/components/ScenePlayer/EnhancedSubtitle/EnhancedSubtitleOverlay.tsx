@@ -58,6 +58,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
   const [autoPauseEnabled, setAutoPauseEnabled] = useState(false);
   const [isAutoPaused, setIsAutoPaused] = useState(false); // Track if currently auto-paused
+  const [isPlayerPaused, setIsPlayerPaused] = useState(false); // Track player pause state
   const [dragStartTime, setDragStartTime] = useState(0); // Track when drag started
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const [isFavorite, setIsFavorite] = useState(false);
@@ -496,6 +497,14 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     
     return { cue, cueIndex };
   }, [currentTime, parsedSubtitles]);
+
+  // Track player pause state for AP label color
+  useEffect(() => {
+    if (getPlayerPaused) {
+      const paused = getPlayerPaused();
+      setIsPlayerPaused(paused);
+    }
+  }, [currentTime, getPlayerPaused]); // Update when currentTime changes to catch pause state changes
 
   useEffect(() => {
     if (!parsedSubtitles) {
@@ -971,7 +980,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       >
         {/* Auto-pause toggle button with drag support - 增强字幕开启时一直显示 */}
         <div 
-          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${isAutoPaused ? 'auto-pause-paused' : ''}`}
+          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${(isAutoPaused || isPlayerPaused) ? 'auto-pause-paused' : ''}`}
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
