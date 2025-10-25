@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -63,9 +65,10 @@ func (j *ScanJob) Execute(ctx context.Context, progress *job.Progress) error {
 		minModTime = *j.input.Filter.MinModTime
 	}
 
+	scanFilter := newScanFilter(c, repo, minModTime)
 	j.scanner.Scan(ctx, getScanHandlers(j.input, taskQueue, progress), file.ScanOptions{
 		Paths:                  paths,
-		ScanFilters:            []file.PathFilter{newScanFilter(c, repo, minModTime)},
+		ScanFilters:            []file.PathFilter{scanFilter},
 		ZipFileExtensions:      cfg.GetGalleryExtensions(),
 		ParallelTasks:          cfg.GetParallelTasksWithAutoDetection(),
 		HandlerRequiredFilters: []file.Filter{newHandlerRequiredFilter(cfg, repo)},
@@ -77,6 +80,17 @@ func (j *ScanJob) Execute(ctx context.Context, progress *job.Progress) error {
 	if job.IsCancelled(ctx) {
 		logger.Info("Stopping due to user request")
 		return nil
+	}
+
+	// Process pending captions after all files have been scanned
+	if len(scanFilter.pendingCaptions) > 0 {
+		logger.Infof("Processing %d pending caption files", len(scanFilter.pendingCaptions))
+		for _, captionPath := range scanFilter.pendingCaptions {
+			if job.IsCancelled(ctx) {
+				break
+			}
+			video.AssociateCaptions(ctx, captionPath, repo.TxnManager, repo.File, repo.File)
+		}
 	}
 
 	elapsed := time.Since(start)
@@ -254,6 +268,7 @@ type scanFilter struct {
 	videoExcludeRegex []*regexp.Regexp
 	imageExcludeRegex []*regexp.Regexp
 	minModTime        time.Time
+	pendingCaptions   []string
 }
 
 func newScanFilter(c *config.Config, repo models.Repository, minModTime time.Time) *scanFilter {
@@ -281,6 +296,16 @@ func (f *scanFilter) Accept(ctx context.Context, path string, info fs.FileInfo) 
 		return false
 	}
 
+	// Auto-delete Zone.Identifier files (Windows download metadata)
+	if f.isZoneIdentifierFile(path) {
+		if err := f.deleteZoneIdentifierFile(path); err != nil {
+			logger.Warnf("Failed to delete Zone.Identifier file %s: %v", path, err)
+		} else {
+			logger.Infof("Auto-deleted Zone.Identifier file: %s", path)
+		}
+		return false
+	}
+
 	s := f.stashPaths.GetStashFromDirPath(path)
 	if s == nil {
 		logger.Debugf("Skipping %s as it is not in the stash library", path)
@@ -295,8 +320,8 @@ func (f *scanFilter) Accept(ctx context.Context, path string, info fs.FileInfo) 
 	if fsutil.MatchExtension(path, video.CaptionExts) {
 		// we don't include caption files in the file scan, but we do need
 		// to handle them
-		video.AssociateCaptions(ctx, path, f.txnManager, f.FileFinder, f.CaptionUpdater)
-
+		// Delay caption processing to ensure video files are processed first
+		f.pendingCaptions = append(f.pendingCaptions, path)
 		return false
 	}
 
@@ -328,6 +353,17 @@ func (f *scanFilter) Accept(ctx context.Context, path string, info fs.FileInfo) 
 	}
 
 	return true
+}
+
+// isZoneIdentifierFile checks if the given path is a Zone.Identifier file
+func (f *scanFilter) isZoneIdentifierFile(path string) bool {
+	basename := filepath.Base(path)
+	return strings.HasSuffix(basename, ":Zone.Identifier")
+}
+
+// deleteZoneIdentifierFile deletes a Zone.Identifier file
+func (f *scanFilter) deleteZoneIdentifierFile(path string) error {
+	return os.Remove(path)
 }
 
 type scanConfig struct {
