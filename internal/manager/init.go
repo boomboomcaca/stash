@@ -109,6 +109,14 @@ func Initialize(cfg *config.Config, l *log.Logger) (*Manager, error) {
 		scanSubs: &subscriptionManager{},
 	}
 
+	// Initialize LibraryWatcher
+	libraryWatcher, err := NewLibraryWatcher(mgr)
+	if err != nil {
+		logger.Warnf("Failed to initialize library watcher: %v", err)
+	} else {
+		mgr.LibraryWatcher = libraryWatcher
+	}
+
 	if !cfg.IsNewSystem() {
 		logger.Infof("using config file: %s", cfg.GetConfigFile())
 
@@ -246,6 +254,13 @@ func (s *Manager) postInit(ctx context.Context) error {
 
 	s.RefreshFFMpeg(ctx)
 	s.RefreshStreamManager()
+
+	// Start library watcher if initialized
+	if s.LibraryWatcher != nil {
+		if err := s.LibraryWatcher.Start(); err != nil {
+			logger.Warnf("Failed to start library watcher: %v", err)
+		}
+	}
 
 	return nil
 }

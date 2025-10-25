@@ -68,7 +68,8 @@ type Manager struct {
 	GalleryService GalleryService
 	GroupService   GroupService
 
-	scanSubs *subscriptionManager
+	scanSubs      *subscriptionManager
+	LibraryWatcher *LibraryWatcher
 }
 
 var instance *Manager
@@ -184,6 +185,15 @@ func (s *Manager) RefreshScraperSourceManager() {
 
 func (s *Manager) RefreshPluginSourceManager() {
 	s.PluginPackageManager = createPackageManager(s.Config.GetPluginsPath(), s.Config.GetPluginPackagePathGetter())
+}
+
+// RefreshLibraryWatcher refreshes the library watcher when stash paths change
+func (s *Manager) RefreshLibraryWatcher() {
+	if s.LibraryWatcher != nil {
+		if err := s.LibraryWatcher.RefreshPaths(); err != nil {
+			logger.Warnf("Failed to refresh library watcher paths: %v", err)
+		}
+	}
 }
 
 func setSetupDefaults(input *SetupInput) {
@@ -421,6 +431,13 @@ func (s *Manager) GetSystemStatus() *SystemStatus {
 // Shutdown gracefully stops the manager
 func (s *Manager) Shutdown() {
 	// TODO: Each part of the manager needs to gracefully stop at some point
+
+	// Stop library watcher
+	if s.LibraryWatcher != nil {
+		if err := s.LibraryWatcher.Stop(); err != nil {
+			logger.Errorf("Error stopping library watcher: %s", err)
+		}
+	}
 
 	if s.StreamManager != nil {
 		s.StreamManager.Shutdown()
