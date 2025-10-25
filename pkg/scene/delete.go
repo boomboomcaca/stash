@@ -2,7 +2,9 @@ package scene
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/stashapp/stash/pkg/file"
 	"github.com/stashapp/stash/pkg/file/video"
@@ -165,6 +167,7 @@ func (s *Service) deleteFiles(ctx context.Context, scene *models.Scene, fileDele
 
 		// don't delete files in zip archives
 		if f.ZipFileID == nil {
+			// delete funscript file if it exists
 			funscriptPath := video.GetFunscriptPath(f.Path)
 			funscriptExists, _ := fsutil.FileExists(funscriptPath)
 			if funscriptExists {
@@ -172,6 +175,85 @@ func (s *Service) deleteFiles(ctx context.Context, scene *models.Scene, fileDele
 					return err
 				}
 			}
+
+			// delete caption/subtitle files if they exist
+			if err := s.deleteCaptionFiles(ctx, f, fileDeleter); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// deleteCaptionFiles deletes caption/subtitle files associated with a video file
+func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDeleter *FileDeleter) error {
+	// Get captions from database
+	captions, err := s.File.GetCaptions(ctx, f.Base().ID)
+	if err != nil {
+		logger.Warnf("Error getting captions for file %s: %v", f.Base().Path, err)
+		return nil // don't fail deletion if we can't get captions
+	}
+
+	var captionFiles []string
+	for _, caption := range captions {
+		captionPath := caption.Path(f.Base().Path)
+		exists, _ := fsutil.FileExists(captionPath)
+		if exists {
+			captionFiles = append(captionFiles, captionPath)
+			logger.Infof("Marking caption file for deletion: %s", captionPath)
+		}
+	}
+
+	// Also check for common subtitle file patterns that might not be in database
+	videoPath := f.Base().Path
+	videoDir := filepath.Dir(videoPath)
+	videoBase := strings.TrimSuffix(filepath.Base(videoPath), filepath.Ext(videoPath))
+
+	// Check for common subtitle extensions
+	subtitleExts := []string{".srt", ".vtt", ".ass", ".ssa", ".sub"}
+	for _, ext := range subtitleExts {
+		// Check for files with same basename + language code + extension
+		pattern := filepath.Join(videoDir, videoBase+".*"+ext)
+		matches, err := filepath.Glob(pattern)
+		if err == nil {
+			for _, match := range matches {
+				// Check if this file is not already marked for deletion
+				alreadyMarked := false
+				for _, marked := range captionFiles {
+					if marked == match {
+						alreadyMarked = true
+						break
+					}
+				}
+				if !alreadyMarked {
+					captionFiles = append(captionFiles, match)
+					logger.Infof("Marking additional subtitle file for deletion: %s", match)
+				}
+			}
+		}
+
+		// Also check for files with same basename + extension (no language code)
+		simplePattern := filepath.Join(videoDir, videoBase+ext)
+		exists, _ := fsutil.FileExists(simplePattern)
+		if exists {
+			alreadyMarked := false
+			for _, marked := range captionFiles {
+				if marked == simplePattern {
+					alreadyMarked = true
+					break
+				}
+			}
+			if !alreadyMarked {
+				captionFiles = append(captionFiles, simplePattern)
+				logger.Infof("Marking simple subtitle file for deletion: %s", simplePattern)
+			}
+		}
+	}
+
+	if len(captionFiles) > 0 {
+		if err := fileDeleter.Files(captionFiles); err != nil {
+			return fmt.Errorf("marking caption files for deletion: %w", err)
 		}
 	}
 
