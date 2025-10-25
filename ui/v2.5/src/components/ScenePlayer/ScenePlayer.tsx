@@ -573,30 +573,66 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         // 禁用Video.js的用户活跃检测
         player.userActive(false);
         
-        // 阻止Video.js监听用户活跃事件
-        // 通过临时修改player的reportUserActivity方法来实现
+        // 修改Video.js的用户活跃检测机制
+        // 允许键盘事件触发用户活跃，但保持控制栏锁定
         const originalReportUserActivity = (player as any).reportUserActivity;
         
-        (player as any).reportUserActivity = function(this: typeof player) {
-          // 在锁定期间，不报告任何用户活跃
-          // 除非是临时解锁状态
+        (player as any).reportUserActivity = function(this: typeof player, event?: Event) {
           const playerEl = player.el();
+          
+          // 如果是键盘事件，允许报告用户活跃（这样Video.js可以处理键盘事件）
+          if (event && event.type === 'keydown') {
+            return originalReportUserActivity.call(this, event);
+          }
+          
+          // 对于其他事件（如鼠标移动、点击等），在锁定期间不报告用户活跃
+          // 除非是临时解锁状态
           if (playerEl && !playerEl.classList.contains('vjs-controls-unlocked-once')) {
             return;
           }
-          return originalReportUserActivity.call(this);
+          
+          return originalReportUserActivity.call(this, event);
         };
         
         // 添加自定义类来强制隐藏控制栏
         const playerEl = player.el();
         if (playerEl) {
           playerEl.classList.add('vjs-controls-locked-hidden');
+          
+          // 确保播放器能够接收键盘事件
+          // 设置tabindex使播放器可以获得焦点
+          playerEl.setAttribute('tabindex', '0');
+          
+          // 确保播放器有焦点，这样键盘事件才能被处理
+          (playerEl as HTMLElement).focus();
+          
+          // 监听焦点丢失事件，重新获得焦点
+          const handleFocusLoss = () => {
+            // 延迟一点时间再重新获得焦点，避免与其他元素冲突
+            setTimeout(() => {
+              if (playerEl && playerEl.classList.contains('vjs-controls-locked-hidden')) {
+                (playerEl as HTMLElement).focus();
+              }
+            }, 100);
+          };
+          
+          playerEl.addEventListener('blur', handleFocusLoss);
+          
+          // 存储清理函数
+          (playerEl as any)._focusLossHandler = handleFocusLoss;
         }
         
         
         // 清理函数：恢复原始方法
         return () => {
           (player as any).reportUserActivity = originalReportUserActivity;
+          
+          // 清理焦点管理
+          const playerEl = player.el();
+          if (playerEl && (playerEl as any)._focusLossHandler) {
+            playerEl.removeEventListener('blur', (playerEl as any)._focusLossHandler);
+            delete (playerEl as any)._focusLossHandler;
+          }
         };
       } else {
         // 增强字幕关闭时，解除锁定
@@ -613,6 +649,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         if (playerEl) {
           playerEl.classList.remove('vjs-controls-locked-hidden');
           playerEl.classList.remove('vjs-controls-unlocked-once');
+          
+          // 清理焦点管理
+          if ((playerEl as any)._focusLossHandler) {
+            playerEl.removeEventListener('blur', (playerEl as any)._focusLossHandler);
+            delete (playerEl as any)._focusLossHandler;
+          }
         }
         
         // 触发一次用户活跃报告，让Video.js按正常流程处理（显示控制栏，2秒后自动隐藏）
@@ -630,7 +672,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         return;
       }
 
-      
       const playerEl = player.el();
       if (playerEl) {
         // 清除之前的计时器（如果有）
@@ -638,6 +679,14 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           clearTimeout(unlockTimerRef.current);
         }
         
+        // 如果增强字幕没有开启，完全依赖Video.js的正常用户活跃机制
+        if (!showEnhancedSubtitlesRef.current) {
+          // 直接返回，让Video.js按照原生机制处理用户活跃状态和控制栏显示
+          // Video.js会自动检测到用户活动（左右方向键），显示控制栏并在inactivityTimeout后自动隐藏
+          return;
+        }
+        
+        // 增强字幕开启时的特殊处理
         // 添加临时解锁类（先添加后移除锁定类，确保临时解锁优先级更高）
         playerEl.classList.add('vjs-controls-unlocked-once');
         playerEl.classList.remove('vjs-controls-locked-hidden');

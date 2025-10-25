@@ -89,12 +89,19 @@ $sceneTabWidth: 450px;
     }
     
     // 禁用所有用户交互导致的控制栏显示
+    // 包括键盘事件触发的用户活跃状态
     &.vjs-user-active .vjs-control-bar {
       opacity: 0 !important;
       visibility: hidden !important;
     }
     
     &:hover .vjs-control-bar {
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+    
+    // 确保键盘事件不会显示控制栏
+    &.vjs-user-active.vjs-controls-locked-hidden .vjs-control-bar {
       opacity: 0 !important;
       visibility: hidden !important;
     }
@@ -107,6 +114,23 @@ $sceneTabWidth: 450px;
       visibility: visible !important;
       pointer-events: auto !important;
       transition: opacity 0.3s, visibility 0s;
+    }
+    
+    // 确保临时解锁状态覆盖所有锁定状态
+    &.vjs-controls-locked-hidden .vjs-control-bar {
+      opacity: 1 !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    
+    &.vjs-user-active .vjs-control-bar {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    
+    &:hover .vjs-control-bar {
+      opacity: 1 !important;
+      visibility: visible !important;
     }
   }
 
