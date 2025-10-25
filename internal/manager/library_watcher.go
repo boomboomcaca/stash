@@ -9,6 +9,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/stashapp/stash/internal/manager/config"
+	"github.com/stashapp/stash/internal/manager/task"
 	"github.com/stashapp/stash/pkg/fsutil"
 	"github.com/stashapp/stash/pkg/logger"
 )
@@ -226,7 +227,7 @@ func (lw *LibraryWatcher) triggerScanAndCleanup(paths []string) {
 	scanOptions := config.ScanMetadataOptions{
 		Rescan: false, // Don't rescan existing files
 	}
-	
+
 	// Apply default scan settings if they exist
 	if defaultScanSettings != nil {
 		scanOptions.ScanGenerateCovers = defaultScanSettings.ScanGenerateCovers
@@ -240,7 +241,7 @@ func (lw *LibraryWatcher) triggerScanAndCleanup(paths []string) {
 
 	// Trigger scan task
 	scanInput := ScanMetadataInput{
-		Paths: paths,
+		Paths:               paths,
 		ScanMetadataOptions: scanOptions,
 	}
 
@@ -260,6 +261,39 @@ func (lw *LibraryWatcher) triggerScanAndCleanup(paths []string) {
 		logger.Infof("Triggered cleanup task (job ID: %d) for %d paths", jobID, len(paths))
 	} else {
 		logger.Warnf("Failed to trigger cleanup task")
+	}
+
+	// Trigger clean generated files task
+	cleanGeneratedOptions := task.CleanGeneratedOptions{
+		BlobFiles:       true,
+		Sprites:         true,
+		Screenshots:     true,
+		Transcodes:      true,
+		Markers:         true,
+		ImageThumbnails: true,
+		DryRun:          false, // Actually perform cleanup
+	}
+
+	cleanGeneratedJob := &task.CleanGeneratedJob{
+		Options:                  cleanGeneratedOptions,
+		Paths:                    lw.manager.Paths,
+		BlobsStorageType:         lw.manager.Config.GetBlobsStorage(),
+		VideoFileNamingAlgorithm: lw.manager.Config.GetVideoFileNamingAlgorithm(),
+		Repository:               lw.manager.Repository,
+		BlobCleaner:              lw.manager.Repository.Blob,
+	}
+
+	if jobID := lw.manager.JobManager.Add(ctx, "Cleaning generated files...", cleanGeneratedJob); jobID > 0 {
+		logger.Infof("Triggered clean generated files task (job ID: %d)", jobID)
+	} else {
+		logger.Warnf("Failed to trigger clean generated files task")
+	}
+
+	// Trigger optimize database task
+	if jobID := lw.manager.OptimiseDatabase(ctx); jobID > 0 {
+		logger.Infof("Triggered optimize database task (job ID: %d)", jobID)
+	} else {
+		logger.Warnf("Failed to trigger optimize database task")
 	}
 }
 
