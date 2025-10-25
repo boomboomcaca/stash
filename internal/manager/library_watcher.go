@@ -295,6 +295,68 @@ func (lw *LibraryWatcher) triggerScanAndCleanup(paths []string) {
 	} else {
 		logger.Warnf("Failed to trigger optimize database task")
 	}
+
+	// Get user-configured generation settings
+	generateSettings := lw.manager.Config.GetDefaultGenerateSettings()
+
+	// Use user settings if available, otherwise use comprehensive defaults
+	var generateInput GenerateMetadataInput
+	if generateSettings != nil {
+		// Convert user settings to GenerateMetadataInput
+		generateInput = GenerateMetadataInput{
+			Covers:              generateSettings.Covers,
+			Sprites:             generateSettings.Sprites,
+			Previews:            generateSettings.Previews,
+			ImagePreviews:       generateSettings.ImagePreviews,
+			Markers:             generateSettings.Markers,
+			MarkerImagePreviews: generateSettings.MarkerImagePreviews,
+			MarkerScreenshots:   generateSettings.MarkerScreenshots,
+			Phashes:             generateSettings.Phashes,
+			ClipPreviews:        generateSettings.ClipPreviews,
+			ImageThumbnails:     generateSettings.ImageThumbnails,
+			Overwrite:           false, // Don't overwrite existing files
+		}
+
+		// Apply preview options if configured
+		if generateSettings.PreviewOptions != nil {
+			generateInput.PreviewOptions = &GeneratePreviewOptionsInput{
+				PreviewSegments:        generateSettings.PreviewOptions.PreviewSegments,
+				PreviewSegmentDuration: generateSettings.PreviewOptions.PreviewSegmentDuration,
+				PreviewExcludeStart:    generateSettings.PreviewOptions.PreviewExcludeStart,
+				PreviewExcludeEnd:      generateSettings.PreviewOptions.PreviewExcludeEnd,
+				PreviewPreset:          generateSettings.PreviewOptions.PreviewPreset,
+			}
+		}
+
+		logger.Infof("Using user-configured generation settings: covers=%v, sprites=%v, previews=%v, imagePreviews=%v, markers=%v, markerImagePreviews=%v, markerScreenshots=%v, phashes=%v, clipPreviews=%v, imageThumbnails=%v",
+			generateSettings.Covers, generateSettings.Sprites, generateSettings.Previews, generateSettings.ImagePreviews,
+			generateSettings.Markers, generateSettings.MarkerImagePreviews, generateSettings.MarkerScreenshots,
+			generateSettings.Phashes, generateSettings.ClipPreviews, generateSettings.ImageThumbnails)
+	} else {
+		// Fallback to comprehensive defaults if no user settings
+		generateInput = GenerateMetadataInput{
+			Covers:              true,  // Generate scene covers
+			Sprites:             true,  // Generate scrubber sprites
+			Previews:            true,  // Generate video previews
+			ImagePreviews:       true,  // Generate animated image previews
+			Markers:             true,  // Generate marker previews
+			MarkerImagePreviews: true,  // Generate marker animated image previews
+			MarkerScreenshots:   true,  // Generate marker screenshots
+			Phashes:             true,  // Generate perceptual hashes
+			ClipPreviews:        true,  // Generate previews for image clips
+			ImageThumbnails:     true,  // Generate thumbnails for images
+			Overwrite:           false, // Don't overwrite existing files
+		}
+		logger.Infof("Using comprehensive default generation settings (no user settings found)")
+	}
+
+	if jobID, err := lw.manager.Generate(ctx, generateInput); err != nil {
+		logger.Errorf("Failed to trigger generation task: %v", err)
+	} else if jobID > 0 {
+		logger.Infof("Triggered comprehensive generation task (job ID: %d)", jobID)
+	} else {
+		logger.Warnf("Failed to trigger generation task")
+	}
 }
 
 // RefreshPaths refreshes the watched paths when configuration changes
