@@ -63,7 +63,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [isFavorite, setIsFavorite] = useState(false);
   
   const subtitleRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false });
+  const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false, initialX: 0, initialY: 0 });
   const lastCueRef = useRef<SubtitleCue | null>(null);
   const autoPauseTriggeredRef = useRef(false);
   const lastPausedStateRef = useRef<boolean | null>(null);
@@ -236,6 +236,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
+    // 重置拖动模式标志，确保下次点击检测正常工作
+    dragStartRef.current.hasDeterminedMode = false;
   }, []);
 
   // ✅ Touch drag handlers for mobile - 使用 useRef 避免依赖更新
@@ -286,6 +288,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
+    // 重置拖动模式标志，确保下次点击检测正常工作
+    dragStartRef.current.hasDeterminedMode = false;
   }, []);
 
   // ✅ Add global event listeners for drag - 修复依赖问题
@@ -675,7 +679,9 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       x: e.clientX,
       startX: 0,
       startFontSize: fontSize,
-      hasDeterminedMode: false
+      hasDeterminedMode: false,
+      initialX: e.clientX,
+      initialY: e.clientY
     };
     
     e.preventDefault();
@@ -695,7 +701,9 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       x: touch.clientX,
       startX: 0,
       startFontSize: fontSize,
-      hasDeterminedMode: false
+      hasDeterminedMode: false,
+      initialX: touch.clientX,
+      initialY: touch.clientY
     };
   }, [dragPosition.y, fontSize]);
 
@@ -706,7 +714,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     // Only toggle if this was a click (not a drag)
     // Check if drag time was less than 200ms and no significant movement
     const dragDuration = Date.now() - dragStartTime;
-    const wasClick = dragDuration < 200 && !dragStartRef.current.hasDeterminedMode;
+    const deltaX = Math.abs(e.clientX - dragStartRef.current.initialX);
+    const deltaY = Math.abs(e.clientY - dragStartRef.current.initialY);
+    const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    
+    // 更严格的点击检测：时间短、移动距离小、且没有确定拖动模式
+    const wasClick = dragDuration < 200 && totalMovement < 10 && !dragStartRef.current.hasDeterminedMode;
     
     if (wasClick) {
       const now = Date.now();
