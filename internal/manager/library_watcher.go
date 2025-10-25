@@ -221,12 +221,27 @@ func (lw *LibraryWatcher) processAccumulatedEvents() {
 func (lw *LibraryWatcher) triggerScanAndCleanup(paths []string) {
 	ctx := context.Background()
 
+	// Get default scan settings and use them for automatic scanning
+	defaultScanSettings := lw.manager.Config.GetDefaultScanSettings()
+	scanOptions := config.ScanMetadataOptions{
+		Rescan: false, // Don't rescan existing files
+	}
+	
+	// Apply default scan settings if they exist
+	if defaultScanSettings != nil {
+		scanOptions.ScanGenerateCovers = defaultScanSettings.ScanGenerateCovers
+		scanOptions.ScanGeneratePreviews = defaultScanSettings.ScanGeneratePreviews
+		scanOptions.ScanGenerateImagePreviews = defaultScanSettings.ScanGenerateImagePreviews
+		scanOptions.ScanGenerateSprites = defaultScanSettings.ScanGenerateSprites
+		scanOptions.ScanGeneratePhashes = defaultScanSettings.ScanGeneratePhashes
+		scanOptions.ScanGenerateThumbnails = defaultScanSettings.ScanGenerateThumbnails
+		scanOptions.ScanGenerateClipPreviews = defaultScanSettings.ScanGenerateClipPreviews
+	}
+
 	// Trigger scan task
 	scanInput := ScanMetadataInput{
 		Paths: paths,
-		ScanMetadataOptions: config.ScanMetadataOptions{
-			Rescan: false, // Don't rescan existing files
-		},
+		ScanMetadataOptions: scanOptions,
 	}
 
 	if _, err := lw.manager.Scan(ctx, scanInput); err != nil {
