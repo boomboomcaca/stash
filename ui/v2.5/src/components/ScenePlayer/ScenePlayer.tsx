@@ -1143,7 +1143,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
 
       function timeupdate(this: VideoJsPlayer) {
-        if (this.paused()) return;
+        // Always update time, even when paused, to handle seek operations
         setTime(this.currentTime());
       }
 
