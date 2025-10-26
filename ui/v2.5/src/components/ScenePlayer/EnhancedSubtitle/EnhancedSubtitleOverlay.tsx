@@ -21,6 +21,10 @@ interface EnhancedSubtitleOverlayProps {
   onSubtitlesLoaded?: (cues: SubtitleCue[]) => void; // 字幕加载完成回调
   onCurrentCueChange?: (index: number) => void; // 当前字幕索引变化回调
   onAPDoubleClick?: () => void; // AP图标双击回调
+  onPlay?: () => void; // Resume playback
+  onSeekToCue?: (cueIndex: number) => void; // Seek to specific cue
+  onGetPlayer?: () => any; // Get video player instance
+  onNavigationRef?: (ref: any) => void; // Callback to expose navigation functions
 }
 
 interface ParsedSubtitle {
@@ -40,6 +44,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   onSubtitlesLoaded,
   onCurrentCueChange,
   onAPDoubleClick,
+  onPlay,
+  onSeekToCue,
+  onGetPlayer,
+  onNavigationRef,
 }) => {
   const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
   const [currentCue, setCurrentCue] = useState<SubtitleCue | null>(null);
@@ -63,6 +71,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const [isFavorite, setIsFavorite] = useState(false);
   
+  // Word navigation mode state
+  const [selectedWordIndex, setSelectedWordIndex] = useState<number>(-1);
+  const [isInWordNavigationMode, setIsInWordNavigationMode] = useState(false);
+  
   const subtitleRef = useRef<HTMLDivElement>(null);
   const subtitleCacheRef = useRef<Map<string, SubtitleCue[]>>(new Map()); // 字幕缓存
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false, initialX: 0, initialY: 0 });
@@ -71,6 +83,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const lastPausedStateRef = useRef<boolean | null>(null);
   const userResumedPlaybackRef = useRef(false);
   const lastCurrentTimeRef = useRef<number>(0); // Track last currentTime to detect replays
+  const lastUpArrowPressRef = useRef<number>(0);
+  const lastDownArrowPressRef = useRef<number>(0);
   
   // AP图标双击检测
   const lastAPClickTimeRef = useRef<number>(0);
@@ -81,7 +95,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     enablePunctuation: false,
     minWordLength: 1
   }));
-
+  
   // Load saved position, font size, and auto-pause setting from localStorage
   useEffect(() => {
     const savedPosition = localStorage.getItem('enhancedSubtitlePosition');
@@ -698,6 +712,96 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
   }, [detectedLanguage, currentCue, onPausePlayer]);
 
+  // Handle word selection via keyboard (Enter/OK key)
+  const handleWordSelection = useCallback(async () => {
+    if (selectedWordIndex >= 0 && selectedWordIndex < wordSegments.length && wordSegments[selectedWordIndex]) {
+      const selectedWordText = wordSegments[selectedWordIndex].word;
+      await handleWordClick(selectedWordText);
+    }
+  }, [selectedWordIndex, wordSegments, handleWordClick]);
+
+  // Handle entering word navigation mode
+  const enterWordNavigationMode = useCallback(() => {
+    if (wordSegments.length > 0) {
+      setIsInWordNavigationMode(true);
+      setSelectedWordIndex(0); // Select first word
+      // Pause playback
+      if (onPausePlayer) {
+        onPausePlayer();
+      }
+      console.log('🎯 Entered word navigation mode');
+    }
+  }, [wordSegments, onPausePlayer]);
+
+  // Handle exiting word navigation mode
+  const exitWordNavigationMode = useCallback(() => {
+    setIsInWordNavigationMode(false);
+    setSelectedWordIndex(-1);
+    // Resume playback
+    if (onPlay) {
+      onPlay();
+    }
+    console.log('🚪 Exited word navigation mode');
+  }, [onPlay]);
+
+  // Navigate to next word
+  const navigateToNextWord = useCallback(() => {
+    if (selectedWordIndex < wordSegments.length - 1) {
+      setSelectedWordIndex(selectedWordIndex + 1);
+    }
+  }, [selectedWordIndex, wordSegments.length]);
+
+  // Navigate to previous word
+  const navigateToPreviousWord = useCallback(() => {
+    if (selectedWordIndex > 0) {
+      setSelectedWordIndex(selectedWordIndex - 1);
+    }
+  }, [selectedWordIndex]);
+
+  // Update word navigation when cue changes
+  useEffect(() => {
+    if (isInWordNavigationMode) {
+      setSelectedWordIndex(0); // Reset to first word when cue changes
+    }
+  }, [currentCue, isInWordNavigationMode]);
+  
+  // Expose navigation functions to parent via callback (placed after function definitions)
+  useEffect(() => {
+    if (onNavigationRef) {
+      onNavigationRef({
+        enterWordNavigationMode,
+        exitWordNavigationMode,
+        navigateToNextWord,
+        navigateToPreviousWord,
+        handleWordSelection,
+        isInWordNavigationMode,
+        parsedSubtitles,
+        getCurrentCueIndex: () => {
+          if (currentCue && parsedSubtitles) {
+            return parsedSubtitles.cues.findIndex(c => 
+              c.startTime === currentCue.startTime && 
+              c.endTime === currentCue.endTime && 
+              c.text === currentCue.text
+            );
+          }
+          return -1;
+        },
+        onGetPlayer,
+      });
+    }
+  }, [
+    onNavigationRef,
+    enterWordNavigationMode,
+    exitWordNavigationMode,
+    navigateToNextWord,
+    navigateToPreviousWord,
+    handleWordSelection,
+    isInWordNavigationMode,
+    currentCue,
+    parsedSubtitles,
+    onGetPlayer,
+  ]);
+
   // Handle AP indicator mouse down - start drag
   const handleAPMouseDown = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -875,12 +979,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       // Check if word is favorited
       const wordKey = `${segment.word}:${detectedLanguage}`;
       const isFavorited = favoriteWords.has(wordKey);
+      
+      // Check if word is currently selected in navigation mode
+      const isSelectedInNav = isInWordNavigationMode && index === selectedWordIndex;
 
       // Add the word segment as clickable
       elements.push(
         <span
           key={`word-${index}`}
-          className={`subtitle-word ${segment.isSelected ? 'selected' : ''} ${isFavorited ? 'favorited' : ''}`}
+          className={`subtitle-word ${segment.isSelected ? 'selected' : ''} ${isSelectedInNav ? 'navigation-selected' : ''} ${isFavorited ? 'favorited' : ''}`}
           onClick={() => handleWordClick(segment.word)}
           title={isFavorited ? `⭐ "${segment.word}" (favorited)` : `Click to look up "${segment.word}"`}
         >
@@ -899,7 +1006,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
 
     return elements;
-  }, [currentCue, wordSegments, handleWordClick, detectedLanguage, favoriteWords]);
+  }, [currentCue, wordSegments, handleWordClick, detectedLanguage, favoriteWords, isInWordNavigationMode, selectedWordIndex]);
 
   // Dictionary modal content - compact mode only
   const renderDictionaryModal = () => (

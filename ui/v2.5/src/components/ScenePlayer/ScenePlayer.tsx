@@ -56,7 +56,7 @@ airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void) {
+function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void, enhancedSubtitleNavigation?: any) {
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
@@ -103,6 +103,57 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
     player.abLoopPlugin.setOptions(opts);
   }
 
+  // Handle enhanced subtitle navigation
+  if (enhancedSubtitleNavigation) {
+    // Enter word navigation mode with left/right arrows when enhanced subtitles are active
+    if (!enhancedSubtitleNavigation.isInWordNavigationMode && (event.which === 37 || event.which === 39)) {
+      event.preventDefault();
+      event.stopPropagation();
+      if (enhancedSubtitleNavigation.enterWordNavigationMode) {
+        enhancedSubtitleNavigation.enterWordNavigationMode();
+      }
+      return;
+    }
+    
+    // Handle word navigation mode
+    if (enhancedSubtitleNavigation.isInWordNavigationMode) {
+      switch (event.which) {
+        case 37: // left arrow - navigate to previous word
+          event.preventDefault();
+          event.stopPropagation();
+          if (enhancedSubtitleNavigation.navigateToPreviousWord) {
+            enhancedSubtitleNavigation.navigateToPreviousWord();
+          }
+          return;
+        case 39: // right arrow - navigate to next word
+          event.preventDefault();
+          event.stopPropagation();
+          if (enhancedSubtitleNavigation.navigateToNextWord) {
+            enhancedSubtitleNavigation.navigateToNextWord();
+          }
+          return;
+        case 27: // ESC - exit word navigation mode
+          event.preventDefault();
+          event.stopPropagation();
+          if (enhancedSubtitleNavigation.exitWordNavigationMode) {
+            enhancedSubtitleNavigation.exitWordNavigationMode();
+          }
+          return;
+        case 13: // Enter/OK - lookup selected word
+          event.preventDefault();
+          event.stopPropagation();
+          if (enhancedSubtitleNavigation.handleWordSelection) {
+            enhancedSubtitleNavigation.handleWordSelection();
+          }
+          return;
+        case 38: // up arrow - handle in code below
+        case 40: // down arrow - handle in code below
+          // Will be handled below
+          break;
+      }
+    }
+  }
+
   let seekFactor = 10;
   if (event.shiftKey) {
     seekFactor = 5;
@@ -146,7 +197,30 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
 
   switch (event.which) {
     case 32: // space
+      if (enhancedSubtitleNavigation?.isInWordNavigationMode) {
+        // In word navigation mode, space key should lookup selected word
+        event.preventDefault();
+        event.stopPropagation();
+        if (enhancedSubtitleNavigation.handleWordSelection) {
+          enhancedSubtitleNavigation.handleWordSelection();
+        }
+        break;
+      }
+      // Otherwise, normal play/pause
+      if (player.paused()) player.play();
+      else player.pause();
+      break;
     case 13: // enter
+      if (enhancedSubtitleNavigation?.isInWordNavigationMode) {
+        // In word navigation mode, enter should lookup selected word
+        event.preventDefault();
+        event.stopPropagation();
+        if (enhancedSubtitleNavigation.handleWordSelection) {
+          enhancedSubtitleNavigation.handleWordSelection();
+        }
+        break;
+      }
+      // Otherwise, normal play/pause
       if (player.paused()) player.play();
       else player.pause();
       break;
@@ -161,9 +235,83 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
       toggleABLooping();
       break;
     case 38: // up arrow
+      if (enhancedSubtitleNavigation) {
+        // Handle double-click detection for up arrow
+        const now = Date.now();
+        const lastPress = (player as any)._lastUpArrowPress || 0;
+        const timeSinceLastPress = now - lastPress;
+        
+        if (timeSinceLastPress < 500 && timeSinceLastPress > 0) {
+          // Double up arrow - go to previous subtitle
+          event.preventDefault();
+          event.stopPropagation();
+          const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
+          if (currentCueIndex > 0) {
+            // Go to previous subtitle
+            const player = enhancedSubtitleNavigation.onGetPlayer?.();
+            if (player && enhancedSubtitleNavigation.parsedSubtitles) {
+              const prevCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex - 1];
+              if (prevCue) {
+                player.currentTime(prevCue.startTime);
+              }
+            }
+          }
+          (player as any)._lastUpArrowPress = 0;
+        } else {
+          // Single up arrow - repeat current subtitle
+          (player as any)._lastUpArrowPress = now;
+          setTimeout(() => {
+            if (Date.now() - ((player as any)._lastUpArrowPress) < 500) {
+              // This is a single press, not a double press
+              event.preventDefault();
+              event.stopPropagation();
+              const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
+              if (currentCueIndex >= 0 && enhancedSubtitleNavigation.parsedSubtitles) {
+                const currentCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex];
+                if (currentCue) {
+                  player.currentTime(currentCue.startTime);
+                }
+              }
+              (player as any)._lastUpArrowPress = 0;
+            }
+          }, 500);
+        }
+        return;
+      }
       player.volume(player.volume() + 0.1);
       break;
     case 40: // down arrow
+      if (enhancedSubtitleNavigation) {
+        // Down arrow: single press to show control bar temporarily
+        // Double press to go to next subtitle
+        event.preventDefault();
+        event.stopPropagation();
+        const now = Date.now();
+        const lastPress = (player as any)._lastDownArrowPress || 0;
+        const timeSinceLastPress = now - lastPress;
+        
+        if (timeSinceLastPress < 500 && timeSinceLastPress > 0) {
+          // Double down arrow - go to next subtitle
+          const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
+          if (currentCueIndex >= 0 && enhancedSubtitleNavigation.parsedSubtitles) {
+            const player = enhancedSubtitleNavigation.onGetPlayer?.();
+            if (player && currentCueIndex < enhancedSubtitleNavigation.parsedSubtitles.cues.length - 1) {
+              const nextCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex + 1];
+              if (nextCue) {
+                player.currentTime(nextCue.startTime);
+              }
+            }
+          }
+          (player as any)._lastDownArrowPress = 0;
+        } else {
+          // Single down arrow - show control bar temporarily
+          if (showControlBar) {
+            showControlBar();
+          }
+          (player as any)._lastDownArrowPress = now;
+        }
+        return;
+      }
       player.volume(player.volume() - 0.1);
       break;
     case 48: // 0
@@ -305,6 +453,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const unlockTimerRef = useRef<number | null>(null);
     const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
     const temporarilyUnlockControlBarRef = useRef<(() => void) | null>(null);
+    const enhancedSubtitleNavigationRef = useRef<any>(null);
     const minimumPlayPercent = uiConfig?.minimumPlayPercent ?? 0;
     const trackActivity = uiConfig?.trackActivity ?? true;
     const vrTag = uiConfig?.vrTag ?? undefined;
@@ -313,6 +462,11 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     useEffect(() => {
       showEnhancedSubtitlesRef.current = showEnhancedSubtitles;
     }, [showEnhancedSubtitles]);
+    
+    // Callback to receive navigation ref from EnhancedSubtitleOverlay
+    const handleNavigationRef = useCallback((navRef: any) => {
+      enhancedSubtitleNavigationRef.current = navRef;
+    }, []);
 
     useScript(
       "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1",
@@ -426,7 +580,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                 if (temporarilyUnlockControlBarRef.current) {
                   temporarilyUnlockControlBarRef.current();
                 }
-              }
+              },
+              enhancedSubtitleNavigationRef.current
             );
           },
         },
@@ -1355,6 +1510,15 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             onSubtitlesLoaded={handleSubtitlesLoaded}
             onCurrentCueChange={handleCurrentCueChange}
             onAPDoubleClick={temporarilyUnlockControlBar}
+            onPlay={() => getPlayer()?.play()}
+            onSeekToCue={(cueIndex) => {
+              const player = getPlayer();
+              if (player && subtitleCues[cueIndex]) {
+                player.currentTime(subtitleCues[cueIndex].startTime);
+              }
+            }}
+            onGetPlayer={getPlayer}
+            onNavigationRef={handleNavigationRef}
           />
         )}
       </div>

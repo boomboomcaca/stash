@@ -146,6 +146,16 @@
       color: white;
       box-shadow: 0 2px 6px rgba(74, 144, 226, 0.4);
     }
+    
+    &.navigation-selected {
+      background-color: rgba(59, 130, 246, 0.9);
+      color: white;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.6), 
+                  0 2px 8px rgba(0, 0, 0, 0.4);
+      transform: translateY(-1px);
+      border: 1px solid rgba(96, 165, 250, 1);
+      animation: navigationPulse 1.5s ease-in-out infinite;
+    }
 
     &.favorited {
       color: #ff6b35; // 收藏的单词显示为亮橙色，更清晰易读
@@ -521,6 +531,18 @@ body.subtitle-dragging {
   50% {
     opacity: 1;
     box-shadow: 0 0 16px rgba(239, 68, 68, 0.8);
+  }
+}
+
+// Animation for navigation selected word
+@keyframes navigationPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6), 
+                0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.8), 
+                0 2px 8px rgba(0, 0, 0, 0.4);
   }
 }
 
