@@ -236,45 +236,65 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
       break;
     case 38: // up arrow
       if (enhancedSubtitleNavigation) {
-        // Handle double-click detection for up arrow
+        // Handle single/double press for up arrow
+        event.preventDefault();
+        event.stopPropagation();
         const now = Date.now();
         const lastPress = (player as any)._lastUpArrowPress || 0;
         const timeSinceLastPress = now - lastPress;
         
-        if (timeSinceLastPress < 500 && timeSinceLastPress > 0) {
+        // Clear any pending single-click timer
+        if ((player as any)._upArrowTimer) {
+          clearTimeout((player as any)._upArrowTimer);
+          (player as any)._upArrowTimer = null;
+        }
+        
+        if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
           // Double up arrow - go to previous subtitle
-          event.preventDefault();
-          event.stopPropagation();
           const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
           if (currentCueIndex > 0) {
-            // Go to previous subtitle
             const player = enhancedSubtitleNavigation.onGetPlayer?.();
             if (player && enhancedSubtitleNavigation.parsedSubtitles) {
               const prevCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex - 1];
               if (prevCue) {
                 player.currentTime(prevCue.startTime);
+                // Resume playback if paused
+                if (player.paused()) {
+                  player.play();
+                }
               }
             }
           }
           (player as any)._lastUpArrowPress = 0;
         } else {
-          // Single up arrow - repeat current subtitle
+          // Single up arrow - repeat current subtitle (will trigger after timeout)
           (player as any)._lastUpArrowPress = now;
-          setTimeout(() => {
-            if (Date.now() - ((player as any)._lastUpArrowPress) < 500) {
-              // This is a single press, not a double press
-              event.preventDefault();
-              event.stopPropagation();
-              const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-              if (currentCueIndex >= 0 && enhancedSubtitleNavigation.parsedSubtitles) {
+          
+          (player as any)._upArrowTimer = setTimeout(() => {
+            // Only execute if this is still a single press (not a double press)
+            const currentTime = Date.now();
+            const timeSincePress = currentTime - ((player as any)._lastUpArrowPress);
+            
+            if (timeSincePress >= 400 && (player as any)._lastUpArrowPress !== 0) {
+              // This was a single press, not a double press
+              const currentCueIndex = enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
+              if (currentCueIndex >= 0 && enhancedSubtitleNavigation?.parsedSubtitles) {
                 const currentCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex];
                 if (currentCue) {
-                  player.currentTime(currentCue.startTime);
+                  const player = enhancedSubtitleNavigation.onGetPlayer?.();
+                  if (player) {
+                    player.currentTime(currentCue.startTime);
+                    // Resume playback if paused
+                    if (player.paused()) {
+                      player.play();
+                    }
+                  }
                 }
               }
-              (player as any)._lastUpArrowPress = 0;
             }
-          }, 500);
+            (player as any)._lastUpArrowPress = 0;
+            (player as any)._upArrowTimer = null;
+          }, 400);
         }
         return;
       }
@@ -282,15 +302,20 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
       break;
     case 40: // down arrow
       if (enhancedSubtitleNavigation) {
-        // Down arrow: single press to show control bar temporarily
-        // Double press to go to next subtitle
+        // Down arrow: double press to go to next subtitle
         event.preventDefault();
         event.stopPropagation();
         const now = Date.now();
         const lastPress = (player as any)._lastDownArrowPress || 0;
         const timeSinceLastPress = now - lastPress;
         
-        if (timeSinceLastPress < 500 && timeSinceLastPress > 0) {
+        // Clear any pending single-click timer
+        if ((player as any)._downArrowTimer) {
+          clearTimeout((player as any)._downArrowTimer);
+          (player as any)._downArrowTimer = null;
+        }
+        
+        if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
           // Double down arrow - go to next subtitle
           const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
           if (currentCueIndex >= 0 && enhancedSubtitleNavigation.parsedSubtitles) {
@@ -299,15 +324,16 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
               const nextCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex + 1];
               if (nextCue) {
                 player.currentTime(nextCue.startTime);
+                // Resume playback if paused
+                if (player.paused()) {
+                  player.play();
+                }
               }
             }
           }
           (player as any)._lastDownArrowPress = 0;
         } else {
-          // Single down arrow - show control bar temporarily
-          if (showControlBar) {
-            showControlBar();
-          }
+          // Single down arrow - do nothing, just update last press time
           (player as any)._lastDownArrowPress = now;
         }
         return;
