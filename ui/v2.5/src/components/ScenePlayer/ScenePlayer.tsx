@@ -56,7 +56,7 @@ airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void, enhancedSubtitleNavigation?: any) {
+function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void, enhancedSubtitleNavigation?: any, isControlBarVisible?: () => boolean) {
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
@@ -103,9 +103,13 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
     player.abLoopPlugin.setOptions(opts);
   }
 
+  // Check if control bar is visible
+  const controlBarVisible = isControlBarVisible ? isControlBarVisible() : false;
+  
   // Handle enhanced subtitle navigation
-  if (enhancedSubtitleNavigation) {
+  if (enhancedSubtitleNavigation && !controlBarVisible) {
     // Enter word navigation mode with left/right arrows when enhanced subtitles are active
+    // and control bar is not visible
     if (!enhancedSubtitleNavigation.isInWordNavigationMode && (event.which === 37 || event.which === 39)) {
       event.preventDefault();
       event.stopPropagation();
@@ -154,6 +158,7 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
     }
   }
 
+  // Handle normal seek when control bar is visible or enhanced subtitles not active
   let seekFactor = 10;
   if (event.shiftKey) {
     seekFactor = 5;
@@ -302,7 +307,7 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
       break;
     case 40: // down arrow
       if (enhancedSubtitleNavigation) {
-        // Down arrow: double press to go to next subtitle
+        // Down arrow: single press to show control bar, double press to go to next subtitle
         event.preventDefault();
         event.stopPropagation();
         const now = Date.now();
@@ -333,8 +338,23 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
           }
           (player as any)._lastDownArrowPress = 0;
         } else {
-          // Single down arrow - do nothing, just update last press time
+          // Single down arrow - show control bar
           (player as any)._lastDownArrowPress = now;
+          
+          (player as any)._downArrowTimer = setTimeout(() => {
+            // Only execute if this is still a single press (not a double press)
+            const currentTime = Date.now();
+            const timeSincePress = currentTime - ((player as any)._lastDownArrowPress);
+            
+            if (timeSincePress >= 400 && (player as any)._lastDownArrowPress !== 0) {
+              // This was a single press, not a double press - show control bar
+              if (showControlBar) {
+                showControlBar();
+              }
+            }
+            (player as any)._lastDownArrowPress = 0;
+            (player as any)._downArrowTimer = null;
+          }, 400);
         }
         return;
       }
@@ -607,7 +627,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                   temporarilyUnlockControlBarRef.current();
                 }
               },
-              enhancedSubtitleNavigationRef.current
+              enhancedSubtitleNavigationRef.current,
+              () => controlBarVisibleRef.current
             );
           },
         },
@@ -847,6 +868,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     }, [getPlayer, showEnhancedSubtitles]);
 
     // 临时解锁控制栏的函数（由AP图标双击调用）
+    const controlBarVisibleRef = useRef(false);
+    
     const temporarilyUnlockControlBar = useCallback(() => {
       const player = getPlayer();
       if (!player) {
@@ -859,6 +882,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         if (unlockTimerRef.current) {
           clearTimeout(unlockTimerRef.current);
         }
+        
+        // 设置控制栏可见标记
+        controlBarVisibleRef.current = true;
         
         // 如果增强字幕没有开启，完全依赖Video.js的正常用户活跃机制
         if (!showEnhancedSubtitlesRef.current) {
@@ -881,6 +907,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         
         // 2秒后自动隐藏并重新锁定
         unlockTimerRef.current = window.setTimeout(() => {
+          // 清除控制栏可见标记
+          controlBarVisibleRef.current = false;
+          
           // 只有在增强字幕仍然开启时才重新锁定
           if (!showEnhancedSubtitlesRef.current || !playerEl) {
             unlockTimerRef.current = null;
