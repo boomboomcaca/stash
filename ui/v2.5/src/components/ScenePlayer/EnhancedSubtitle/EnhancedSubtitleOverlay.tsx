@@ -1003,7 +1003,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       >
         {/* Auto-pause toggle button with drag support - 增强字幕开启时一直显示 */}
         <div 
-          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${(isAutoPaused || (autoPauseEnabled && isPlayerPaused)) ? 'auto-pause-paused' : ''}`}
+          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${isAutoPaused ? 'auto-pause-paused' : ''}`}
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
