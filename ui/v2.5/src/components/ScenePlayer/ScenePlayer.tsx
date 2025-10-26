@@ -56,7 +56,7 @@ airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void, enhancedSubtitleNavigation?: any, isControlBarVisible?: () => boolean) {
+function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void, enhancedSubtitleNavigation?: any, isControlBarVisible?: () => boolean, hideControlBar?: () => void) {
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
@@ -105,6 +105,27 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
 
   // Check if control bar is visible
   const controlBarVisible = isControlBarVisible ? isControlBarVisible() : false;
+  
+  // Handle ESC key to hide control bar when it's visible
+  if (event.which === 27) {
+    console.log('ESC key pressed:', {
+      controlBarVisible,
+      hideControlBar: !!hideControlBar,
+      isInWordNavigationMode: enhancedSubtitleNavigation?.isInWordNavigationMode,
+      enhancedSubtitleNavigation: !!enhancedSubtitleNavigation
+    });
+    
+    if (controlBarVisible && hideControlBar && !enhancedSubtitleNavigation?.isInWordNavigationMode) {
+      // ESC key pressed when control bar is visible - hide it
+      console.log('Hiding control bar via ESC');
+      event.preventDefault();
+      event.stopPropagation();
+      if (hideControlBar) {
+        hideControlBar();
+      }
+      return;
+    }
+  }
   
   // Handle enhanced subtitle navigation
   if (enhancedSubtitleNavigation && !controlBarVisible) {
@@ -499,6 +520,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const unlockTimerRef = useRef<number | null>(null);
     const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
     const temporarilyUnlockControlBarRef = useRef<(() => void) | null>(null);
+    const hideControlBarRef = useRef<(() => void) | null>(null);
     const enhancedSubtitleNavigationRef = useRef<any>(null);
     const minimumPlayPercent = uiConfig?.minimumPlayPercent ?? 0;
     const trackActivity = uiConfig?.trackActivity ?? true;
@@ -628,7 +650,13 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                 }
               },
               enhancedSubtitleNavigationRef.current,
-              () => controlBarVisibleRef.current
+              () => controlBarVisibleRef.current,
+              () => {
+                // 使用 ref 来调用最新的 hideControlBar 函数
+                if (hideControlBarRef.current) {
+                  hideControlBarRef.current();
+                }
+              }
             );
           },
         },
@@ -928,10 +956,43 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
     }, [getPlayer]);
 
+    // 隐藏控制栏的函数
+    const hideControlBar = useCallback(() => {
+      const player = getPlayer();
+      if (!player) {
+        return;
+      }
+
+      const playerEl = player.el();
+      if (playerEl) {
+        // 清除之前的计时器（如果有）
+        if (unlockTimerRef.current) {
+          clearTimeout(unlockTimerRef.current);
+          unlockTimerRef.current = null;
+        }
+        
+        // 清除控制栏可见标记
+        controlBarVisibleRef.current = false;
+        
+        // 先强制设置为不活跃
+        player.userActive(false);
+        
+        // 如果增强字幕开启，重新添加锁定类并移除解锁类
+        if (showEnhancedSubtitlesRef.current) {
+          playerEl.classList.remove('vjs-controls-unlocked-once');
+          playerEl.classList.add('vjs-controls-locked-hidden');
+        }
+      }
+    }, [getPlayer]);
+
     // 保持 ref 与函数同步，确保 hotkeys 始终调用最新的函数
     useEffect(() => {
       temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
     }, [temporarilyUnlockControlBar]);
+    
+    useEffect(() => {
+      hideControlBarRef.current = hideControlBar;
+    }, [hideControlBar]);
 
     // 同步增强字幕状态到移动触摸控件
     useEffect(() => {
