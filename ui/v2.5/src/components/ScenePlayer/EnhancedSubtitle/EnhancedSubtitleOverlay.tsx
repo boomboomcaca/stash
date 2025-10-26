@@ -64,6 +64,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [isFavorite, setIsFavorite] = useState(false);
   
   const subtitleRef = useRef<HTMLDivElement>(null);
+  const subtitleCacheRef = useRef<Map<string, SubtitleCue[]>>(new Map()); // 字幕缓存
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false, initialX: 0, initialY: 0 });
   const lastCueRef = useRef<SubtitleCue | null>(null);
   const autoPauseTriggeredRef = useRef(false);
@@ -428,8 +429,20 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     const abortController = new AbortController();
     let cancelled = false;
 
+    // ✅ 添加防抖机制，避免频繁重新加载
     const loadSubtitles = async () => {
       try {
+        // ✅ 检查缓存
+        const cachedCues = subtitleCacheRef.current.get(subtitleTrack);
+        if (cachedCues) {
+          if (cancelled) return;
+          setParsedSubtitles({ cues: cachedCues });
+          if (onSubtitlesLoaded) {
+            onSubtitlesLoaded(cachedCues);
+          }
+          return;
+        }
+
         const response = await fetch(subtitleTrack, {
           signal: abortController.signal
         });
@@ -442,6 +455,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           if (cancelled) return; // 防止状态更新
           
           const cues = parseVTT(content);
+          
+          // ✅ 缓存字幕数据
+          subtitleCacheRef.current.set(subtitleTrack, cues);
+          
           setParsedSubtitles({ cues });
           // 通知父组件字幕已加载
           if (onSubtitlesLoaded) {
@@ -460,11 +477,17 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       }
     };
 
-    loadSubtitles();
+    // ✅ 添加小延迟，避免频繁重新加载
+    const timeoutId = setTimeout(() => {
+      if (!cancelled) {
+        loadSubtitles();
+      }
+    }, 100);
 
-    // ✅ 清理函数：取消请求
+    // ✅ 清理函数：取消请求和超时
     return () => {
       cancelled = true;
+      clearTimeout(timeoutId);
       abortController.abort();
     };
   }, [subtitleTrack, parseVTT, onSubtitlesLoaded]);

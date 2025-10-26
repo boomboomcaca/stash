@@ -1056,7 +1056,10 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     }, [
       getPlayer,
       file,
-      scene,
+      scene.id,
+      scene.captions,
+      scene.paths.caption,
+      scene.resume_time,
       interactiveClient,
       autoplay,
       interfaceConfig?.autostartVideo,
@@ -1116,6 +1119,10 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         markers.addRangeMarkers(rangeMarkers);
       });
     }, [getPlayer, scene, uiConfig]);
+
+    // ✅ 将 useCallback 移到组件顶层
+    const handleSubtitlesLoaded = useCallback((cues) => setSubtitleCues(cues), []);
+    const handleCurrentCueChange = useCallback((index) => setCurrentSubtitleIndex(index), []);
 
     useEffect(() => {
       const player = getPlayer();
@@ -1345,8 +1352,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             onPausePlayer={() => getPlayer()?.pause()}
             getPlayerPaused={() => getPlayer()?.paused() ?? true}
             resetFontSizeTrigger={resetFontSizeTrigger}
-            onSubtitlesLoaded={(cues) => setSubtitleCues(cues)}
-            onCurrentCueChange={(index) => setCurrentSubtitleIndex(index)}
+            onSubtitlesLoaded={handleSubtitlesLoaded}
+            onCurrentCueChange={handleCurrentCueChange}
             onAPDoubleClick={temporarilyUnlockControlBar}
           />
         )}
