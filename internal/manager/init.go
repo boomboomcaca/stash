@@ -109,6 +109,12 @@ func Initialize(cfg *config.Config, l *log.Logger) (*Manager, error) {
 		scanSubs: &subscriptionManager{},
 	}
 
+	// Initialize Memory Manager for memory optimization
+	memManager := utils.NewMemoryManager(200) // 200MB limit
+	memManager.Start()
+	mgr.MemoryManager = memManager
+	logger.Info("Memory manager initialized with 200MB limit")
+
 	// Initialize LibraryWatcher
 	libraryWatcher, err := NewLibraryWatcher(mgr)
 	if err != nil {

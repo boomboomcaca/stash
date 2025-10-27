@@ -27,6 +27,7 @@ import (
 	"github.com/stashapp/stash/pkg/scraper"
 	"github.com/stashapp/stash/pkg/session"
 	"github.com/stashapp/stash/pkg/sqlite"
+	"github.com/stashapp/stash/pkg/utils"
 
 	// register custom migrations
 	_ "github.com/stashapp/stash/pkg/sqlite/migrations"
@@ -70,6 +71,7 @@ type Manager struct {
 
 	scanSubs      *subscriptionManager
 	LibraryWatcher *LibraryWatcher
+	MemoryManager *utils.MemoryManager
 }
 
 var instance *Manager
@@ -437,6 +439,12 @@ func (s *Manager) Shutdown() {
 		if err := s.LibraryWatcher.Stop(); err != nil {
 			logger.Errorf("Error stopping library watcher: %s", err)
 		}
+	}
+
+	// Stop memory manager
+	if s.MemoryManager != nil {
+		s.MemoryManager.Stop()
+		logger.Info("Memory manager stopped")
 	}
 
 	if s.StreamManager != nil {
