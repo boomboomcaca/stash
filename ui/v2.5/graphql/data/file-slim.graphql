@@ -1,0 +1,13 @@
+fragment SlimVideoFileData on VideoFile {
+  id
+  width
+  height
+  duration
+}
+
+fragment SlimImageFileData on ImageFile {
+  id
+  width
+  height
+}
+

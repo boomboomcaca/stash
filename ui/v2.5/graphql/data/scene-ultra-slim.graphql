@@ -1,4 +1,4 @@
-fragment SlimSceneData on Scene {
+fragment UltraSlimSceneData on Scene {
   id
   title
   code
@@ -15,24 +15,18 @@ fragment SlimSceneData on Scene {
   play_duration
   play_count
 
+  # 简化的文件数据 - 只传输列表需要的字段
   files {
     id
     path
     size
     mod_time
     duration
-    video_codec
-    audio_codec
     width
     height
-    frame_rate
-    bit_rate
-    fingerprints {
-      type
-      value
-    }
   }
 
+  # 只传输路径
   paths {
     screenshot
     preview
@@ -45,6 +39,7 @@ fragment SlimSceneData on Scene {
     caption
   }
 
+  # 简化的场景标记 - 只传输必要字段
   scene_markers {
     id
     title
@@ -55,17 +50,19 @@ fragment SlimSceneData on Scene {
     }
   }
 
+  # 简化的画廊 - 只传输ID和标题
   galleries {
     id
     title
   }
 
+  # 简化的工作室 - 只传输基本字段
   studio {
     id
     name
-    image_path
   }
 
+  # 简化的组 - 只传输必要字段
   groups {
     group {
       id
@@ -75,11 +72,13 @@ fragment SlimSceneData on Scene {
     scene_index
   }
 
+  # 简化的标签 - 只传输ID和名称
   tags {
     id
     name
   }
 
+  # 简化的表演者 - 只传输基本字段
   performers {
     id
     name
@@ -92,3 +91,4 @@ fragment SlimSceneData on Scene {
     updated_at
   }
 }
+
