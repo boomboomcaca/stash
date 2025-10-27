@@ -57,6 +57,41 @@ chromecast(videojs);
 abLoopPlugin(window, videojs);
 
 function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void, enhancedSubtitleNavigation?: any, isControlBarVisible?: () => boolean, hideControlBar?: () => void) {
+  // 辅助函数：查找最接近当前时间的字幕索引
+  function findNearestCueIndex(
+    currentTime: number,
+    cues: Array<{ startTime: number; endTime: number; text: string }>,
+    currentIndex: number
+  ): number {
+    // 如果当前索引有效，直接返回
+    if (currentIndex >= 0 && currentIndex < cues.length) {
+      return currentIndex;
+    }
+    
+    // 如果没有字幕，返回 -1
+    if (!cues || cues.length === 0) {
+      return -1;
+    }
+    
+    // 查找最接近的字幕
+    // 优先查找已经开始的字幕（即使已过结束时间）
+    for (let i = 0; i < cues.length; i++) {
+      if (currentTime >= cues[i].startTime && currentTime <= cues[i].endTime) {
+        return i;
+      }
+    }
+    
+    // 如果没有正在进行的字幕，查找下一个即将开始的字幕
+    for (let i = 0; i < cues.length; i++) {
+      if (currentTime < cues[i].startTime) {
+        return i;
+      }
+    }
+    
+    // 如果已经过了所有字幕，返回最后一个字幕的索引
+    return cues.length - 1;
+  }
+
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
@@ -278,15 +313,21 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
         if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
           // Double up arrow - go to previous subtitle
           const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-          if (currentCueIndex > 0) {
-            const player = enhancedSubtitleNavigation.onGetPlayer?.();
-            if (player && enhancedSubtitleNavigation.parsedSubtitles) {
-              const prevCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex - 1];
-              if (prevCue) {
-                player.currentTime(prevCue.startTime);
-                // Resume playback if paused
-                if (player.paused()) {
-                  player.play();
+          const currentTime = enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
+          const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
+          
+          if (cues && cues.length > 0) {
+            const nearestIndex = findNearestCueIndex(currentTime, cues, currentCueIndex);
+            if (nearestIndex > 0) {
+              const player = enhancedSubtitleNavigation.onGetPlayer?.();
+              if (player) {
+                const prevCue = cues[nearestIndex - 1];
+                if (prevCue) {
+                  player.currentTime(prevCue.startTime);
+                  // Resume playback if paused
+                  if (player.paused()) {
+                    player.play();
+                  }
                 }
               }
             }
@@ -304,12 +345,16 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
             if (timeSincePress >= 400 && (player as any)._lastUpArrowPress !== 0) {
               // This was a single press, not a double press
               const currentCueIndex = enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
-              if (currentCueIndex >= 0 && enhancedSubtitleNavigation?.parsedSubtitles) {
-                const currentCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex];
-                if (currentCue) {
+              const currentTime = enhancedSubtitleNavigation?.onGetPlayer?.().currentTime() ?? 0;
+              const cues = enhancedSubtitleNavigation?.parsedSubtitles?.cues;
+              
+              if (cues && cues.length > 0) {
+                const nearestIndex = findNearestCueIndex(currentTime, cues, currentCueIndex);
+                const targetCue = cues[nearestIndex];
+                if (targetCue) {
                   const player = enhancedSubtitleNavigation.onGetPlayer?.();
                   if (player) {
-                    player.currentTime(currentCue.startTime);
+                    player.currentTime(targetCue.startTime);
                     // Resume playback if paused
                     if (player.paused()) {
                       player.play();
@@ -344,15 +389,21 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
         if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
           // Double down arrow - go to next subtitle
           const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-          if (currentCueIndex >= 0 && enhancedSubtitleNavigation.parsedSubtitles) {
-            const player = enhancedSubtitleNavigation.onGetPlayer?.();
-            if (player && currentCueIndex < enhancedSubtitleNavigation.parsedSubtitles.cues.length - 1) {
-              const nextCue = enhancedSubtitleNavigation.parsedSubtitles.cues[currentCueIndex + 1];
-              if (nextCue) {
-                player.currentTime(nextCue.startTime);
-                // Resume playback if paused
-                if (player.paused()) {
-                  player.play();
+          const currentTime = enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
+          const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
+          
+          if (cues && cues.length > 0) {
+            const nearestIndex = findNearestCueIndex(currentTime, cues, currentCueIndex);
+            if (nearestIndex < cues.length - 1) {
+              const player = enhancedSubtitleNavigation.onGetPlayer?.();
+              if (player) {
+                const nextCue = cues[nearestIndex + 1];
+                if (nextCue) {
+                  player.currentTime(nextCue.startTime);
+                  // Resume playback if paused
+                  if (player.paused()) {
+                    player.play();
+                  }
                 }
               }
             }

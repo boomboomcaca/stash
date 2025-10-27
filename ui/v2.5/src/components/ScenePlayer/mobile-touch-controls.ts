@@ -90,6 +90,41 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly SPEED_RATES = [0.25, 0.5, 0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20]; // 支持所有Video.js倍速档位
   private readonly SPEED_STORAGE_KEY = 'stash-video-speed-rate'; // localStorage存储键
 
+  // 辅助函数：查找最接近当前时间的字幕索引
+  private findNearestCueIndex(
+    currentTime: number,
+    cues: Array<{ startTime: number; endTime: number; text: string }>,
+    currentIndex: number
+  ): number {
+    // 如果当前索引有效，直接返回
+    if (currentIndex >= 0 && currentIndex < cues.length) {
+      return currentIndex;
+    }
+    
+    // 如果没有字幕，返回 -1
+    if (!cues || cues.length === 0) {
+      return -1;
+    }
+    
+    // 查找最接近的字幕
+    // 优先查找已经开始的字幕（即使已过结束时间）
+    for (let i = 0; i < cues.length; i++) {
+      if (currentTime >= cues[i].startTime && currentTime <= cues[i].endTime) {
+        return i;
+      }
+    }
+    
+    // 如果没有正在进行的字幕，查找下一个即将开始的字幕
+    for (let i = 0; i < cues.length; i++) {
+      if (currentTime < cues[i].startTime) {
+        return i;
+      }
+    }
+    
+    // 如果已经过了所有字幕，返回最后一个字幕的索引
+    return cues.length - 1;
+  }
+
   // 加载保存的倍速设置
   private loadSavedSpeedRate(): number {
     try {
@@ -643,10 +678,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   private handleDoubleTap(x: number, y: number): void {
     // 如果增强字幕已启用，双击重播当前字幕
-    if (this.enhancedSubtitlesEnabled && this.getCurrentSubtitleIndex && this.subtitleCues.length > 0) {
-      const currentIndex = this.getCurrentSubtitleIndex();
-      if (currentIndex >= 0 && currentIndex < this.subtitleCues.length) {
-        const currentCue = this.subtitleCues[currentIndex];
+    if (this.enhancedSubtitlesEnabled && this.subtitleCues.length > 0) {
+      const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
+      const currentTime = this.player.currentTime() || 0;
+      const nearestIndex = this.findNearestCueIndex(currentTime, this.subtitleCues, currentIndex);
+      
+      if (nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
+        const currentCue = this.subtitleCues[nearestIndex];
         console.log("[MobileTouchControls] 双击重播当前字幕:", currentCue.text);
         this.player.currentTime(currentCue.startTime);
         if (this.player.paused()) {
@@ -674,7 +712,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   private handleTripleTap(x: number, y: number): void {
     // 三连击仅在增强字幕启用时生效
-    if (!this.enhancedSubtitlesEnabled || !this.getCurrentSubtitleIndex || this.subtitleCues.length === 0) {
+    if (!this.enhancedSubtitlesEnabled || this.subtitleCues.length === 0) {
       console.log("[MobileTouchControls] 三连击需要增强字幕启用");
       return;
     }
@@ -683,12 +721,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const videoWidth = playerEl?.offsetWidth || 0;
     const isLeftSide = x < videoWidth / 2;
     
-    const currentIndex = this.getCurrentSubtitleIndex();
+    const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
+    const currentTime = this.player.currentTime() || 0;
+    const nearestIndex = this.findNearestCueIndex(currentTime, this.subtitleCues, currentIndex);
     
     if (isLeftSide) {
       // 左侧三连击：播放上一个字幕
-      if (currentIndex > 0) {
-        const prevCue = this.subtitleCues[currentIndex - 1];
+      if (nearestIndex > 0) {
+        const prevCue = this.subtitleCues[nearestIndex - 1];
         console.log("[MobileTouchControls] 三连击左侧，播放上一个字幕:", prevCue.text);
         this.player.currentTime(prevCue.startTime);
         if (this.player.paused()) {
@@ -701,8 +741,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       }
     } else {
       // 右侧三连击：播放下一个字幕
-      if (currentIndex < this.subtitleCues.length - 1) {
-        const nextCue = this.subtitleCues[currentIndex + 1];
+      if (nearestIndex < this.subtitleCues.length - 1) {
+        const nextCue = this.subtitleCues[nearestIndex + 1];
         console.log("[MobileTouchControls] 三连击右侧，播放下一个字幕:", nextCue.text);
         this.player.currentTime(nextCue.startTime);
         if (this.player.paused()) {
