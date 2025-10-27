@@ -265,7 +265,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     
     // Auto-determine drag mode based on initial movement direction
     if (!dragStartRef.current.hasDeterminedMode) {
-      const threshold = 15; // Slightly higher threshold for touch
+      const threshold = 5; // Slightly higher threshold for touch
       const absX = Math.abs(deltaX);
       const absY = Math.abs(deltaY);
       
