@@ -1105,7 +1105,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         }
         style={{
           fontSize: `${fontSize * (isFullscreen ? 2.6 : 1.9)}rem`,
-          transition: isDragging ? 'none' : 'font-size 0.2s ease'
+          // transition: isDragging ? 'none' : 'font-size 0.2s ease' // 移除transition避免拖拽后AP图标位置变化
         }}
       >
         {/* Auto-pause toggle button with drag support - 增强字幕开启时一直显示 */}

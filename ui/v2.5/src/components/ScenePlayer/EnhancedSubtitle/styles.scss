@@ -8,13 +8,12 @@
   width: 90%; // 设置固定宽度，让字幕在两行内完整显示
   max-width: 90%;
   pointer-events: auto;
-  transition: transform 0.2s ease-out;
+  // transition: transform 0.2s ease-out; // 移除transition避免拖拽后位置跳回
   user-select: none; // Prevent text selection during drag
   text-align: center; // 让字幕文本框在容器内居中显示
   overflow: visible; // 确保 AP 图标不会被裁剪
   
   &.dragging {
-    transition: none; // Disable transition during drag
     cursor: grabbing;
     z-index: 1003; // Elevate during drag
   }
