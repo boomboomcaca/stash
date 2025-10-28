@@ -72,6 +72,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private subtitleCues: Array<{ startTime: number; endTime: number; text: string }> = [];
   private getCurrentSubtitleIndex: (() => number) | null = null;
   private showControlBar: (() => void) | null = null;
+  private isDraggingMode: boolean = false; // 标记是否正在拖动
+  private originalReportUserActivity: ((event?: Event) => any) | null = null; // 保存原始的 reportUserActivity
 
   private readonly LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
   private readonly DOUBLE_TAP_DURATION = 300; // 双击检测时间（毫秒）
@@ -625,6 +627,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大，则进入拖拽模式
       if (horizontalDistance > verticalDistance && verticalDistance < this.MAX_VERTICAL_DRAG) {
         this.state.isDragging = true;
+        this.isDraggingMode = true; // 标记正在拖动
         
         // 记录拖拽前的播放状态并暂停播放
         this.state.wasPlayingBeforeDrag = !this.player.paused();
@@ -638,8 +641,34 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
           this.state.longPressTimer = null;
         }
         
-        // 当拖动进度条时，如果增强字幕已开启，显示控制栏
-        if (this.enhancedSubtitlesEnabled && this.showControlBar) {
+        // 当拖动开始时，显示控制栏但不启动自动隐藏计时器
+        if (this.enhancedSubtitlesEnabled) {
+          // 如果增强字幕启用，临时解锁控制栏并显示
+          const playerEl = this.player.el();
+          if (playerEl) {
+            // 添加临时解锁类，允许控制栏显示
+            playerEl.classList.add('vjs-controls-unlocked-once');
+            playerEl.classList.remove('vjs-controls-locked-hidden');
+          }
+          
+          this.player.userActive(true);
+          
+          // 保存原始的 reportUserActivity 并临时修改它来阻止自动隐藏
+          if (!this.originalReportUserActivity) {
+            this.originalReportUserActivity = (this.player as any).reportUserActivity;
+          }
+          
+          const self = this;
+          (this.player as any).reportUserActivity = function(this: any, event?: Event) {
+            // 如果正在拖动，阻止触发用户活动（这样就不会重置自动隐藏计时器）
+            if (self.isDraggingMode) {
+              return;
+            }
+            // 否则调用原始的方法
+            return self.originalReportUserActivity?.call(this, event);
+          };
+        } else if (this.showControlBar) {
+          // 如果增强字幕未启用，使用默认行为
           this.showControlBar();
         }
         
@@ -816,6 +845,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 由于视频时间已经在拖拽过程中实时更新，这里不需要重复设置
     // 只需要恢复播放状态和重置视觉反馈
     
+    // 清除拖动模式标志
+    this.isDraggingMode = false;
+    
+    // 恢复原始的 reportUserActivity
+    if (this.originalReportUserActivity) {
+      (this.player as any).reportUserActivity = this.originalReportUserActivity;
+      this.originalReportUserActivity = null;
+    }
+    
     // 恢复原始播放状态
     if (this.state.wasPlayingBeforeDrag) {
       this.player.play()?.catch((error) => {
@@ -826,6 +864,26 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 重置视觉反馈
     this.resetVisualFeedback();
     
+    // 在拖动结束时，启动控制栏的自动隐藏计时器
+    // 这会触发用户活动，让Video.js启动自动隐藏计时器
+    if (this.enhancedSubtitlesEnabled && this.showControlBar) {
+      // 重新调用 showControlBar 来启动自动隐藏计时器（它会设置2秒后自动隐藏并重新锁定）
+      this.showControlBar();
+    } else if (this.enhancedSubtitlesEnabled) {
+      // 如果没有 showControlBar 回调，但我们修改了 reportUserActivity，需要重新锁定控制栏
+      const playerEl = this.player.el();
+      if (playerEl) {
+        // 2秒后重新锁定控制栏
+        setTimeout(() => {
+          if (playerEl && this.enhancedSubtitlesEnabled) {
+            playerEl.classList.remove('vjs-controls-unlocked-once');
+            playerEl.classList.add('vjs-controls-locked-hidden');
+            this.player.userActive(false);
+          }
+        }, 2000);
+      }
+    }
+    
     // 重置拖拽状态
     this.state.isDragging = false;
     this.state.dragCurrentProgress = 0;
@@ -835,14 +893,18 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private updateVisualFeedback(currentProgress: number, duration: number): void {
     try {
       // 更新视频的实际时间位置
-      this.player.currentTime(currentProgress);
+      // 注意：在拖动过程中，currentTime 的更新可能会触发 Video.js 的用户活动检测
+      // 但我们通过修改 reportUserActivity 来阻止这个行为
+      const videoElement = this.player.el().querySelector('video') as HTMLVideoElement;
+      if (videoElement) {
+        videoElement.currentTime = currentProgress;
+      }
       
-      // 简化的视频帧更新 - 避免重复的DOM操作
+      // 手动触发 timeupdate 事件，让进度条更新，但不触发用户活动（通过 reportUserActivity 拦截）
       try {
-        const videoElement = this.player.el().querySelector('video') as HTMLVideoElement;
         if (videoElement && videoElement.readyState >= 2) {
-          // 只触发timeupdate事件，让VideoJS自己处理UI更新
-          videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+          // 直接触发timeupdate事件，但由于我们修改了 reportUserActivity，它不会重置自动隐藏计时器
+          this.player.trigger('timeupdate');
         }
       } catch (frameError) {
         console.warn("[MobileTouchControls] 更新视频帧失败:", frameError);
