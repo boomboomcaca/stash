@@ -318,9 +318,9 @@ func (s *Server) Start() error {
 		}
 
 		httpsServer := &http.Server{
-			Addr:      httpsAddr,
-			Handler:   s.Handler,
-			TLSConfig: s.TLSConfig,
+			Addr:         httpsAddr,
+			Handler:      s.Handler,
+			TLSConfig:    s.TLSConfig,
 			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 		}
 
