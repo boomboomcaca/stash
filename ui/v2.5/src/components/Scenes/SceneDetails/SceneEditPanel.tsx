@@ -776,6 +776,16 @@ export const SceneEditPanel: React.FC<IProps> = ({
                 onImageChange={onCoverImageChange}
                 onImageURL={onImageLoad}
               />
+              <div className="mt-2">
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => formik.setFieldValue("cover_image", null)}
+                  disabled={!coverImagePreview}
+                >
+                  <FormattedMessage id="actions.clear_image" />
+                </Button>
+              </div>
             </Form.Group>
           </Col>
         </Row>

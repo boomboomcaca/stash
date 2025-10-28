@@ -269,6 +269,8 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
         input: {
           id: scene.id,
           ...input,
+          // Ensure cover_image is explicitly set to null if we want to clear it
+          cover_image: input.cover_image === null ? null : input.cover_image,
         },
       },
     });

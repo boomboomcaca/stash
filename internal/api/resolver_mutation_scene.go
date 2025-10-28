@@ -317,13 +317,11 @@ func (r *mutationResolver) sceneUpdate(ctx context.Context, input models.SceneUp
 }
 
 func (r *mutationResolver) sceneUpdateCoverImage(ctx context.Context, s *models.Scene, coverImageData []byte) error {
-	if len(coverImageData) > 0 {
-		qb := r.repository.Scene
+	qb := r.repository.Scene
 
-		// update cover table
-		if err := qb.UpdateCover(ctx, s.ID, coverImageData); err != nil {
-			return err
-		}
+	// update cover table (or delete if coverImageData is empty)
+	if err := qb.UpdateCover(ctx, s.ID, coverImageData); err != nil {
+		return err
 	}
 
 	return nil
