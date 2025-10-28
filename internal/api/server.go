@@ -51,7 +51,6 @@ const (
 type Server struct {
 	http.Server
 	displayAddress string
-	httpServer     *http.Server // For dual protocol support
 
 	manager *manager.Manager
 }
@@ -307,35 +306,34 @@ func (s *Server) Start() error {
 	logger.Infof("stash is running at " + s.displayAddress)
 
 	if s.TLSConfig != nil {
-		// Start HTTPS server in a goroutine
+		// Start HTTPS server on port 443 (standard HTTPS port)
+		httpsAddr := s.Addr
+		if strings.Contains(httpsAddr, ":") {
+			parts := strings.Split(httpsAddr, ":")
+			if len(parts) == 2 {
+				httpsAddr = parts[0] + ":443"
+			}
+		} else {
+			httpsAddr = httpsAddr + ":443"
+		}
+
+		httpsServer := &http.Server{
+			Addr:      httpsAddr,
+			Handler:   s.Handler,
+			TLSConfig: s.TLSConfig,
+			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+		}
+
 		go func() {
-			logger.Infof("Starting HTTPS server on " + s.Addr)
-			if err := s.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+			logger.Infof("Starting HTTPS server on " + httpsAddr)
+			if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 				logger.Errorf("HTTPS server error: %v", err)
 			}
 		}()
 
-		// Start HTTP server on a different port
-		httpAddr := s.Addr
-		if strings.Contains(httpAddr, ":") {
-			parts := strings.Split(httpAddr, ":")
-			if len(parts) == 2 {
-				port, err := strconv.Atoi(parts[1])
-				if err == nil {
-					httpAddr = parts[0] + ":" + strconv.Itoa(port+1)
-				}
-			}
-		} else {
-			httpAddr = httpAddr + ":8080" // Default HTTP port
-		}
-
-		s.httpServer = &http.Server{
-			Addr:    httpAddr,
-			Handler: s.Handler,
-		}
-
-		logger.Infof("Starting HTTP server on " + httpAddr)
-		return s.httpServer.ListenAndServe()
+		// Start HTTP server on the configured port (default 9999)
+		logger.Infof("Starting HTTP server on " + s.Addr)
+		return s.ListenAndServe()
 	} else {
 		return s.ListenAndServe()
 	}
@@ -345,15 +343,7 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown() {
 	err := s.Server.Shutdown(context.TODO())
 	if err != nil {
-		logger.Errorf("Error shutting down HTTPS server: %v", err)
-	}
-
-	// Also shutdown HTTP server if it exists
-	if s.httpServer != nil {
-		err = s.httpServer.Shutdown(context.TODO())
-		if err != nil {
-			logger.Errorf("Error shutting down HTTP server: %v", err)
-		}
+		logger.Errorf("Error shutting down HTTP server: %v", err)
 	}
 }
 
