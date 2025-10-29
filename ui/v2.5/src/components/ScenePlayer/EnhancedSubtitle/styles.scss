@@ -7,7 +7,7 @@
   z-index: 1002; // 高于视频控制栏的1001，确保横屏时字幕在控制栏上方
   width: 90%; // 设置固定宽度，让字幕在两行内完整显示
   max-width: 90%;
-  pointer-events: auto;
+  pointer-events: none; // 默认允许点击穿透，只在子元素上启用pointer-events
   // transition: transform 0.2s ease-out; // 移除transition避免拖拽后位置跳回
   user-select: none; // Prevent text selection during drag
   text-align: center; // 让字幕文本框在容器内居中显示
@@ -61,6 +61,7 @@
       
       // 添加相对定位，使 AP 图标可以相对于此定位
       position: relative;
+      pointer-events: auto; // 允许字幕文本区域点击和交互
       
       // 当没有字幕内容时，隐藏背景和padding，只显示AP图标
       &.no-content {
@@ -98,6 +99,7 @@
     // 支持自动换行，完整显示字幕内容
     white-space: pre-wrap;
     cursor: grab;
+    pointer-events: auto; // 允许字幕文本区域点击和交互
     
     // 让背景框自适应内容宽度
     display: inline-block;
@@ -129,6 +131,7 @@
     margin: 0 0.1px;
     border-radius: 5px;
     display: inline-block;
+    pointer-events: auto; // 确保单词可以点击
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.25);
