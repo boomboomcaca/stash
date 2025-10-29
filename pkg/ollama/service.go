@@ -36,7 +36,7 @@ func DefaultConfig() *OllamaConfig {
 
 请严格按照以下格式回答，不要添加额外的标题、分割线或格式：
 
-**美音音标：** [/音标/]
+**美音音标：** [音标]
 **词性：** [词性名称]
 **含义：** [在当前语境中的具体含义]
 **用法说明：** [语法用法和特点说明]
@@ -44,7 +44,7 @@ func DefaultConfig() *OllamaConfig {
 要求：
 1. 直接回答，不要前言或总结
 2. 每部分内容简洁明了
-3. 美音音标请用国际音标（IPA）格式，用斜杠包围
+3. 美音音标请用国际音标（IPA）格式
 4. 不要使用markdown标题符号（#）或分割线（---）`,
 	}
 }
@@ -65,10 +65,10 @@ type OllamaChatMessage struct {
 
 // OllamaChatRequest represents a chat request to Ollama API
 type OllamaChatRequest struct {
-	Model    string              `json:"model"`
-	Messages []OllamaChatMessage `json:"messages"`
-	Stream   bool                `json:"stream"`
-	Think    bool                `json:"think"`
+	Model    string                 `json:"model"`
+	Messages []OllamaChatMessage    `json:"messages"`
+	Stream   bool                   `json:"stream"`
+	Think    bool                   `json:"think"`
 	Options  map[string]interface{} `json:"options,omitempty"`
 }
 
@@ -122,10 +122,10 @@ type OllamaVersionResponse struct {
 
 // DictionaryEntry represents a dictionary entry for word explanation
 type DictionaryEntry struct {
-	Word         string                 `json:"word"`
-	Pronunciation string                `json:"pronunciation,omitempty"`
-	Definitions  []DictionaryDefinition `json:"definitions"`
-	Etymology    string                 `json:"etymology"`
+	Word          string                 `json:"word"`
+	Pronunciation string                 `json:"pronunciation,omitempty"`
+	Definitions   []DictionaryDefinition `json:"definitions"`
+	Etymology     string                 `json:"etymology"`
 }
 
 // DictionaryDefinition represents a word definition
@@ -171,7 +171,7 @@ func (s *Service) GetConfig() *OllamaConfig {
 func (s *Service) UpdateConfig(config *OllamaConfig) {
 	if config != nil {
 		s.config = config
-		
+
 		// Update HTTP client timeout
 		timeout := time.Duration(config.Timeout) * time.Millisecond
 		if timeout < time.Second {
@@ -342,16 +342,16 @@ func (s *Service) buildPrompt(word, context string) string {
 func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 	// Clean up the explanation text
 	cleanExplanation := s.cleanExplanationText(explanation)
-	
+
 	// Try to parse structured content
 	pronunciation, partOfSpeech, meaning, usageNote, _ := s.parseStructuredExplanation(cleanExplanation)
-	
+
 	// Build the complete meaning text
 	completeMeaning := meaning
 	if usageNote != "" {
 		completeMeaning += "\n\n" + usageNote
 	}
-	
+
 	entry := &DictionaryEntry{
 		Word: word,
 		Definitions: []DictionaryDefinition{
@@ -361,12 +361,12 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 			},
 		},
 	}
-	
+
 	// Add pronunciation to entry if available
 	if pronunciation != "" {
 		entry.Pronunciation = pronunciation
 	}
-	
+
 	return entry
 }
 
@@ -382,22 +382,22 @@ func (s *Service) cleanExplanationText(text string) string {
 		"根据你的要求",
 		"按照格式",
 	}
-	
+
 	for _, phrase := range unwantedPhrases {
 		text = strings.ReplaceAll(text, phrase, "")
 	}
-	
+
 	// Remove excessive separators and formatting
 	text = strings.ReplaceAll(text, "---", "")
 	text = strings.ReplaceAll(text, "===", "")
 	text = strings.ReplaceAll(text, "###", "")
 	text = strings.ReplaceAll(text, "####", "")
-	
+
 	// Remove multiple consecutive newlines
 	for strings.Contains(text, "\n\n\n") {
 		text = strings.ReplaceAll(text, "\n\n\n", "\n\n")
 	}
-	
+
 	// Remove leading/trailing whitespace and empty lines
 	lines := strings.Split(text, "\n")
 	var cleanLines []string
@@ -407,27 +407,28 @@ func (s *Service) cleanExplanationText(text string) string {
 			cleanLines = append(cleanLines, line)
 		}
 	}
-	
+
 	return strings.Join(cleanLines, "\n")
 }
 
 // parseStructuredExplanation attempts to parse structured response
 func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOfSpeech, meaning, usageNote string, examples []string) {
 	lines := strings.Split(text, "\n")
-	
+
 	currentSection := ""
 	var exampleLines []string
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		
+
 		// Parse structured sections
 		if strings.HasPrefix(line, "**美音音标：**") || strings.HasPrefix(line, "**美音音标:**") {
 			pronunciation = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**美音音标：**"), "**美音音标:**"))
 			pronunciation = strings.Trim(pronunciation, "[]")
+			pronunciation = strings.Trim(pronunciation, "/")
 			currentSection = "pronunciation"
 		} else if strings.HasPrefix(line, "**词性：**") || strings.HasPrefix(line, "**词性:**") {
 			partOfSpeech = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**词性：**"), "**词性:**"))
@@ -463,7 +464,7 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 				exampleLines = append(exampleLines, line)
 			}
 		}
-		
+
 		// Fallback: if no structured format detected, treat as meaning
 		if partOfSpeech == "" && meaning == "" && usageNote == "" && len(exampleLines) == 0 {
 			if !strings.HasPrefix(line, "**") && !strings.Contains(line, "###") && !strings.Contains(line, "---") {
@@ -475,23 +476,23 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 			}
 		}
 	}
-	
+
 	// Clean up extracted content
 	meaning = strings.TrimSpace(meaning)
 	usageNote = strings.TrimSpace(usageNote)
 	partOfSpeech = strings.TrimSpace(partOfSpeech)
-	
+
 	// Set default part of speech if not found
 	if partOfSpeech == "" {
 		partOfSpeech = "词汇"
 	}
-	
+
 	// Limit examples to avoid clutter
 	if len(exampleLines) > 3 {
 		examples = exampleLines[:3]
 	} else {
 		examples = exampleLines
 	}
-	
+
 	return pronunciation, partOfSpeech, meaning, usageNote, examples
 }

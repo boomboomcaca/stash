@@ -1061,7 +1061,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
                       onClick={() => selectedWord && handlePronunciation(selectedWord)}
                       title="点击播放发音"
                     >
-                      /{dictionary.pronunciation}/
+                      [{dictionary.pronunciation}]
                     </span>
                   )}
                 </div>
