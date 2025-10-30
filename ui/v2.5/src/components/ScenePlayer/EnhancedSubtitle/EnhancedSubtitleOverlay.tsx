@@ -61,6 +61,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState({ y: 0 });
   const [lastSavedPosition, setLastSavedPosition] = useState({ y: 0 });
+  const computeIsPortrait = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+  const [isPortrait, setIsPortrait] = useState<boolean>(computeIsPortrait());
   const [fontSize, setFontSize] = useState(1.0); // Scale factor for font size
   const [lastSavedFontSize, setLastSavedFontSize] = useState(1.0);
   const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
@@ -96,19 +98,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     minWordLength: 1
   }));
   
-  // Load saved position, font size, and auto-pause setting from localStorage
+  // Load font size and auto-pause setting from localStorage (position handled separately per orientation)
   useEffect(() => {
-    const savedPosition = localStorage.getItem('enhancedSubtitlePosition');
-    if (savedPosition) {
-      try {
-        const position = JSON.parse(savedPosition);
-        setDragPosition(position);
-        setLastSavedPosition(position);
-      } catch (error) {
-        console.error('Failed to parse saved subtitle position:', error);
-      }
-    }
-
     const savedFontSize = localStorage.getItem('enhancedSubtitleFontSize');
     if (savedFontSize) {
       try {
@@ -132,17 +123,72 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
   }, []);
 
-  // Save position and font size to localStorage when they change
+  // Orientation-aware load of saved position, with migration from legacy key
+  useEffect(() => {
+    try {
+      const legacy = localStorage.getItem('enhancedSubtitlePosition');
+      const portraitKey = 'enhancedSubtitlePosition_portrait';
+      const landscapeKey = 'enhancedSubtitlePosition_landscape';
+
+      // Migrate legacy single position to both keys if present and not yet migrated
+      if (legacy) {
+        if (!localStorage.getItem(portraitKey)) {
+          localStorage.setItem(portraitKey, legacy);
+        }
+        if (!localStorage.getItem(landscapeKey)) {
+          localStorage.setItem(landscapeKey, legacy);
+        }
+        // Do not remove legacy to keep backward compatibility, but we no longer read it
+      }
+
+      const key = isPortrait ? portraitKey : landscapeKey;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const pos = JSON.parse(saved);
+        setDragPosition(pos);
+        setLastSavedPosition(pos);
+      } else {
+        // No saved position for this orientation; reset to default
+        setDragPosition({ y: 0 });
+        setLastSavedPosition({ y: 0 });
+      }
+    } catch (error) {
+      console.error('Failed to load orientation-specific subtitle position:', error);
+    }
+  }, [isPortrait]);
+
+  // Update portrait state on resize/orientation change and swap position without cross-influence
+  useEffect(() => {
+    const onResize = () => {
+      const nextIsPortrait = computeIsPortrait();
+      setIsPortrait(prev => {
+        if (prev !== nextIsPortrait) {
+          // Switched orientation; position will be loaded by the isPortrait effect above
+          return nextIsPortrait;
+        }
+        return prev;
+      });
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+    };
+  }, []);
+
+  // Save position to localStorage when it changes (per orientation)
   useEffect(() => {
     const saveTimer = setTimeout(() => {
       if (dragPosition.y !== lastSavedPosition.y) {
-        localStorage.setItem('enhancedSubtitlePosition', JSON.stringify(dragPosition));
+        const key = isPortrait ? 'enhancedSubtitlePosition_portrait' : 'enhancedSubtitlePosition_landscape';
+        localStorage.setItem(key, JSON.stringify(dragPosition));
         setLastSavedPosition(dragPosition);
       }
     }, 500); // Debounce saves
 
     return () => clearTimeout(saveTimer);
-  }, [dragPosition, lastSavedPosition]);
+  }, [dragPosition, lastSavedPosition, isPortrait]);
 
   useEffect(() => {
     const saveTimer = setTimeout(() => {
