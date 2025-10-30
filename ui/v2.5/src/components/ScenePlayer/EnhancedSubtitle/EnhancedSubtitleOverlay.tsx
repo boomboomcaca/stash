@@ -233,8 +233,13 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       
       // Limit dragging to reasonable bounds
       const containerHeight = window.innerHeight;
+      const containerWidth = window.innerWidth;
+      // Detect portrait mode: height > width
+      const isPortrait = containerHeight > containerWidth;
+      
       const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
-      const maxY = containerHeight * 0.2;   // Can move down to 20% of screen height
+      // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
+      const maxY = isPortrait ? containerHeight * 0.8 : containerHeight * 0.2;
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
@@ -284,8 +289,13 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       const newY = dragStartRef.current.startY + deltaY;
       
       const containerHeight = window.innerHeight;
+      const containerWidth = window.innerWidth;
+      // Detect portrait mode: height > width
+      const isPortrait = containerHeight > containerWidth;
+      
       const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
-      const maxY = containerHeight * 0.2;   // Can move down to 20% of screen height
+      // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
+      const maxY = isPortrait ? containerHeight * 0.8 : containerHeight * 0.2;
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
