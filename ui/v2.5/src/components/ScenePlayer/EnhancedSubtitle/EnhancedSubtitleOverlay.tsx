@@ -795,26 +795,45 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const exitWordNavigationMode = useCallback(() => {
     setIsInWordNavigationMode(false);
     setSelectedWordIndex(-1);
-    // Resume playback
-    if (onPlay) {
+    // Resume playback only if not auto-paused
+    // If currently auto-paused, don't automatically resume
+    if (onPlay && !isAutoPaused) {
       onPlay();
     }
     console.log('🚪 Exited word navigation mode');
-  }, [onPlay]);
+  }, [onPlay, isAutoPaused]);
 
-  // Navigate to next word
+  // Navigate to next word (with circular navigation)
   const navigateToNextWord = useCallback(() => {
+    if (wordSegments.length === 0) return;
+    // If no word is selected yet, start from the first word
+    if (selectedWordIndex === -1) {
+      setSelectedWordIndex(0);
+      return;
+    }
     if (selectedWordIndex < wordSegments.length - 1) {
       setSelectedWordIndex(selectedWordIndex + 1);
+    } else {
+      // Loop to first word when reaching the end
+      setSelectedWordIndex(0);
     }
   }, [selectedWordIndex, wordSegments.length]);
 
-  // Navigate to previous word
+  // Navigate to previous word (with circular navigation)
   const navigateToPreviousWord = useCallback(() => {
+    if (wordSegments.length === 0) return;
+    // If no word is selected yet, start from the last word
+    if (selectedWordIndex === -1) {
+      setSelectedWordIndex(wordSegments.length - 1);
+      return;
+    }
     if (selectedWordIndex > 0) {
       setSelectedWordIndex(selectedWordIndex - 1);
+    } else {
+      // Loop to last word when reaching the beginning
+      setSelectedWordIndex(wordSegments.length - 1);
     }
-  }, [selectedWordIndex]);
+  }, [selectedWordIndex, wordSegments.length]);
 
   // Update word navigation when cue changes
   useEffect(() => {
