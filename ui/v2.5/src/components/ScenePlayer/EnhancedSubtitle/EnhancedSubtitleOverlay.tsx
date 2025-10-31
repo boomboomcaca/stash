@@ -72,6 +72,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [dragStartTime, setDragStartTime] = useState(0); // Track when drag started
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const [isFavorite, setIsFavorite] = useState(false);
+  const dictionaryTouchStartYRef = useRef<number | null>(null);
+  const dictionaryTouchTriggeredRef = useRef<boolean>(false);
   
   // Word navigation mode state
   const [selectedWordIndex, setSelectedWordIndex] = useState<number>(-1);
@@ -1064,6 +1066,32 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     return elements;
   }, [currentCue, wordSegments, handleWordClick, detectedLanguage, favoriteWords, isInWordNavigationMode, selectedWordIndex]);
 
+  const handleDictionaryTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!showDictionary) return;
+    if (e.touches.length !== 1) return;
+    dictionaryTouchStartYRef.current = e.touches[0].clientY;
+    dictionaryTouchTriggeredRef.current = false;
+  }, [showDictionary]);
+
+  const handleDictionaryTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!showDictionary) return;
+    if (e.touches.length !== 1) return;
+    if (dictionaryTouchStartYRef.current == null) return;
+    const currentY = e.touches[0].clientY;
+    const deltaY = currentY - dictionaryTouchStartYRef.current;
+    const THRESHOLD = 5; // Make swipe-down to close more sensitive
+    if (deltaY > THRESHOLD && !dictionaryTouchTriggeredRef.current) {
+      dictionaryTouchTriggeredRef.current = true;
+      setShowDictionary(false);
+      e.stopPropagation();
+    }
+  }, [showDictionary]);
+
+  const handleDictionaryTouchEnd = useCallback(() => {
+    dictionaryTouchStartYRef.current = null;
+    dictionaryTouchTriggeredRef.current = false;
+  }, []);
+
   // Dictionary modal content - compact mode only
   const renderDictionaryModal = () => (
     <Modal 
@@ -1073,7 +1101,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       centered
       container={isFullscreen && fullscreenContainer ? fullscreenContainer : undefined}
     >
-      <Modal.Header closeButton>
+      <Modal.Header 
+        closeButton
+        onTouchStart={handleDictionaryTouchStart}
+        onTouchMove={handleDictionaryTouchMove}
+        onTouchEnd={handleDictionaryTouchEnd}
+      >
         <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="word-text">{selectedWord}</span>
           <button
@@ -1098,7 +1131,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           )}
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body>
+      <Modal.Body
+        onTouchStart={handleDictionaryTouchStart}
+        onTouchMove={handleDictionaryTouchMove}
+        onTouchEnd={handleDictionaryTouchEnd}
+      >
         {isLoading ? (
           <div className="text-center py-3">
             <div className="spinner-border spinner-border-sm" role="status">
@@ -1132,7 +1169,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
             ))}
           </div>
         ) : (
-          <div className="text-center py-3">
+          <div className="text-center py-3" style={{ minHeight: '100px', paddingTop: '20px', paddingBottom: '20px' }}>
             <p className="mb-0 text-muted">未找到释义</p>
           </div>
         )}
