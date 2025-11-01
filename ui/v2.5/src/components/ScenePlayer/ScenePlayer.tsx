@@ -170,7 +170,9 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
       event.preventDefault();
       event.stopPropagation();
       if (enhancedSubtitleNavigation.enterWordNavigationMode) {
-        enhancedSubtitleNavigation.enterWordNavigationMode();
+        // Left arrow (37) selects last word, right arrow (39) selects first word
+        const selectLastWord = event.which === 37;
+        enhancedSubtitleNavigation.enterWordNavigationMode(selectLastWord);
       }
       return;
     }

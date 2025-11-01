@@ -82,6 +82,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const subtitleRef = useRef<HTMLDivElement>(null);
   const subtitleCacheRef = useRef<Map<string, SubtitleCue[]>>(new Map()); // 字幕缓存
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false, initialX: 0, initialY: 0 });
+  const prevCueRef = useRef<SubtitleCue | null>(null); // Track previous cue to detect actual changes
   const lastCueRef = useRef<SubtitleCue | null>(null);
   const autoPauseTriggeredRef = useRef(false);
   const lastPausedStateRef = useRef<boolean | null>(null);
@@ -779,17 +780,21 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, [selectedWordIndex, wordSegments, handleWordClick]);
 
   // Handle entering word navigation mode
-  const enterWordNavigationMode = useCallback(() => {
+  const enterWordNavigationMode = useCallback((selectLastWord: boolean = false) => {
     if (wordSegments.length > 0) {
       setIsInWordNavigationMode(true);
-      setSelectedWordIndex(0); // Select first word
+      // Select first word if selectLastWord is false, otherwise select last word
+      const initialIndex = selectLastWord ? wordSegments.length - 1 : 0;
+      setSelectedWordIndex(initialIndex);
+      // Update prevCueRef to current cue to prevent reset when useEffect triggers
+      prevCueRef.current = currentCue;
       // Pause playback
       if (onPausePlayer) {
         onPausePlayer();
       }
-      console.log('🎯 Entered word navigation mode');
+      console.log('🎯 Entered word navigation mode', selectLastWord ? '(last word)' : '(first word)');
     }
-  }, [wordSegments, onPausePlayer]);
+  }, [wordSegments, onPausePlayer, currentCue]);
 
   // Handle exiting word navigation mode
   const exitWordNavigationMode = useCallback(() => {
@@ -822,9 +827,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   // Navigate to previous word (with circular navigation)
   const navigateToPreviousWord = useCallback(() => {
     if (wordSegments.length === 0) return;
-    // If no word is selected yet, start from the last word
+    // If no word is selected yet, do nothing
     if (selectedWordIndex === -1) {
-      setSelectedWordIndex(wordSegments.length - 1);
       return;
     }
     if (selectedWordIndex > 0) {
@@ -835,11 +839,13 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
   }, [selectedWordIndex, wordSegments.length]);
 
-  // Update word navigation when cue changes
+  // Update word navigation when cue changes (only when cue actually changes, not when entering mode)
   useEffect(() => {
-    if (isInWordNavigationMode) {
+    if (isInWordNavigationMode && currentCue && prevCueRef.current !== currentCue) {
       setSelectedWordIndex(0); // Reset to first word when cue changes
     }
+    // Update prevCueRef after checking
+    prevCueRef.current = currentCue;
   }, [currentCue, isInWordNavigationMode]);
   
   // Expose navigation functions to parent via callback (placed after function definitions)
