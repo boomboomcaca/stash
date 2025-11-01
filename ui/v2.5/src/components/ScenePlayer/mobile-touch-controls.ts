@@ -706,13 +706,39 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private handleDoubleTap(x: number, y: number): void {
-    // 如果增强字幕已启用，双击重播当前字幕
+    // 如果增强字幕已启用，处理字幕相关操作
     if (this.enhancedSubtitlesEnabled && this.subtitleCues.length > 0) {
       const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
       const currentTime = this.player.currentTime() || 0;
       const nearestIndex = this.findNearestCueIndex(currentTime, this.subtitleCues, currentIndex);
       
-      if (nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
+      // 检查是否有当前字幕（currentIndex 为 -1 表示没有当前字幕）
+      if (currentIndex === -1 && nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
+        // 没有当前字幕，播放上一个字幕
+        if (nearestIndex > 0) {
+          const prevCue = this.subtitleCues[nearestIndex - 1];
+          console.log("[MobileTouchControls] 双击播放上一个字幕:", prevCue.text);
+          this.player.currentTime(prevCue.startTime);
+          if (this.player.paused()) {
+            this.player.play()?.catch((error) => {
+              console.warn("播放失败:", error);
+            });
+          }
+          return;
+        } else if (nearestIndex === 0) {
+          // 如果 nearestIndex 为 0，说明在第一个字幕之前，直接播放第一个字幕
+          const firstCue = this.subtitleCues[0];
+          console.log("[MobileTouchControls] 双击播放第一个字幕:", firstCue.text);
+          this.player.currentTime(firstCue.startTime);
+          if (this.player.paused()) {
+            this.player.play()?.catch((error) => {
+              console.warn("播放失败:", error);
+            });
+          }
+          return;
+        }
+      } else if (currentIndex >= 0 && nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
+        // 有当前字幕，重播当前字幕
         const currentCue = this.subtitleCues[nearestIndex];
         console.log("[MobileTouchControls] 双击重播当前字幕:", currentCue.text);
         this.player.currentTime(currentCue.startTime);
