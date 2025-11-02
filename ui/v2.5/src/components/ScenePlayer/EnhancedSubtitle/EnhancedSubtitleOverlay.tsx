@@ -858,6 +858,16 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         navigateToPreviousWord,
         handleWordSelection,
         isInWordNavigationMode,
+        isAutoPaused,
+        resumePlayback: () => {
+          if (onPlay && isAutoPaused) {
+            onPlay();
+            setIsAutoPaused(false);
+            userResumedPlaybackRef.current = true;
+            // Don't reset autoPauseTriggeredRef here - it's used to prevent re-triggering
+            // and will be cleared when the cue changes or disappears
+          }
+        },
         parsedSubtitles,
         getCurrentCueIndex: () => {
           if (currentCue && parsedSubtitles) {
@@ -880,6 +890,8 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     navigateToPreviousWord,
     handleWordSelection,
     isInWordNavigationMode,
+    isAutoPaused,
+    onPlay,
     currentCue,
     parsedSubtitles,
     onGetPlayer,

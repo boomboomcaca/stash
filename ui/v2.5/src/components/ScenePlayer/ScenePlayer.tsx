@@ -147,8 +147,20 @@ function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, togg
       controlBarVisible,
       hideControlBar: !!hideControlBar,
       isInWordNavigationMode: enhancedSubtitleNavigation?.isInWordNavigationMode,
+      isAutoPaused: enhancedSubtitleNavigation?.isAutoPaused,
       enhancedSubtitleNavigation: !!enhancedSubtitleNavigation
     });
+    
+    // If not in word navigation mode and auto-paused, resume playback
+    if (!enhancedSubtitleNavigation?.isInWordNavigationMode && 
+        enhancedSubtitleNavigation?.isAutoPaused && 
+        enhancedSubtitleNavigation?.resumePlayback) {
+      console.log('Resuming playback from auto-pause via ESC');
+      event.preventDefault();
+      event.stopPropagation();
+      enhancedSubtitleNavigation.resumePlayback();
+      return;
+    }
     
     if (controlBarVisible && hideControlBar && !enhancedSubtitleNavigation?.isInWordNavigationMode) {
       // ESC key pressed when control bar is visible - hide it
