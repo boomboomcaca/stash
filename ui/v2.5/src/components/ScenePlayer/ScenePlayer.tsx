@@ -25,6 +25,7 @@ import "./track-activity";
 import "./vrmode";
 import "./mobile-touch-controls";
 import "./enhanced-subtitle-button";
+import "./playback-rate-button";
 import cx from "classnames";
 import {
   useSceneSaveActivity,
