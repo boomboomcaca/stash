@@ -686,14 +686,20 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
   const { data, loading, error } = useFindScene(id);
 
   const [scene, setScene] = useState<GQL.SceneDataFragment>();
+  const sceneIdRef = useRef<string | undefined>();
 
   // useLayoutEffect to update before paint
   useLayoutEffect(() => {
-    // only update scene when loading is done
-    if (!loading) {
-      setScene(data?.findScene ?? undefined);
+    // When id changes, reset scene immediately to ensure proper updates
+    if (id !== sceneIdRef.current) {
+      sceneIdRef.current = id;
+      setScene(undefined);
     }
-  }, [data, loading]);
+    // only update scene when loading is done
+    if (!loading && data?.findScene) {
+      setScene(data.findScene);
+    }
+  }, [data, loading, id]);
 
   const queryParams = useMemo(
     () => new URLSearchParams(location.search),
