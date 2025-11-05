@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path"
 	"runtime/debug"
@@ -136,6 +137,7 @@ func Initialize() (*Server, error) {
 		r.Use(httplog.RequestLogger(httpLogger))
 	}
 	r.Use(SecurityHeadersMiddleware)
+	r.Use(MetricsMiddleware()) // Performance metrics collection
 	r.Use(middleware.Compress(4))
 	r.Use(middleware.StripSlashes)
 	r.Use(BaseURLMiddleware)
@@ -209,6 +211,21 @@ func Initialize() (*Server, error) {
 		endpoint := getProxyPrefix(r) + gqlEndpoint
 		gqlPlayground.Handler("GraphQL playground", endpoint, gqlPlayground.WithGraphiqlEnablePluginExplorer(true))(w, r)
 	})
+
+	// Performance profiling endpoints (pprof)
+	// Available at /debug/pprof/ when the server is running
+	r.HandleFunc("/debug/pprof/", pprof.Index)
+	r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	r.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	r.Handle("/debug/pprof/goroutine", pprof.Handler("goroutine"))
+	r.Handle("/debug/pprof/heap", pprof.Handler("heap"))
+	r.Handle("/debug/pprof/threadcreate", pprof.Handler("threadcreate"))
+	r.Handle("/debug/pprof/block", pprof.Handler("block"))
+	r.Handle("/debug/pprof/mutex", pprof.Handler("mutex"))
+	r.Handle("/debug/pprof/allocs", pprof.Handler("allocs"))
+	logger.Info("Performance profiling enabled at /debug/pprof/")
 
 	r.Mount("/performer", server.getPerformerRoutes())
 	r.Mount("/scene", server.getSceneRoutes())
