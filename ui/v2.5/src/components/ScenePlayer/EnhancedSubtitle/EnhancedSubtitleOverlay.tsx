@@ -1084,6 +1084,16 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           key={`word-${index}`}
           className={`subtitle-word ${segment.isSelected ? 'selected' : ''} ${isSelectedInNav ? 'navigation-selected' : ''} ${isFavorited ? 'favorited' : ''}`}
           onClick={() => handleWordClick(segment.word)}
+          onTouchEnd={(e) => {
+            // 确保触摸点击也能触发单词查询
+            // 如果正在拖拽，不触发单词点击
+            if (isDragging) {
+              return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            handleWordClick(segment.word);
+          }}
           title={isFavorited ? `⭐ "${segment.word}" (favorited)` : `Click to look up "${segment.word}"`}
         >
           {segment.word}
@@ -1101,7 +1111,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     }
 
     return elements;
-  }, [currentCue, wordSegments, handleWordClick, detectedLanguage, favoriteWords, isInWordNavigationMode, selectedWordIndex]);
+  }, [currentCue, wordSegments, handleWordClick, detectedLanguage, favoriteWords, isInWordNavigationMode, selectedWordIndex, isDragging]);
 
   const handleDictionaryTouchStart = useCallback((e: React.TouchEvent) => {
     if (!showDictionary) return;

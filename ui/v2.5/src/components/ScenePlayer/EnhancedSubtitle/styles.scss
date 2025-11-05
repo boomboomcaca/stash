@@ -132,6 +132,7 @@
     border-radius: 5px;
     display: inline-block;
     pointer-events: auto; // 确保单词可以点击
+    touch-action: manipulation; // 允许触摸点击，阻止双击缩放
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.25);

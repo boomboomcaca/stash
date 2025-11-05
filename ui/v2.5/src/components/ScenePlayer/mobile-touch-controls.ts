@@ -272,8 +272,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 绑定并监听屏幕方向变化
     this.boundOrientationChange = () => {
       console.log("[MobileTouchControls] 屏幕方向变化事件");
-      // 重置播放速度到1x正常速度
-      this.resetPlaybackRate();
+      // 不再重置播放速度，保持用户设置的播放速度
       
       // 延迟检查触摸控制状态，确保屏幕尺寸已更新
       setTimeout(() => {
