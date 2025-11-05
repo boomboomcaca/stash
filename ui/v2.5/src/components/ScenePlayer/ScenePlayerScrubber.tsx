@@ -316,8 +316,8 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
 
         clearTransition();
         
-        // 降低拖拽灵敏度（0.7倍）
-        const sensitivity = 0.7;
+        // 降低拖拽灵敏度（0.07倍）
+        const sensitivity = 0.07;
         const adjustedDelta = delta * sensitivity;
         
         // 使用节流减少频繁更新
