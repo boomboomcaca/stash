@@ -851,9 +851,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const duration = this.player.duration() || 0;
     if (duration === 0) return;
 
+    // 降低拖拽灵敏度（0.7倍）
+    const sensitivity = 0.7;
+    const adjustedDeltaX = deltaX * sensitivity;
+
     // 计算拖拽的进度偏移
     // 正值向前拖拽（快进），负值向后拖拽（快退）
-    const progressDelta = (deltaX / videoWidth) * duration;
+    const progressDelta = (adjustedDeltaX / videoWidth) * duration;
     const newProgress = Math.max(0, Math.min(this.state.dragStartTime + progressDelta, duration));
     
     this.state.dragCurrentProgress = newProgress;

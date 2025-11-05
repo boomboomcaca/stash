@@ -316,15 +316,19 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
 
         clearTransition();
         
+        // 降低拖拽灵敏度（0.7倍）
+        const sensitivity = 0.7;
+        const adjustedDelta = delta * sensitivity;
+        
         // 使用节流减少频繁更新
         const now = performance.now();
         if (now - lastUpdateTime.current >= UPDATE_THROTTLE) {
-          const newPosition = position.current + delta;
+          const newPosition = position.current + adjustedDelta;
           setPosition(newPosition, true, true); // 在触摸拖拽时实时更新视频帧
           lastUpdateTime.current = now;
         } else {
           // 只更新位置，不触发视频seek
-          const newPosition = position.current + delta;
+          const newPosition = position.current + adjustedDelta;
           setPosition(newPosition, false);
         }
       }
