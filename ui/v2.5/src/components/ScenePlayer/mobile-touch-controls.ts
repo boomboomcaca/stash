@@ -194,7 +194,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   // 显示倍速反馈
-  private showSpeedFeedback(speedRate: number): void {
+  private showSpeedFeedback(speedRate: number, preventAutoHide: boolean = false): void {
     if (!this.speedFeedbackElement) {
       this.createSpeedFeedbackElement();
     }
@@ -216,14 +216,17 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 清除之前的计时器
       if (this.speedFeedbackTimer) {
         clearTimeout(this.speedFeedbackTimer);
+        this.speedFeedbackTimer = null;
       }
       
-      // 所有情况下都设置1秒后自动隐藏计时器
-      this.speedFeedbackTimer = window.setTimeout(() => {
-        if (this.speedFeedbackElement) {
-          this.speedFeedbackElement.classList.remove('visible');
-        }
-      }, 1000);
+      // 只有在不阻止自动隐藏时才设置自动隐藏计时器
+      if (!preventAutoHide) {
+        this.speedFeedbackTimer = window.setTimeout(() => {
+          if (this.speedFeedbackElement) {
+            this.speedFeedbackElement.classList.remove('visible');
+          }
+        }, 1000);
+      }
     }
   }
 
@@ -503,9 +506,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.player.playbackRate(1);
       console.log("[MobileTouchControls] 长按结束，恢复1x正常速度");
       
-      // 隐藏倍速反馈
+      // 立即隐藏倍速反馈
       if (this.speedFeedbackElement) {
         this.speedFeedbackElement.classList.remove('visible');
+      }
+      
+      // 清除可能存在的自动隐藏计时器
+      if (this.speedFeedbackTimer) {
+        clearTimeout(this.speedFeedbackTimer);
+        this.speedFeedbackTimer = null;
       }
       
       this.state.isLongPress = false;
@@ -610,7 +619,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       if (newSpeedRate !== this.state.currentSpeedRate) {
         this.state.currentSpeedRate = newSpeedRate;
         this.player.playbackRate(newSpeedRate);
-        this.showSpeedFeedback(newSpeedRate);
+        this.showSpeedFeedback(newSpeedRate, true);
         console.log("[MobileTouchControls] 倍速临时调整为:", newSpeedRate);
       }
       
@@ -824,8 +833,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.state.currentSpeedRate = this.state.savedSpeedRate;
       this.player.playbackRate(this.state.currentSpeedRate);
       
-      // 移除立即显示反馈消息，只有在垂直滑动时才显示
-      // this.showSpeedFeedback(this.state.currentSpeedRate);
+      // 长按时立即显示当前倍速，且阻止自动隐藏
+      this.showSpeedFeedback(this.state.currentSpeedRate, true);
       
       console.log("[MobileTouchControls] 长按倍速控制模式启动，默认倍速:", this.state.savedSpeedRate);
       
