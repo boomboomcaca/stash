@@ -851,8 +851,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const duration = this.player.duration() || 0;
     if (duration === 0) return;
 
-    // 降低拖拽灵敏度（0.07倍）
-    const sensitivity = 0.07;
+    // 降低拖拽灵敏度（0.1倍）
+    const sensitivity = 0.1;
     const adjustedDeltaX = deltaX * sensitivity;
 
     // 计算拖拽的进度偏移
