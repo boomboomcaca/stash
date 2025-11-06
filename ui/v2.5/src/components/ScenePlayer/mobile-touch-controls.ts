@@ -1031,14 +1031,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       /* 倍速反馈样式 */
       .mobile-speed-feedback {
         position: absolute;
-        top: 50%;
+        top: 10%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, 0);
         background: rgba(0, 0, 0, 0.8);
         color: white;
-        padding: 12px 24px;
+        padding: 8px 16px;
         border-radius: 8px;
-        font-size: 24px;
+        font-size: 16px;
         font-weight: bold;
         z-index: 1000;
         opacity: 0;
