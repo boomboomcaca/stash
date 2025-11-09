@@ -391,36 +391,26 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     // ✅ 只依赖 isDragging，callback 函数现在稳定不变
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
-  // ✅ Find fullscreen container when entering fullscreen mode
+  // ✅ Find fullscreen container when entering fullscreen mode (伪全屏)
   useEffect(() => {
     if (!isFullscreen) {
       setFullscreenContainer(null);
       return;
     }
 
-    // Look for video.js fullscreen container
+    // Look for pseudo fullscreen container
     const findFullscreenContainer = () => {
-      // Check for video.js fullscreen class on html element
-      if (document.documentElement.classList.contains('vjs-full-window')) {
-        // Find the video player container in fullscreen mode
-        const playerContainer = document.querySelector('.video-js.vjs-fullscreen') as HTMLElement;
-        if (playerContainer) {
-          setFullscreenContainer(playerContainer);
-          return;
-        }
-      }
-      
-      // Check for standard fullscreen element
-      const fullscreenElement = document.fullscreenElement as HTMLElement;
-      if (fullscreenElement) {
-        setFullscreenContainer(fullscreenElement);
+      // Check for pseudo fullscreen class
+      const pseudoFullscreen = document.querySelector('.vjs-pseudo-fullscreen') as HTMLElement;
+      if (pseudoFullscreen) {
+        setFullscreenContainer(pseudoFullscreen);
         return;
       }
       
-      // Fallback: look for any element with fullscreen-related classes
-      const vjsFullscreen = document.querySelector('.vjs-fullscreen') as HTMLElement;
-      if (vjsFullscreen) {
-        setFullscreenContainer(vjsFullscreen);
+      // Check for video player container with pseudo fullscreen class
+      const playerContainer = document.querySelector('.video-js.vjs-pseudo-fullscreen') as HTMLElement;
+      if (playerContainer) {
+        setFullscreenContainer(playerContainer);
         return;
       }
 

@@ -1,4 +1,5 @@
 import { VideoJsPlayer } from "video.js";
+import { togglePseudoFullscreen } from "./util";
 
 export function handleHotkeys(
   player: VideoJsPlayer,
@@ -256,8 +257,7 @@ export function handleHotkeys(
       player.muted(!player.muted());
       break;
     case 70: // f
-      if (player.isFullscreen()) player.exitFullscreen();
-      else player.requestFullscreen();
+      togglePseudoFullscreen(player);
       break;
     case 76: // l
       toggleABLooping();

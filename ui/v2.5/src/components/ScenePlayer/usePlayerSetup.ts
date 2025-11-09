@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import videojs, { VideoJsPlayer, VideoJsPlayerOptions } from "video.js";
-import { VIDEO_PLAYER_ID } from "./util";
+import { VIDEO_PLAYER_ID, togglePseudoFullscreen, isPseudoFullscreen } from "./util";
 import { handleHotkeys } from "./handleHotkeys";
 
 interface UsePlayerSetupProps {
@@ -194,6 +194,55 @@ export function usePlayerSetup({
     vjs.on('loadstart', disableNativeSubtitles);
     vjs.on('loadedmetadata', disableNativeSubtitles);
     vjs.on('canplay', disableNativeSubtitles);
+
+    // 拦截video.js的全屏API，使用伪全屏
+    const originalRequestFullscreen = vjs.requestFullscreen?.bind(vjs);
+    const originalExitFullscreen = vjs.exitFullscreen?.bind(vjs);
+    const originalIsFullscreen = vjs.isFullscreen?.bind(vjs);
+    
+    if (vjs.requestFullscreen) {
+      vjs.requestFullscreen = function() {
+        togglePseudoFullscreen(vjs);
+        return Promise.resolve();
+      };
+    }
+    
+    if (vjs.exitFullscreen) {
+      vjs.exitFullscreen = function() {
+        togglePseudoFullscreen(vjs);
+        return Promise.resolve();
+      };
+    }
+    
+    if (vjs.isFullscreen) {
+      vjs.isFullscreen = function() {
+        return isPseudoFullscreen();
+      };
+    }
+
+    // 拦截全屏按钮的点击事件（延迟执行，确保控制栏已初始化）
+    const interceptFullscreenButton = () => {
+      const controlBar = vjs.getChild('ControlBar');
+      if (controlBar) {
+        const fullscreenToggle = controlBar.getChild('FullscreenToggle');
+        if (fullscreenToggle) {
+          const originalHandleClick = fullscreenToggle.handleClick?.bind(fullscreenToggle);
+          if (originalHandleClick) {
+            fullscreenToggle.handleClick = function() {
+              togglePseudoFullscreen(vjs);
+            };
+          }
+        }
+      }
+    };
+
+    // 立即尝试拦截
+    interceptFullscreenButton();
+
+    // 如果控制栏还未初始化，等待ready事件
+    vjs.ready(() => {
+      interceptFullscreenButton();
+    });
 
     // Video player destructor
     return () => {

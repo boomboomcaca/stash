@@ -822,3 +822,34 @@ $sceneTabWidth: 450px;
     }
   }
 }
+
+// 伪全屏样式
+.vjs-pseudo-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  background: #000 !important;
+}
+
+body.vjs-pseudo-fullscreen {
+  overflow: hidden !important;
+  
+  .VideoPlayer {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    z-index: 9999 !important;
+    background: #000 !important;
+    
+    .video-wrapper {
+      height: 100vh !important;
+      width: 100vw !important;
+    }
+  }
+}

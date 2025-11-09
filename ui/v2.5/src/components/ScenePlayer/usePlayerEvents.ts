@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { VideoJsPlayer } from "video.js";
 import * as GQL from "src/core/generated-graphql";
 import { ConnectionState } from "src/hooks/Interactive/context";
+import { isPseudoFullscreen } from "./util";
 
 interface UsePlayerEventsProps {
   getPlayer: () => VideoJsPlayer | null;
@@ -57,7 +58,7 @@ export function usePlayerEvents({
     }
 
     function fullscreenchange(this: VideoJsPlayer) {
-      setFullscreen(this.isFullscreen());
+      setFullscreen(isPseudoFullscreen());
     }
 
     player.on("canplay", canplay);
