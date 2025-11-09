@@ -643,18 +643,37 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         lastPausedStateRef.current = isPaused; // Initialize paused state for new subtitle
       }
       
+      // Detect if user manually paused playback (not auto-paused)
+      // This checks if the player state changed from playing to paused
+      if (lastPausedStateRef.current === false && isPaused === true) {
+        // If this is not auto-paused, but user manually paused
+        if (!isAutoPaused) {
+          // User manually paused, reset flags to allow auto-pause logic to work again
+          console.log('🎬 User manually paused playback, resetting auto-pause flags');
+          userResumedPlaybackRef.current = false;
+          // Don't reset autoPauseTriggeredRef here, as it might be needed to track state
+        }
+      }
+      
       // Detect if user manually resumed playback BEFORE we try to auto-pause
       // This checks if the player state changed from paused to playing
       if (lastPausedStateRef.current === true && isPaused === false) {
-        // Only mark as user-resumed if we previously auto-paused
+        // Only mark as user-resumed if we previously auto-paused AND it's still auto-paused
         // This prevents normal playback from being flagged as "user resumed"
-        if (autoPauseTriggeredRef.current) {
+        if (autoPauseTriggeredRef.current && isAutoPaused) {
+          // Only when it's indeed auto-paused recovery, set the flag
           console.log('🎬 User manually resumed playback after auto-pause, disabling auto-pause for current subtitle');
           userResumedPlaybackRef.current = true;
           setIsAutoPaused(false); // Clear auto-paused state when user resumes
           lastPausedStateRef.current = isPaused;
           // Don't check for auto-pause in this cycle since user just resumed
           return;
+        } else if (autoPauseTriggeredRef.current && !isAutoPaused) {
+          // If autoPauseTriggeredRef is true but isAutoPaused is false,
+          // it means user has manually paused before, reset flags
+          console.log('🎬 User resumed playback after manual pause, resetting auto-pause flags');
+          autoPauseTriggeredRef.current = false;
+          userResumedPlaybackRef.current = false;
         }
       }
       
