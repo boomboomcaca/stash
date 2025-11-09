@@ -7,17 +7,16 @@ import React, {
   useRef,
   useState,
 } from "react";
-import videojs, { VideoJsPlayer, VideoJsPlayerOptions } from "video.js";
+import videojs from "video.js";
 import useScript from "src/hooks/useScript";
 import "videojs-contrib-dash";
 import "videojs-mobile-ui";
 import "videojs-seek-buttons";
-import { UAParser } from "ua-parser-js";
 import "./live";
 import "./PlaylistButtons";
 import "./source-selector";
 import "./persist-volume";
-import MarkersPlugin, { type IMarker } from "./markers";
+import MarkersPlugin from "./markers";
 void MarkersPlugin;
 import "./vtt-thumbnails";
 import "./big-buttons";
@@ -40,493 +39,26 @@ import {
   InteractiveContext,
 } from "src/hooks/Interactive/context";
 import { SceneInteractiveStatus } from "src/hooks/Interactive/status";
-import { languageMap } from "src/utils/caption";
-import { VIDEO_PLAYER_ID } from "./util";
 import { EnhancedSubtitleOverlay } from "./EnhancedSubtitle";
+import ScreenUtils from "src/utils/screen";
+import { PatchComponent } from "src/patch";
 
 // @ts-ignore
 import airplay from "@silvermine/videojs-airplay";
 // @ts-ignore
 import chromecast from "@silvermine/videojs-chromecast";
 import abLoopPlugin from "videojs-abloop";
-import ScreenUtils from "src/utils/screen";
-import { PatchComponent } from "src/patch";
 
 // register videojs plugins
 airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-function handleHotkeys(player: VideoJsPlayer, event: videojs.KeyboardEvent, toggleEnhancedSubtitles?: () => void, resetSubtitleFontSize?: () => void, showControlBar?: () => void, enhancedSubtitleNavigation?: any, isControlBarVisible?: () => boolean, hideControlBar?: () => void) {
-  // 辅助函数：查找最接近当前时间的字幕索引
-  function findNearestCueIndex(
-    currentTime: number,
-    cues: Array<{ startTime: number; endTime: number; text: string }>,
-    currentIndex: number
-  ): number {
-    // 如果当前索引有效，直接返回
-    if (currentIndex >= 0 && currentIndex < cues.length) {
-      return currentIndex;
-    }
-    
-    // 如果没有字幕，返回 -1
-    if (!cues || cues.length === 0) {
-      return -1;
-    }
-    
-    // 查找最接近的字幕
-    // 优先查找已经开始的字幕（即使已过结束时间）
-    for (let i = 0; i < cues.length; i++) {
-      if (currentTime >= cues[i].startTime && currentTime <= cues[i].endTime) {
-        return i;
-      }
-    }
-    
-    // 如果没有正在进行的字幕，查找下一个即将开始的字幕
-    for (let i = 0; i < cues.length; i++) {
-      if (currentTime < cues[i].startTime) {
-        return i;
-      }
-    }
-    
-    // 如果已经过了所有字幕，返回最后一个字幕的索引
-    return cues.length - 1;
-  }
-
-  function seekStep(step: number) {
-    const time = player.currentTime() + step;
-    const duration = player.duration();
-    if (time < 0) {
-      player.currentTime(0);
-    } else if (time < duration) {
-      player.currentTime(time);
-    } else {
-      player.currentTime(duration);
-    }
-    
-    // 当调整播放进度时，如果增强字幕已开启，显示控制栏
-    if (showControlBar) {
-      showControlBar();
-    }
-  }
-
-  function seekPercent(percent: number) {
-    const duration = player.duration();
-    const time = duration * percent;
-    player.currentTime(time);
-  }
-
-  function seekPercentRelative(percent: number) {
-    const duration = player.duration();
-    const currentTime = player.currentTime();
-    const time = currentTime + duration * percent;
-    if (time > duration) return;
-    player.currentTime(time);
-  }
-
-  function toggleABLooping() {
-    const opts = player.abLoopPlugin.getOptions();
-    if (!opts.start) {
-      opts.start = player.currentTime();
-    } else if (!opts.end) {
-      opts.end = player.currentTime();
-      opts.enabled = true;
-    } else {
-      opts.start = 0;
-      opts.end = 0;
-      opts.enabled = false;
-    }
-    player.abLoopPlugin.setOptions(opts);
-  }
-
-  // Check if control bar is visible
-  const controlBarVisible = isControlBarVisible ? isControlBarVisible() : false;
-  
-  // Handle ESC key to hide control bar when it's visible
-  if (event.which === 27) {
-    console.log('ESC key pressed:', {
-      controlBarVisible,
-      hideControlBar: !!hideControlBar,
-      isInWordNavigationMode: enhancedSubtitleNavigation?.isInWordNavigationMode,
-      isAutoPaused: enhancedSubtitleNavigation?.isAutoPaused,
-      enhancedSubtitleNavigation: !!enhancedSubtitleNavigation
-    });
-    
-    // If not in word navigation mode and auto-paused, resume playback
-    if (!enhancedSubtitleNavigation?.isInWordNavigationMode && 
-        enhancedSubtitleNavigation?.isAutoPaused && 
-        enhancedSubtitleNavigation?.resumePlayback) {
-      console.log('Resuming playback from auto-pause via ESC');
-      event.preventDefault();
-      event.stopPropagation();
-      enhancedSubtitleNavigation.resumePlayback();
-      return;
-    }
-    
-    if (controlBarVisible && hideControlBar && !enhancedSubtitleNavigation?.isInWordNavigationMode) {
-      // ESC key pressed when control bar is visible - hide it
-      console.log('Hiding control bar via ESC');
-      event.preventDefault();
-      event.stopPropagation();
-      if (hideControlBar) {
-        hideControlBar();
-      }
-      return;
-    }
-  }
-  
-  // Handle enhanced subtitle navigation
-  if (enhancedSubtitleNavigation && !controlBarVisible) {
-    // Enter word navigation mode with left/right arrows when enhanced subtitles are active
-    // and control bar is not visible
-    if (!enhancedSubtitleNavigation.isInWordNavigationMode && (event.which === 37 || event.which === 39)) {
-      event.preventDefault();
-      event.stopPropagation();
-      if (enhancedSubtitleNavigation.enterWordNavigationMode) {
-        // Left arrow (37) selects last word, right arrow (39) selects first word
-        const selectLastWord = event.which === 37;
-        enhancedSubtitleNavigation.enterWordNavigationMode(selectLastWord);
-      }
-      return;
-    }
-    
-    // Handle word navigation mode
-    if (enhancedSubtitleNavigation.isInWordNavigationMode) {
-      switch (event.which) {
-        case 37: // left arrow - navigate to previous word
-          event.preventDefault();
-          event.stopPropagation();
-          if (enhancedSubtitleNavigation.navigateToPreviousWord) {
-            enhancedSubtitleNavigation.navigateToPreviousWord();
-          }
-          return;
-        case 39: // right arrow - navigate to next word
-          event.preventDefault();
-          event.stopPropagation();
-          if (enhancedSubtitleNavigation.navigateToNextWord) {
-            enhancedSubtitleNavigation.navigateToNextWord();
-          }
-          return;
-        case 27: // ESC - exit word navigation mode
-          event.preventDefault();
-          event.stopPropagation();
-          if (enhancedSubtitleNavigation.exitWordNavigationMode) {
-            enhancedSubtitleNavigation.exitWordNavigationMode();
-          }
-          return;
-        case 13: // Enter/OK - lookup selected word
-          event.preventDefault();
-          event.stopPropagation();
-          if (enhancedSubtitleNavigation.handleWordSelection) {
-            enhancedSubtitleNavigation.handleWordSelection();
-          }
-          return;
-        case 38: // up arrow - handle in code below
-        case 40: // down arrow - handle in code below
-          // Will be handled below
-          break;
-      }
-    }
-  }
-
-  // Handle normal seek when control bar is visible or enhanced subtitles not active
-  let seekFactor = 10;
-  if (event.shiftKey) {
-    seekFactor = 5;
-  } else if (event.ctrlKey || event.altKey) {
-    seekFactor = 60;
-  }
-  switch (event.which) {
-    case 39: // right arrow
-      seekStep(seekFactor);
-      break;
-    case 37: // left arrow
-      seekStep(-seekFactor);
-      break;
-  }
-
-  // toggle player looping with shift+l
-  if (event.shiftKey && event.which === 76) {
-    player.loop(!player.loop());
-    return;
-  }
-
-  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
-    return;
-  }
-
-  const skipButtons = player.skipButtons();
-  if (skipButtons) {
-    // handle multimedia keys
-    switch (event.key) {
-      case "MediaTrackNext":
-        if (!skipButtons.onNext) return;
-        skipButtons.onNext();
-        break;
-      case "MediaTrackPrevious":
-        if (!skipButtons.onPrevious) return;
-        skipButtons.onPrevious();
-        break;
-      // MediaPlayPause handled by videojs
-    }
-  }
-
-  switch (event.which) {
-    case 32: // space
-      if (enhancedSubtitleNavigation?.isInWordNavigationMode) {
-        // In word navigation mode, space key should lookup selected word
-        event.preventDefault();
-        event.stopPropagation();
-        if (enhancedSubtitleNavigation.handleWordSelection) {
-          enhancedSubtitleNavigation.handleWordSelection();
-        }
-        break;
-      }
-      // Otherwise, normal play/pause
-      if (player.paused()) player.play();
-      else player.pause();
-      break;
-    case 13: // enter
-      if (enhancedSubtitleNavigation?.isInWordNavigationMode) {
-        // In word navigation mode, enter should lookup selected word
-        event.preventDefault();
-        event.stopPropagation();
-        if (enhancedSubtitleNavigation.handleWordSelection) {
-          enhancedSubtitleNavigation.handleWordSelection();
-        }
-        break;
-      }
-      // Otherwise, normal play/pause
-      if (player.paused()) player.play();
-      else player.pause();
-      break;
-    case 77: // m
-      player.muted(!player.muted());
-      break;
-    case 70: // f
-      if (player.isFullscreen()) player.exitFullscreen();
-      else player.requestFullscreen();
-      break;
-    case 76: // l
-      toggleABLooping();
-      break;
-    case 38: // up arrow
-      if (enhancedSubtitleNavigation) {
-        // Handle single/double press for up arrow
-        event.preventDefault();
-        event.stopPropagation();
-        const now = Date.now();
-        const lastPress = (player as any)._lastUpArrowPress || 0;
-        const timeSinceLastPress = now - lastPress;
-        
-        // Clear any pending single-click timer
-        if ((player as any)._upArrowTimer) {
-          clearTimeout((player as any)._upArrowTimer);
-          (player as any)._upArrowTimer = null;
-        }
-        
-        if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
-          // Double up arrow - go to previous subtitle
-          const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-          const currentTime = enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
-          const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
-          
-          if (cues && cues.length > 0) {
-            const nearestIndex = findNearestCueIndex(currentTime, cues, currentCueIndex);
-            if (nearestIndex > 0) {
-              const player = enhancedSubtitleNavigation.onGetPlayer?.();
-              if (player) {
-                const prevCue = cues[nearestIndex - 1];
-                if (prevCue) {
-                  player.currentTime(prevCue.startTime);
-                  // Resume playback if paused
-                  if (player.paused()) {
-                    player.play();
-                  }
-                }
-              }
-            }
-          }
-          (player as any)._lastUpArrowPress = 0;
-        } else {
-          // Single up arrow - repeat current subtitle (will trigger after timeout)
-          (player as any)._lastUpArrowPress = now;
-          
-          (player as any)._upArrowTimer = setTimeout(() => {
-            // Only execute if this is still a single press (not a double press)
-            const currentTime = Date.now();
-            const timeSincePress = currentTime - ((player as any)._lastUpArrowPress);
-            
-            if (timeSincePress >= 400 && (player as any)._lastUpArrowPress !== 0) {
-              // This was a single press, not a double press
-              const currentCueIndex = enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
-              const currentTime = enhancedSubtitleNavigation?.onGetPlayer?.().currentTime() ?? 0;
-              const cues = enhancedSubtitleNavigation?.parsedSubtitles?.cues;
-              
-              if (cues && cues.length > 0) {
-                const nearestIndex = findNearestCueIndex(currentTime, cues, currentCueIndex);
-                const targetCue = cues[nearestIndex];
-                if (targetCue) {
-                  const player = enhancedSubtitleNavigation.onGetPlayer?.();
-                  if (player) {
-                    player.currentTime(targetCue.startTime);
-                    // Resume playback if paused
-                    if (player.paused()) {
-                      player.play();
-                    }
-                  }
-                }
-              }
-            }
-            (player as any)._lastUpArrowPress = 0;
-            (player as any)._upArrowTimer = null;
-          }, 400);
-        }
-        return;
-      }
-      player.volume(player.volume() + 0.1);
-      break;
-    case 40: // down arrow
-      if (enhancedSubtitleNavigation) {
-        // Down arrow: single press to show control bar, double press to go to next subtitle
-        event.preventDefault();
-        event.stopPropagation();
-        const now = Date.now();
-        const lastPress = (player as any)._lastDownArrowPress || 0;
-        const timeSinceLastPress = now - lastPress;
-        
-        // Clear any pending single-click timer
-        if ((player as any)._downArrowTimer) {
-          clearTimeout((player as any)._downArrowTimer);
-          (player as any)._downArrowTimer = null;
-        }
-        
-        if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
-          // Double down arrow - go to next subtitle
-          const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-          const currentTime = enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
-          const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
-          
-          if (cues && cues.length > 0) {
-            const nearestIndex = findNearestCueIndex(currentTime, cues, currentCueIndex);
-            if (nearestIndex < cues.length - 1) {
-              const player = enhancedSubtitleNavigation.onGetPlayer?.();
-              if (player) {
-                const nextCue = cues[nearestIndex + 1];
-                if (nextCue) {
-                  player.currentTime(nextCue.startTime);
-                  // Resume playback if paused
-                  if (player.paused()) {
-                    player.play();
-                  }
-                }
-              }
-            }
-          }
-          (player as any)._lastDownArrowPress = 0;
-        } else {
-          // Single down arrow - show control bar
-          (player as any)._lastDownArrowPress = now;
-          
-          (player as any)._downArrowTimer = setTimeout(() => {
-            // Only execute if this is still a single press (not a double press)
-            const currentTime = Date.now();
-            const timeSincePress = currentTime - ((player as any)._lastDownArrowPress);
-            
-            if (timeSincePress >= 400 && (player as any)._lastDownArrowPress !== 0) {
-              // This was a single press, not a double press - show control bar
-              if (showControlBar) {
-                showControlBar();
-              }
-            }
-            (player as any)._lastDownArrowPress = 0;
-            (player as any)._downArrowTimer = null;
-          }, 400);
-        }
-        return;
-      }
-      player.volume(player.volume() - 0.1);
-      break;
-    case 48: // 0
-      player.currentTime(0);
-      break;
-    case 49: // 1
-      seekPercent(0.1);
-      break;
-    case 50: // 2
-      seekPercent(0.2);
-      break;
-    case 51: // 3
-      seekPercent(0.3);
-      break;
-    case 52: // 4
-      seekPercent(0.4);
-      break;
-    case 53: // 5
-      seekPercent(0.5);
-      break;
-    case 54: // 6
-      seekPercent(0.6);
-      break;
-    case 55: // 7
-      seekPercent(0.7);
-      break;
-    case 56: // 8
-      seekPercent(0.8);
-      break;
-    case 57: // 9
-      seekPercent(0.9);
-      break;
-    case 221: // ]
-      seekPercentRelative(0.1);
-      break;
-    case 219: // [
-      seekPercentRelative(-0.1);
-      break;
-    case 67: // c
-      // Toggle enhanced subtitles with 'c' key
-      if (toggleEnhancedSubtitles) {
-        toggleEnhancedSubtitles();
-      }
-      break;
-    case 82: // r
-      // Reset subtitle font size with 'r' key
-      if (resetSubtitleFontSize) {
-        resetSubtitleFontSize();
-      }
-      break;
-  }
-}
-
-type MarkerFragment = Pick<GQL.SceneMarker, "title" | "seconds"> & {
-  primary_tag: Pick<GQL.Tag, "name">;
-  tags: Array<Pick<GQL.Tag, "name">>;
-};
-
-function getMarkerTitle(marker: MarkerFragment) {
-  if (marker.title) {
-    return marker.title;
-  }
-
-  let ret = marker.primary_tag.name;
-  if (marker.tags.length) {
-    ret += `, ${marker.tags.map((t) => t.name).join(", ")}`;
-  }
-
-  return ret;
-}
-
-interface IScenePlayerProps {
-  scene: GQL.SceneDataFragment;
-  hideScrubberOverride: boolean;
-  autoplay?: boolean;
-  permitLoop?: boolean;
-  initialTimestamp: number;
-  sendSetTimestamp: (setTimestamp: (value: number) => void) => void;
-  onComplete: () => void;
-  onNext: () => void;
-  onPrevious: () => void;
-}
+import { IScenePlayerProps } from "./types";
+import { usePlayerSetup } from "./usePlayerSetup";
+import { usePlayerEvents } from "./usePlayerEvents";
+import { useSceneLoading } from "./useSceneLoading";
+import { useControlBarManagement } from "./useControlBarManagement";
 
 export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
   "ScenePlayer",
@@ -553,8 +85,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const interfaceConfig = configuration?.interface;
     const uiConfig = configuration?.ui;
     const videoRef = useRef<HTMLDivElement>(null);
-    const [_player, setPlayer] = useState<VideoJsPlayer>();
-    const sceneId = useRef<string>();
     const [sceneSaveActivity] = useSceneSaveActivity();
     const [sceneIncrementPlayCount] = useSceneIncrementPlayCount();
 
@@ -577,16 +107,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [resetFontSizeTrigger, setResetFontSizeTrigger] = useState(0);
     const [subtitleCues, setSubtitleCues] = useState<Array<{ startTime: number; endTime: number; text: string }>>([]);
     const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState<number>(-1);
-    const [controlBarLockedHidden, setControlBarLockedHidden] = useState(false);
 
     const started = useRef(false);
     const enhancedSubtitleButtonRef = useRef<any>(null);
     const auto = useRef(false);
     const interactiveReady = useRef(false);
-    const unlockTimerRef = useRef<number | null>(null);
     const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
-    const temporarilyUnlockControlBarRef = useRef<(() => void) | null>(null);
-    const hideControlBarRef = useRef<(() => void) | null>(null);
     const enhancedSubtitleNavigationRef = useRef<any>(null);
     const minimumPlayPercent = uiConfig?.minimumPlayPercent ?? 0;
     const trackActivity = uiConfig?.trackActivity ?? true;
@@ -622,11 +148,52 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       [file, permitLoop, maxLoopDuration]
     );
 
-    const getPlayer = useCallback(() => {
-      if (!_player) return null;
-      if (_player.isDisposed()) return null;
-      return _player;
-    }, [_player]);
+    // Create refs for control bar management
+    const controlBarVisibleRef = useRef(false);
+    const temporarilyUnlockControlBarRef = useRef<(() => void) | null>(null);
+    const hideControlBarRef = useRef<(() => void) | null>(null);
+
+    // Use player setup hook
+    const {
+      getPlayer,
+      sceneId,
+    } = usePlayerSetup({
+      videoRef,
+      uiConfig,
+      currentSubtitleTrack,
+      showEnhancedSubtitles,
+      setShowEnhancedSubtitles,
+      setResetFontSizeTrigger,
+      temporarilyUnlockControlBarRef,
+      enhancedSubtitleNavigationRef,
+      controlBarVisibleRef,
+      hideControlBarRef,
+      enhancedSubtitleButtonRef,
+    });
+
+    // Use control bar management hook
+    const {
+      temporarilyUnlockControlBar,
+      hideControlBar,
+    } = useControlBarManagement({
+      getPlayer,
+      showEnhancedSubtitles,
+      showEnhancedSubtitlesRef,
+      subtitleCues,
+      currentSubtitleIndex,
+      controlBarVisibleRef,
+      temporarilyUnlockControlBarRef,
+      hideControlBarRef,
+    });
+
+    // Sync control bar management refs
+    useEffect(() => {
+      temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
+    }, [temporarilyUnlockControlBar]);
+
+    useEffect(() => {
+      hideControlBarRef.current = hideControlBar;
+    }, [hideControlBar]);
 
     useEffect(() => {
       if (hideScrubberOverride || fullscreen) {
@@ -660,175 +227,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       });
     }, [sendSetTimestamp, getPlayer]);
 
-    // Initialize VideoJS player
-    useEffect(() => {
-      const options: VideoJsPlayerOptions = {
-        id: VIDEO_PLAYER_ID,
-        controls: true,
-        controlBar: {
-          pictureInPictureToggle: false,
-          volumePanel: {
-            inline: false,
-          },
-          chaptersButton: false,
-          subsCapsButton: false, // 禁用原生字幕按钮
-        },
-        html5: {
-          dash: {
-            updateSettings: [
-              {
-                streaming: {
-                  buffer: {
-                    bufferTimeAtTopQuality: 30,
-                    bufferTimeAtTopQualityLongForm: 30,
-                  },
-                  gaps: {
-                    jumpGaps: false,
-                    jumpLargeGaps: false,
-                  },
-                },
-              },
-            ],
-          },
-        },
-        nativeControlsForTouch: false,
-        playbackRates: [0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20],
-        inactivityTimeout: 2000,
-        preload: "metadata",
-        playsinline: true,
-        techOrder: ["chromecast", "html5"],
-        userActions: {
-          hotkeys: function (this: VideoJsPlayer, event) {
-            handleHotkeys(
-              this, 
-              event, 
-              () => {
-                // 只有在有字幕文件时才允许切换增强字幕
-                if (currentSubtitleTrack !== null) {
-                  setShowEnhancedSubtitles(!showEnhancedSubtitles);
-                }
-              },
-              () => setResetFontSizeTrigger(prev => prev + 1),
-              () => {
-                // 使用 ref 来调用最新的 temporarilyUnlockControlBar 函数
-                if (temporarilyUnlockControlBarRef.current) {
-                  temporarilyUnlockControlBarRef.current();
-                }
-              },
-              enhancedSubtitleNavigationRef.current,
-              () => controlBarVisibleRef.current,
-              () => {
-                // 使用 ref 来调用最新的 hideControlBar 函数
-                if (hideControlBarRef.current) {
-                  hideControlBarRef.current();
-                }
-              }
-            );
-          },
-        },
-        plugins: {
-          airPlay: {},
-          chromecast: {},
-          vttThumbnails: {
-            showTimestamp: true,
-          },
-          markers: {},
-          sourceSelector: {},
-          persistVolume: {},
-          bigButtons: {},
-          seekButtons: {
-            forward: 10,
-            back: 10,
-          },
-          skipButtons: {},
-          trackActivity: {},
-          vrMenu: {},
-          abLoopPlugin: {
-            start: 0,
-            end: false,
-            enabled: false,
-            loopIfBeforeStart: true,
-            loopIfAfterEnd: true,
-            pauseAfterLooping: false,
-            pauseBeforeLooping: false,
-            createButtons: uiConfig?.showAbLoopControls ?? false,
-          },
-          mobileTouchControls: {},
-        },
-      };
-
-      const videoEl = document.createElement("video-js");
-      videoEl.setAttribute("data-vjs-player", "true");
-      videoEl.setAttribute("crossorigin", "anonymous");
-      videoEl.classList.add("vjs-big-play-centered");
-      videoRef.current!.appendChild(videoEl);
-
-      const vjs = videojs(videoEl, options);
-
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      const settings = (vjs as any).textTrackSettings;
-      settings.setValues({
-        backgroundColor: "#000",
-        backgroundOpacity: "0.5",
-      });
-      settings.updateDisplay();
-
-      vjs.focus();
-      setPlayer(vjs);
-
-      // 初始化增强字幕按钮
-      const subtitleButton = vjs.enhancedSubtitleButton({
-        onToggle: (enabled: boolean) => {
-          setShowEnhancedSubtitles(enabled);
-        }
-      });
-      
-      // 保存按钮引用
-      enhancedSubtitleButtonRef.current = subtitleButton;
-      
-      // 初始化时设置字幕可用性（默认为不可用，等待场景加载）
-      if (subtitleButton && typeof subtitleButton.setSubtitlesAvailable === 'function') {
-        subtitleButton.setSubtitlesAvailable(false);
-      }
-
-      // 永久禁用所有原生字幕轨道的显示
-      const disableNativeSubtitles = () => {
-        const tracks = vjs.textTracks();
-        if (tracks) {
-          for (let i = 0; i < tracks.length; i++) {
-            const track = tracks[i];
-            if (track.mode !== 'disabled') {
-              track.mode = 'disabled';
-            }
-          }
-        }
-      };
-
-      // 立即禁用
-      disableNativeSubtitles();
-
-      // 监听字幕轨道的变化并立即禁用
-      vjs.textTracks().addEventListener('change', disableNativeSubtitles);
-      vjs.textTracks().addEventListener('addtrack', disableNativeSubtitles);
-
-      // 在视频加载时也禁用
-      vjs.on('loadstart', disableNativeSubtitles);
-      vjs.on('loadedmetadata', disableNativeSubtitles);
-      vjs.on('canplay', disableNativeSubtitles);
-
-      // Video player destructor
-      return () => {
-        vjs.dispose();
-        videoEl.remove();
-        setPlayer(undefined);
-
-        // reset sceneId to force reload sources
-        sceneId.current = undefined;
-      };
-      // empty deps - only init once
-      // showAbLoopControls is necessary to re-init the player when the config changes
-    }, [uiConfig?.showAbLoopControls]);
-
     useEffect(() => {
       const player = getPlayer();
       if (!player) return;
@@ -836,273 +234,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       skipButtons.setForwardHandler(onNext);
       skipButtons.setBackwardHandler(onPrevious);
     }, [getPlayer, onNext, onPrevious]);
-
-    // 同步增强字幕按钮状态
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-      
-      const button = player.getChild("ControlBar")?.getChild("EnhancedSubtitleButton");
-      if (button && typeof (button as any).setEnabled === 'function') {
-        (button as any).setEnabled(showEnhancedSubtitles);
-      }
-    }, [getPlayer, showEnhancedSubtitles]);
-
-    // 根据字幕可用性更新增强字幕按钮的禁用状态
-    useEffect(() => {
-      const button = enhancedSubtitleButtonRef.current;
-      if (button && typeof button.setSubtitlesAvailable === 'function') {
-        const hasSubtitles = currentSubtitleTrack !== null;
-        button.setSubtitlesAvailable(hasSubtitles);
-      }
-    }, [currentSubtitleTrack]);
-
-    // 控制栏锁定逻辑：当增强字幕开启时，锁定隐藏控制栏
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-
-      if (showEnhancedSubtitles) {
-        // 增强字幕开启时，锁定隐藏控制栏
-        setControlBarLockedHidden(true);
-        
-        // 禁用Video.js的用户活跃检测
-        player.userActive(false);
-        
-        // 修改Video.js的用户活跃检测机制
-        // 允许键盘事件触发用户活跃，但保持控制栏锁定
-        const originalReportUserActivity = (player as any).reportUserActivity;
-        
-        (player as any).reportUserActivity = function(this: typeof player, event?: Event) {
-          const playerEl = player.el();
-          
-          // 如果是键盘事件，允许报告用户活跃（这样Video.js可以处理键盘事件）
-          if (event && event.type === 'keydown') {
-            return originalReportUserActivity.call(this, event);
-          }
-          
-          // 对于其他事件（如鼠标移动、点击等），在锁定期间不报告用户活跃
-          // 除非是临时解锁状态
-          if (playerEl && !playerEl.classList.contains('vjs-controls-unlocked-once')) {
-            return;
-          }
-          
-          return originalReportUserActivity.call(this, event);
-        };
-        
-        // 添加自定义类来强制隐藏控制栏
-        const playerEl = player.el();
-        if (playerEl) {
-          playerEl.classList.add('vjs-controls-locked-hidden');
-          
-          // 确保播放器能够接收键盘事件
-          // 设置tabindex使播放器可以获得焦点
-          playerEl.setAttribute('tabindex', '0');
-          
-          // 确保播放器有焦点，这样键盘事件才能被处理
-          (playerEl as HTMLElement).focus();
-          
-          // 监听焦点丢失事件，重新获得焦点
-          const handleFocusLoss = () => {
-            // 延迟一点时间再重新获得焦点，避免与其他元素冲突
-            setTimeout(() => {
-              if (playerEl && playerEl.classList.contains('vjs-controls-locked-hidden')) {
-                (playerEl as HTMLElement).focus();
-              }
-            }, 100);
-          };
-          
-          playerEl.addEventListener('blur', handleFocusLoss);
-          
-          // 存储清理函数
-          (playerEl as any)._focusLossHandler = handleFocusLoss;
-        }
-        
-        
-        // 清理函数：恢复原始方法
-        return () => {
-          (player as any).reportUserActivity = originalReportUserActivity;
-          
-          // 清理焦点管理
-          const playerEl = player.el();
-          if (playerEl && (playerEl as any)._focusLossHandler) {
-            playerEl.removeEventListener('blur', (playerEl as any)._focusLossHandler);
-            delete (playerEl as any)._focusLossHandler;
-          }
-        };
-      } else {
-        // 增强字幕关闭时，解除锁定
-        setControlBarLockedHidden(false);
-        
-        // 清除临时解锁计时器（如果有）
-        if (unlockTimerRef.current) {
-          clearTimeout(unlockTimerRef.current);
-          unlockTimerRef.current = null;
-        }
-        
-        // 移除自定义类
-        const playerEl = player.el();
-        if (playerEl) {
-          playerEl.classList.remove('vjs-controls-locked-hidden');
-          playerEl.classList.remove('vjs-controls-unlocked-once');
-          
-          // 清理焦点管理
-          if ((playerEl as any)._focusLossHandler) {
-            playerEl.removeEventListener('blur', (playerEl as any)._focusLossHandler);
-            delete (playerEl as any)._focusLossHandler;
-          }
-        }
-        
-        // 触发一次用户活跃报告，让Video.js按正常流程处理（显示控制栏，2秒后自动隐藏）
-        if ((player as any).reportUserActivity) {
-          (player as any).reportUserActivity(new Event('useractive'));
-        }
-        
-      }
-    }, [getPlayer, showEnhancedSubtitles]);
-
-    // 临时解锁控制栏的函数（由AP图标双击调用）
-    const controlBarVisibleRef = useRef(false);
-    
-    const temporarilyUnlockControlBar = useCallback(() => {
-      const player = getPlayer();
-      if (!player) {
-        return;
-      }
-
-      const playerEl = player.el();
-      if (playerEl) {
-        // 清除之前的计时器（如果有）
-        if (unlockTimerRef.current) {
-          clearTimeout(unlockTimerRef.current);
-        }
-        
-        // 设置控制栏可见标记
-        controlBarVisibleRef.current = true;
-        
-        // 如果增强字幕没有开启，完全依赖Video.js的正常用户活跃机制
-        if (!showEnhancedSubtitlesRef.current) {
-          // 直接返回，让Video.js按照原生机制处理用户活跃状态和控制栏显示
-          // Video.js会自动检测到用户活动（左右方向键），显示控制栏并在inactivityTimeout后自动隐藏
-          return;
-        }
-        
-        // 增强字幕开启时的特殊处理
-        // 添加临时解锁类（先添加后移除锁定类，确保临时解锁优先级更高）
-        playerEl.classList.add('vjs-controls-unlocked-once');
-        playerEl.classList.remove('vjs-controls-locked-hidden');
-        
-        // 强制触发用户活跃状态，这会让Video.js显示控制栏
-        // 由于我们修改了reportUserActivity，这里会因为有vjs-controls-unlocked-once类而正常工作
-        if ((player as any).reportUserActivity) {
-          (player as any).reportUserActivity(new Event('useractive'));
-        }
-        player.userActive(true);
-        
-        // 2秒后自动隐藏并重新锁定
-        unlockTimerRef.current = window.setTimeout(() => {
-          // 清除控制栏可见标记
-          controlBarVisibleRef.current = false;
-          
-          // 只有在增强字幕仍然开启时才重新锁定
-          if (!showEnhancedSubtitlesRef.current || !playerEl) {
-            unlockTimerRef.current = null;
-            return;
-          }
-          
-          // 先强制设置为不活跃
-          player.userActive(false);
-          
-          // 然后重新添加锁定类并移除解锁类
-          playerEl.classList.remove('vjs-controls-unlocked-once');
-          playerEl.classList.add('vjs-controls-locked-hidden');
-          
-          unlockTimerRef.current = null;
-        }, 2000);
-      }
-    }, [getPlayer]);
-
-    // 隐藏控制栏的函数
-    const hideControlBar = useCallback(() => {
-      const player = getPlayer();
-      if (!player) {
-        return;
-      }
-
-      const playerEl = player.el();
-      if (playerEl) {
-        // 清除之前的计时器（如果有）
-        if (unlockTimerRef.current) {
-          clearTimeout(unlockTimerRef.current);
-          unlockTimerRef.current = null;
-        }
-        
-        // 清除控制栏可见标记
-        controlBarVisibleRef.current = false;
-        
-        // 先强制设置为不活跃
-        player.userActive(false);
-        
-        // 如果增强字幕开启，重新添加锁定类并移除解锁类
-        if (showEnhancedSubtitlesRef.current) {
-          playerEl.classList.remove('vjs-controls-unlocked-once');
-          playerEl.classList.add('vjs-controls-locked-hidden');
-        }
-      }
-    }, [getPlayer]);
-
-    // 保持 ref 与函数同步，确保 hotkeys 始终调用最新的函数
-    useEffect(() => {
-      temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
-    }, [temporarilyUnlockControlBar]);
-    
-    useEffect(() => {
-      hideControlBarRef.current = hideControlBar;
-    }, [hideControlBar]);
-
-    // 同步增强字幕状态到移动触摸控件
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-      
-      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
-      if (touchPlugin && typeof touchPlugin.setEnhancedSubtitlesEnabled === 'function') {
-        touchPlugin.setEnhancedSubtitlesEnabled(showEnhancedSubtitles);
-      }
-    }, [getPlayer, showEnhancedSubtitles]);
-
-    // 同步字幕列表到移动触摸控件
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-      
-      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
-      if (touchPlugin && typeof touchPlugin.setSubtitleCues === 'function') {
-        touchPlugin.setSubtitleCues(subtitleCues);
-      }
-    }, [getPlayer, subtitleCues]);
-
-    // 同步当前字幕索引获取函数到移动触摸控件
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-      
-      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
-      if (touchPlugin && typeof touchPlugin.setGetCurrentSubtitleIndex === 'function') {
-        touchPlugin.setGetCurrentSubtitleIndex(() => currentSubtitleIndex);
-      }
-    }, [getPlayer, currentSubtitleIndex]);
-
-    // 同步显示控制栏函数到移动触摸控件
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-      
-      const touchPlugin = (player as any)._mobileTouchControlsPlugin;
-      if (touchPlugin && typeof touchPlugin.setShowControlBar === 'function') {
-        touchPlugin.setShowControlBar(temporarilyUnlockControlBar);
-      }
-    }, [getPlayer, temporarilyUnlockControlBar]);
 
     useEffect(() => {
       if (scene.interactive && interactiveInitialised) {
@@ -1141,354 +272,39 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       vrMenu.setShowButton(showButton);
     }, [getPlayer, scene, vrTag]);
 
-    // Player event handlers
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-
-      function canplay(this: VideoJsPlayer) {
-        // if we're seeking before starting, don't set the initial timestamp
-        // when starting from the beginning, there is a small delay before the event
-        // is triggered, so we can't just check if the time is 0
-        if (this.currentTime() >= 0.1) {
-          return;
-        }
-      }
-
-      function playing(this: VideoJsPlayer) {
-        // This still runs even if autoplay failed on Safari,
-        // only set flag if actually playing
-        if (!started.current && !this.paused()) {
-          started.current = true;
-        }
-      }
-
-      function loadstart(this: VideoJsPlayer) {
-        setReady(true);
-      }
-
-      function fullscreenchange(this: VideoJsPlayer) {
-        setFullscreen(this.isFullscreen());
-      }
-
-      player.on("canplay", canplay);
-      player.on("playing", playing);
-      player.on("loadstart", loadstart);
-      player.on("fullscreenchange", fullscreenchange);
-
-      return () => {
-        player.off("canplay", canplay);
-        player.off("playing", playing);
-        player.off("loadstart", loadstart);
-        player.off("fullscreenchange", fullscreenchange);
-      };
-    }, [getPlayer]);
-
-    // delay before second play event after a play event to adjust for video player issues
-    const DELAY_FOR_SECOND_PLAY_MS = 1000;
-    const playingTimer = useRef<number>();
-
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-
-      function playing(this: VideoJsPlayer) {
-        if (scene.interactive && interactiveReady.current) {
-          interactiveClient.play(this.currentTime());
-          // trigger a second script play event to adjust for video player issues
-          clearTimeout(playingTimer.current);
-          playingTimer.current = setTimeout(() => {
-            if (this.paused()) return;
-            interactiveClient.play(this.currentTime());
-          }, DELAY_FOR_SECOND_PLAY_MS);
-        }
-      }
-
-      function pause(this: VideoJsPlayer) {
-        interactiveClient.pause();
-      }
-
-      function timeupdate(this: VideoJsPlayer) {
-        // Always update time, even when paused, to handle seek operations
-        setTime(this.currentTime());
-      }
-
-      player.on("playing", playing);
-      player.on("pause", pause);
-      player.on("timeupdate", timeupdate);
-
-      return () => {
-        player.off("playing", playing);
-        player.off("pause", pause);
-        player.off("timeupdate", timeupdate);
-        clearTimeout(playingTimer.current);
-      };
-    }, [getPlayer, interactiveClient, scene]);
-
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-
-      // don't re-initialise the player unless the scene has changed
-      if (!file || scene.id === sceneId.current) return;
-
-      sceneId.current = scene.id;
-
-      setReady(false);
-
-      // reset on new scene
-      player.trackActivity().reset();
-
-      // always stop the interactive client on initialisation
-      interactiveClient.pause();
-
-      const isSafari = UAParser().browser.name?.includes("Safari");
-      const isLandscape = file.height && file.width && file.width > file.height;
-      const mobileUiOptions = {
-        fullscreen: {
-          enterOnRotate: true,
-          exitOnRotate: true,
-          lockOnRotate: true,
-          lockToLandscapeOnEnter: uiConfig?.disableMobileMediaAutoRotateEnabled
-            ? false
-            : isLandscape,
-        },
-        touchControls: {
-          disabled: false, // 改回 true，禁用 videojs-mobile-ui 的触摸控制
-        },
-      };
-      if (!isSafari) {
-        player.mobileUi(mobileUiOptions);
-      }
-
-      function isDirect(src: URL) {
-        return (
-          src.pathname.endsWith("/stream") ||
-          src.pathname.endsWith("/stream.mpd") ||
-          src.pathname.endsWith("/stream.m3u8")
-        );
-      }
-
-      const { duration } = file;
-      const sourceSelector = player.sourceSelector();
-      sourceSelector.setSources(
-        scene.sceneStreams
-          .filter((stream) => {
-            const src = new URL(stream.url);
-            const isFileTranscode = !isDirect(src);
-
-            return !(isFileTranscode && isSafari);
-          })
-          .map((stream) => {
-            const src = new URL(stream.url);
-
-            return {
-              src: stream.url,
-              type: stream.mime_type ?? undefined,
-              label: stream.label ?? undefined,
-              offset: !isDirect(src),
-              duration,
-            };
-          })
-      );
-
-      function getDefaultLanguageCode() {
-        let languageCode = window.navigator.language;
-
-        if (languageCode.indexOf("-") !== -1) {
-          languageCode = languageCode.split("-")[0];
-        }
-
-        if (languageCode.indexOf("_") !== -1) {
-          languageCode = languageCode.split("_")[0];
-        }
-
-        return languageCode;
-      }
-
-      if (scene.captions && scene.captions.length > 0) {
-        const languageCode = getDefaultLanguageCode();
-        let hasDefault = false;
-        let defaultTrackSrc = null;
-        let defaultLang = 'en';
-
-        for (let caption of scene.captions) {
-          const lang = caption.language_code;
-          let label = lang;
-          if (languageMap.has(lang)) {
-            label = languageMap.get(lang)!;
-          }
-
-          label = label + " (" + caption.caption_type + ")";
-          const setAsDefault = !hasDefault && languageCode == lang;
-          const trackSrc = `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`;
-          
-          if (setAsDefault) {
-            hasDefault = true;
-            defaultTrackSrc = trackSrc;
-            defaultLang = lang;
-          }
-          
-          // 原生字幕默认不显示，由增强字幕按钮控制增强字幕
-          sourceSelector.addTextTrack(
-            {
-              src: trackSrc,
-              kind: "captions",
-              srclang: lang,
-              label: label,
-              default: false, // 不自动显示原生字幕
-            },
-            false
-          );
-        }
-        
-        // Set the default or first track for enhanced subtitles
-        if (defaultTrackSrc) {
-          setCurrentSubtitleTrack(defaultTrackSrc);
-          setSubtitleLanguage(defaultLang);
-        } else if (scene.captions.length > 0) {
-          const firstCaption = scene.captions[0];
-          setCurrentSubtitleTrack(
-            `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`
-          );
-          setSubtitleLanguage(firstCaption.language_code);
-        }
-      } else {
-        // 没有字幕时，重置字幕轨道为null
-        setCurrentSubtitleTrack(null);
-      }
-
-      auto.current =
-        autoplay ||
-        (interfaceConfig?.autostartVideo ?? false) ||
-        _initialTimestamp > 0;
-
-      const alwaysStartFromBeginning =
-        uiConfig?.alwaysStartFromBeginning ?? false;
-      const resumeTime = scene.resume_time ?? 0;
-
-      let startPosition = _initialTimestamp;
-      if (
-        !startPosition &&
-        !alwaysStartFromBeginning &&
-        file.duration > resumeTime
-      ) {
-        startPosition = resumeTime;
-      }
-
-      setTime(startPosition);
-
-      player.load();
-      player.focus();
-
-      player.ready(() => {
-        player.vttThumbnails().src(scene.paths.vtt ?? null);
-
-        if (startPosition) {
-          player.currentTime(startPosition);
-        }
-      });
-
-      started.current = false;
-    }, [
+    // Use player events hook
+    usePlayerEvents({
       getPlayer,
+      scene,
       file,
-      scene.id,
-      scene.captions,
-      scene.paths.caption,
-      scene.resume_time,
+      sceneId,
       interactiveClient,
+      interactiveReady,
+      started,
+      setReady,
+      setTime,
+      setFullscreen,
+      onComplete,
+    });
+
+    // Use scene loading hook
+    useSceneLoading({
+      getPlayer,
+      scene,
+      file,
+      sceneId,
+      interactiveClient,
+      uiConfig,
+      interfaceConfig,
       autoplay,
-      interfaceConfig?.autostartVideo,
-      uiConfig?.alwaysStartFromBeginning,
-      uiConfig?.disableMobileMediaAutoRotateEnabled,
-      _initialTimestamp,
-    ]);
-
-    useEffect(() => {
-      return () => {
-        // stop the interactive client on unmount
-        interactiveClient.pause();
-      };
-    }, [interactiveClient]);
-
-    const loadMarkers = useCallback(() => {
-      const player = getPlayer();
-      if (!player) return;
-
-      const markerData = scene.scene_markers.map((marker) => ({
-        title: getMarkerTitle(marker),
-        seconds: marker.seconds,
-        end_seconds: marker.end_seconds ?? null,
-        primaryTag: marker.primary_tag,
-      }));
-
-      const markers = player!.markers();
-
-      const uniqueTagNames = markerData
-        .map((marker) => marker.primaryTag.name)
-        .filter((value, index, self) => self.indexOf(value) === index);
-
-      // Wait for colors
-      markers.findColors(uniqueTagNames);
-
-      const showRangeTags =
-        !ScreenUtils.isMobile() && (uiConfig?.showRangeMarkers ?? true);
-      const timestampMarkers: IMarker[] = [];
-      const rangeMarkers: IMarker[] = [];
-
-      if (!showRangeTags) {
-        for (const marker of markerData) {
-          timestampMarkers.push(marker);
-        }
-      } else {
-        for (const marker of markerData) {
-          if (marker.end_seconds === null) {
-            timestampMarkers.push(marker);
-          } else {
-            rangeMarkers.push(marker);
-          }
-        }
-      }
-
-      requestAnimationFrame(() => {
-        markers.addDotMarkers(timestampMarkers);
-        markers.addRangeMarkers(rangeMarkers);
-      });
-    }, [getPlayer, scene, uiConfig]);
-
-    // ✅ 将 useCallback 移到组件顶层
-    const handleSubtitlesLoaded = useCallback((cues) => setSubtitleCues(cues), []);
-    const handleCurrentCueChange = useCallback((index) => setCurrentSubtitleIndex(index), []);
-
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-
-      if (scene.paths.screenshot) {
-        player.poster(scene.paths.screenshot);
-      } else {
-        player.poster("");
-      }
-
-      // Define the event handler outside the useEffect
-      const handleLoadMetadata = () => {
-        loadMarkers();
-      };
-
-      // Ensure markers are added after player is fully ready and sources are loaded
-      if (player.readyState() >= 1) {
-        loadMarkers();
-      } else {
-        player.on("loadedmetadata", handleLoadMetadata);
-      }
-
-      return () => {
-        player.off("loadedmetadata", handleLoadMetadata);
-        const markers = player!.markers();
-        markers.clearMarkers();
-      };
-    }, [getPlayer, scene, loadMarkers]);
+      initialTimestamp: _initialTimestamp,
+      setReady,
+      setTime,
+      setCurrentSubtitleTrack,
+      setSubtitleLanguage,
+      auto,
+      started,
+    });
 
     useEffect(() => {
       const player = getPlayer();
@@ -1558,15 +374,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       auto.current = false;
     }, [getPlayer, scene, ready, interactiveClient, currentScript]);
 
-    // Attach handler for onComplete event
-    useEffect(() => {
-      const player = getPlayer();
-      if (!player) return;
-
-      player.on("ended", onComplete);
-
-      return () => player.off("ended");
-    }, [getPlayer, onComplete]);
+    // ✅ 将 useCallback 移到组件顶层
+    const handleSubtitlesLoaded = useCallback((cues) => setSubtitleCues(cues), []);
+    const handleCurrentCueChange = useCallback((index) => setCurrentSubtitleIndex(index), []);
 
     function onScrubberScroll() {
       if (started.current) {

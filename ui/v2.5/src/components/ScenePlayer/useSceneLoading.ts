@@ -1,0 +1,305 @@
+import { useEffect, useRef } from "react";
+import { VideoJsPlayer } from "video.js";
+import { UAParser } from "ua-parser-js";
+import * as GQL from "src/core/generated-graphql";
+import { languageMap } from "src/utils/caption";
+import { type IMarker } from "./markers";
+import { getMarkerTitle, type MarkerFragment } from "./types";
+import ScreenUtils from "src/utils/screen";
+
+interface UseSceneLoadingProps {
+  getPlayer: () => VideoJsPlayer | null;
+  scene: GQL.SceneDataFragment;
+  file: GQL.VideoFileDataFragment | undefined;
+  sceneId: React.MutableRefObject<string | undefined>;
+  interactiveClient: any;
+  uiConfig: any;
+  interfaceConfig: any;
+  autoplay: boolean | undefined;
+  initialTimestamp: number;
+  setReady: (value: boolean) => void;
+  setTime: (value: number) => void;
+  setCurrentSubtitleTrack: (value: string | null) => void;
+  setSubtitleLanguage: (value: string) => void;
+  auto: React.MutableRefObject<boolean>;
+  started: React.MutableRefObject<boolean>;
+}
+
+export function useSceneLoading({
+  getPlayer,
+  scene,
+  file,
+  sceneId,
+  interactiveClient,
+  uiConfig,
+  interfaceConfig,
+  autoplay,
+  initialTimestamp,
+  setReady,
+  setTime,
+  setCurrentSubtitleTrack,
+  setSubtitleLanguage,
+  auto,
+  started,
+}: UseSceneLoadingProps) {
+  useEffect(() => {
+    const player = getPlayer();
+    if (!player) return;
+
+    // don't re-initialise the player unless the scene has changed
+    if (!file || scene.id === sceneId.current) return;
+
+    sceneId.current = scene.id;
+
+    setReady(false);
+
+    // reset on new scene
+    player.trackActivity().reset();
+
+    // always stop the interactive client on initialisation
+    interactiveClient.pause();
+
+    const isSafari = UAParser().browser.name?.includes("Safari");
+    const isLandscape = file.height && file.width && file.width > file.height;
+    const mobileUiOptions = {
+      fullscreen: {
+        enterOnRotate: true,
+        exitOnRotate: true,
+        lockOnRotate: true,
+        lockToLandscapeOnEnter: uiConfig?.disableMobileMediaAutoRotateEnabled
+          ? false
+          : isLandscape,
+      },
+      touchControls: {
+        disabled: false, // 改回 true，禁用 videojs-mobile-ui 的触摸控制
+      },
+    };
+    if (!isSafari) {
+      player.mobileUi(mobileUiOptions);
+    }
+
+    function isDirect(src: URL) {
+      return (
+        src.pathname.endsWith("/stream") ||
+        src.pathname.endsWith("/stream.mpd") ||
+        src.pathname.endsWith("/stream.m3u8")
+      );
+    }
+
+    const { duration } = file;
+    const sourceSelector = player.sourceSelector();
+    sourceSelector.setSources(
+      scene.sceneStreams
+        .filter((stream) => {
+          const src = new URL(stream.url);
+          const isFileTranscode = !isDirect(src);
+
+          return !(isFileTranscode && isSafari);
+        })
+        .map((stream) => {
+          const src = new URL(stream.url);
+
+          return {
+            src: stream.url,
+            type: stream.mime_type ?? undefined,
+            label: stream.label ?? undefined,
+            offset: !isDirect(src),
+            duration,
+          };
+        })
+    );
+
+    function getDefaultLanguageCode() {
+      let languageCode = window.navigator.language;
+
+      if (languageCode.indexOf("-") !== -1) {
+        languageCode = languageCode.split("-")[0];
+      }
+
+      if (languageCode.indexOf("_") !== -1) {
+        languageCode = languageCode.split("_")[0];
+      }
+
+      return languageCode;
+    }
+
+    if (scene.captions && scene.captions.length > 0) {
+      const languageCode = getDefaultLanguageCode();
+      let hasDefault = false;
+      let defaultTrackSrc = null;
+      let defaultLang = 'en';
+
+      for (let caption of scene.captions) {
+        const lang = caption.language_code;
+        let label = lang;
+        if (languageMap.has(lang)) {
+          label = languageMap.get(lang)!;
+        }
+
+        label = label + " (" + caption.caption_type + ")";
+        const setAsDefault = !hasDefault && languageCode == lang;
+        const trackSrc = `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`;
+        
+        if (setAsDefault) {
+          hasDefault = true;
+          defaultTrackSrc = trackSrc;
+          defaultLang = lang;
+        }
+        
+        // 原生字幕默认不显示，由增强字幕按钮控制增强字幕
+        sourceSelector.addTextTrack(
+          {
+            src: trackSrc,
+            kind: "captions",
+            srclang: lang,
+            label: label,
+            default: false, // 不自动显示原生字幕
+          },
+          false
+        );
+      }
+      
+      // Set the default or first track for enhanced subtitles
+      if (defaultTrackSrc) {
+        setCurrentSubtitleTrack(defaultTrackSrc);
+        setSubtitleLanguage(defaultLang);
+      } else if (scene.captions.length > 0) {
+        const firstCaption = scene.captions[0];
+        setCurrentSubtitleTrack(
+          `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`
+        );
+        setSubtitleLanguage(firstCaption.language_code);
+      }
+    } else {
+      // 没有字幕时，重置字幕轨道为null
+      setCurrentSubtitleTrack(null);
+    }
+
+    auto.current =
+      autoplay ||
+      (interfaceConfig?.autostartVideo ?? false) ||
+      initialTimestamp > 0;
+
+    const alwaysStartFromBeginning =
+      uiConfig?.alwaysStartFromBeginning ?? false;
+    const resumeTime = scene.resume_time ?? 0;
+
+    let startPosition = initialTimestamp;
+    if (
+      !startPosition &&
+      !alwaysStartFromBeginning &&
+      file.duration > resumeTime
+    ) {
+      startPosition = resumeTime;
+    }
+
+    setTime(startPosition);
+
+    player.load();
+    player.focus();
+
+    player.ready(() => {
+      player.vttThumbnails().src(scene.paths.vtt ?? null);
+
+      if (startPosition) {
+        player.currentTime(startPosition);
+      }
+    });
+
+    started.current = false;
+  }, [
+    getPlayer,
+    file,
+    scene.id,
+    scene.captions,
+    scene.paths.caption,
+    scene.resume_time,
+    scene.sceneStreams,
+    scene.paths.vtt,
+    interactiveClient,
+    autoplay,
+    interfaceConfig?.autostartVideo,
+    uiConfig?.alwaysStartFromBeginning,
+    uiConfig?.disableMobileMediaAutoRotateEnabled,
+    initialTimestamp,
+    setReady,
+    setTime,
+    setCurrentSubtitleTrack,
+    setSubtitleLanguage,
+    auto,
+    started,
+    sceneId,
+  ]);
+
+  const loadMarkers = (player: VideoJsPlayer) => {
+    const markerData = scene.scene_markers.map((marker) => ({
+      title: getMarkerTitle(marker as MarkerFragment),
+      seconds: marker.seconds,
+      end_seconds: marker.end_seconds ?? null,
+      primaryTag: marker.primary_tag,
+    }));
+
+    const markers = player.markers();
+
+    const uniqueTagNames = markerData
+      .map((marker) => marker.primaryTag.name)
+      .filter((value, index, self) => self.indexOf(value) === index);
+
+    // Wait for colors
+    markers.findColors(uniqueTagNames);
+
+    const showRangeTags =
+      !ScreenUtils.isMobile() && (uiConfig?.showRangeMarkers ?? true);
+    const timestampMarkers: IMarker[] = [];
+    const rangeMarkers: IMarker[] = [];
+
+    if (!showRangeTags) {
+      for (const marker of markerData) {
+        timestampMarkers.push(marker);
+      }
+    } else {
+      for (const marker of markerData) {
+        if (marker.end_seconds === null) {
+          timestampMarkers.push(marker);
+        } else {
+          rangeMarkers.push(marker);
+        }
+      }
+    }
+
+    requestAnimationFrame(() => {
+      markers.addDotMarkers(timestampMarkers);
+      markers.addRangeMarkers(rangeMarkers);
+    });
+  };
+
+  useEffect(() => {
+    const player = getPlayer();
+    if (!player) return;
+
+    if (scene.paths.screenshot) {
+      player.poster(scene.paths.screenshot);
+    } else {
+      player.poster("");
+    }
+
+    // Define the event handler outside the useEffect
+    const handleLoadMetadata = () => {
+      loadMarkers(player);
+    };
+
+    // Ensure markers are added after player is fully ready and sources are loaded
+    if (player.readyState() >= 1) {
+      loadMarkers(player);
+    } else {
+      player.on("loadedmetadata", handleLoadMetadata);
+    }
+
+    return () => {
+      player.off("loadedmetadata", handleLoadMetadata);
+      const markers = player.markers();
+      markers.clearMarkers();
+    };
+  }, [getPlayer, scene, uiConfig]);
+}
+
