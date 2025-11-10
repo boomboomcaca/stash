@@ -1240,7 +1240,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const subtitleContent = (
     <div 
       ref={subtitleRef}
-      className={`enhanced-subtitle-overlay ${isFullscreen ? 'fullscreen-mode' : ''} ${isDragging ? 'dragging' : ''}`}
+      className={`enhanced-subtitle-overlay ${isFullscreen ? 'fullscreen-mode' : ''} ${isDragging ? 'dragging' : ''} ${isPortrait ? 'portrait-mode' : 'landscape-mode'}`}
       style={{
         transform: `translateX(-50%) translateY(${dragPosition.y}px)`,
       }}

@@ -1,7 +1,5 @@
 .enhanced-subtitle-overlay {
   position: absolute;
-  top: auto;
-  bottom: 15%;
   left: 47%;
   transform: translateX(-50%);
   z-index: 1002; // 高于视频控制栏的1001，确保横屏时字幕在控制栏上方
@@ -13,6 +11,18 @@
   text-align: center; // 让字幕文本框在容器内居中显示
   overflow: visible; // 确保 AP 图标不会被裁剪
   
+  // 横屏模式：底部固定（默认）
+  &.landscape-mode {
+    top: auto;
+    bottom: 15%;
+  }
+  
+  // 竖屏模式：顶部固定
+  &.portrait-mode {
+    top: 15%;
+    bottom: auto;
+  }
+  
   &.dragging {
     cursor: grabbing;
     z-index: 1003; // Elevate during drag
@@ -20,13 +30,23 @@
 
   &.fullscreen-mode {
     position: fixed;
-    top: auto;
-    bottom: 10%;
     left: 47%;
     transform: translateX(-50%);
     z-index: 99999;
     width: 92%; // 全屏模式固定宽度
     max-width: 92%;
+    
+    // 全屏横屏模式：底部固定
+    &.landscape-mode {
+      top: auto;
+      bottom: 10%;
+    }
+    
+    // 全屏竖屏模式：顶部固定
+    &.portrait-mode {
+      top: 10%;
+      bottom: auto;
+    }
     
     &.dragging {
       z-index: 100000; // Higher z-index for fullscreen drag

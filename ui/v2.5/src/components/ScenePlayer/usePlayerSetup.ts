@@ -72,7 +72,7 @@ export function usePlayerSetup({
       },
       nativeControlsForTouch: false,
       playbackRates: [0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20],
-      inactivityTimeout: 2000,
+      inactivityTimeout: 3000,
       preload: "metadata",
       playsinline: true,
       techOrder: ["chromecast", "html5"],

@@ -60,7 +60,7 @@ export function useControlBarManagement({
       }
       player.userActive(true);
       
-      // 2秒后自动隐藏并重新锁定
+      // 3秒后自动隐藏并重新锁定
       unlockTimerRef.current = window.setTimeout(() => {
         // 清除控制栏可见标记
         controlBarVisibleRef.current = false;
@@ -79,7 +79,7 @@ export function useControlBarManagement({
         playerEl.classList.add('vjs-controls-locked-hidden');
         
         unlockTimerRef.current = null;
-      }, 2000);
+      }, 3000);
     }
   }, [getPlayer, showEnhancedSubtitlesRef]);
 
