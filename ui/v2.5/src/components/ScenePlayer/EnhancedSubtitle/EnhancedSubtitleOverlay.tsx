@@ -1203,7 +1203,6 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
             {dictionary.definitions.map((def, index) => (
               <div key={index} className="definition">
                 <div className="pos-phonetic-line">
-                  <span className="pos-tag">{def.partOfSpeech}</span>
                   {dictionary.pronunciation && index === 0 && (
                     <span 
                       className="phonetic clickable" 
@@ -1213,6 +1212,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
                       [{dictionary.pronunciation}]
                     </span>
                   )}
+                  <span className="pos-tag">{def.partOfSpeech}</span>
                 </div>
                 <div className="meaning">
                   {def.meaning.split('\n').map((line, lineIndex) => (
