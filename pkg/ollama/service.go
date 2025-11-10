@@ -35,7 +35,7 @@ func DefaultConfig() *OllamaConfig {
 		PromptTemplate: `请严格按照以下格式回答，不要添加额外的标题、分割线或格式：
 
 **美音音标：** [音标]
-**词性：** [词性名称：<WORD>的中文翻译]
+**词性：** [词性名称：单词<WORD>所有的中文翻译]
 **含义：** [解释一下这句话中这个词的用法<WORD>： <CONTEXT>]
 **用法说明：** [解释一下这句话中这个词的语法<WORD>： <CONTEXT>]
 
