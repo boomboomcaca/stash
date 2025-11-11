@@ -1165,6 +1165,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       >
         <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span className="word-text">{selectedWord}</span>
+          {dictionary?.pronunciation && (
+            <span 
+              className="phonetic clickable" 
+              onClick={() => selectedWord && handlePronunciation(selectedWord)}
+              title="点击播放发音"
+            >
+              [{dictionary.pronunciation}]
+            </span>
+          )}
           <button
             className={`favorite-toggle-btn ${isFavorite ? 'favorited' : ''}`}
             onClick={toggleFavorite}
@@ -1203,15 +1212,6 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
             {dictionary.definitions.map((def, index) => (
               <div key={index} className="definition">
                 <div className="pos-phonetic-line">
-                  {dictionary.pronunciation && index === 0 && (
-                    <span 
-                      className="phonetic clickable" 
-                      onClick={() => selectedWord && handlePronunciation(selectedWord)}
-                      title="点击播放发音"
-                    >
-                      [{dictionary.pronunciation}]
-                    </span>
-                  )}
                   <span className="pos-tag">{def.partOfSpeech}</span>
                 </div>
                 <div className="meaning">

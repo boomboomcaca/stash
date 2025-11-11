@@ -196,12 +196,14 @@ input SceneDestroyInput {
   id: ID!
   delete_file: Boolean
   delete_generated: Boolean
+  delete_subtitles: Boolean
 }
 
 input ScenesDestroyInput {
   ids: [ID!]!
   delete_file: Boolean
   delete_generated: Boolean
+  delete_subtitles: Boolean
 }
 
 type FindScenesResultType {

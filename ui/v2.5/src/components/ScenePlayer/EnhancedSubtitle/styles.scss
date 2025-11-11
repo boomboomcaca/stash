@@ -351,6 +351,24 @@
         font-weight: 600;
         color: var(--bs-light);
       }
+        
+        // 标题中的发音样式（与释义区域保持一致）
+        .phonetic {
+          font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif;
+          font-size: 1.3rem;
+          color: rgba(100, 180, 255, 1);
+          font-weight: 500;
+          transition: all 0.2s ease;
+          
+          &.clickable {
+            cursor: pointer;
+            
+            &:hover {
+              color: rgba(120, 200, 255, 1);
+              text-decoration: underline;
+            }
+          }
+        }
       
       .language-badge {
         background: var(--bs-primary);
@@ -470,6 +488,10 @@
       .modal-title {
         .word-text {
           font-size: 1.3rem;
+        }
+        
+        .phonetic {
+          font-size: 1.2rem;
         }
       }
     }
@@ -592,6 +614,10 @@ body.subtitle-dragging {
         
         .word-text {
           font-size: 1.2rem;
+        }
+        
+        .phonetic {
+          font-size: 1.1rem;
         }
         
         .language-badge {

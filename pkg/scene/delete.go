@@ -109,21 +109,32 @@ func (d *FileDeleter) MarkMarkerFiles(scene *models.Scene, seconds int) error {
 
 // Destroy deletes a scene and its associated relationships from the
 // database.
-func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter, deleteGenerated, deleteFile bool) error {
-	mqb := s.MarkerRepository
-	markers, err := mqb.FindBySceneID(ctx, scene.ID)
-	if err != nil {
-		return err
-	}
-
-	for _, m := range markers {
-		if err := DestroyMarker(ctx, scene, m, mqb, fileDeleter); err != nil {
+func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter, deleteGenerated, deleteFile, deleteSubtitles bool) error {
+	// Only delete markers if we're actually deleting the scene
+	// If only deleting subtitles or generated files, keep the markers
+	if deleteFile {
+		mqb := s.MarkerRepository
+		markers, err := mqb.FindBySceneID(ctx, scene.ID)
+		if err != nil {
 			return err
+		}
+
+		for _, m := range markers {
+			if err := DestroyMarker(ctx, scene, m, mqb, fileDeleter); err != nil {
+				return err
+			}
 		}
 	}
 
 	if deleteFile {
-		if err := s.deleteFiles(ctx, scene, fileDeleter); err != nil {
+		if err := s.deleteFiles(ctx, scene, fileDeleter, deleteSubtitles); err != nil {
+			return err
+		}
+	}
+
+	// Delete subtitle files independently if requested
+	if deleteSubtitles && !deleteFile {
+		if err := s.deleteSubtitlesOnly(ctx, scene, fileDeleter); err != nil {
 			return err
 		}
 	}
@@ -134,15 +145,19 @@ func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter 
 		}
 	}
 
-	if err := s.Repository.Destroy(ctx, scene.ID); err != nil {
-		return err
+	// Only destroy the scene record if we're actually deleting the scene file
+	// If only deleting subtitles or generated files, keep the scene record
+	if deleteFile {
+		if err := s.Repository.Destroy(ctx, scene.ID); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 // deleteFiles deletes files from the database and file system
-func (s *Service) deleteFiles(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter) error {
+func (s *Service) deleteFiles(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter, deleteSubtitles bool) error {
 	if err := scene.LoadFiles(ctx, s.Repository); err != nil {
 		return err
 	}
@@ -176,6 +191,27 @@ func (s *Service) deleteFiles(ctx context.Context, scene *models.Scene, fileDele
 				}
 			}
 
+			// delete caption/subtitle files if they exist and deleteSubtitles is true
+			if deleteSubtitles {
+				if err := s.deleteCaptionFiles(ctx, f, fileDeleter); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// deleteSubtitlesOnly deletes only subtitle files without deleting the video files
+func (s *Service) deleteSubtitlesOnly(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter) error {
+	if err := scene.LoadFiles(ctx, s.Repository); err != nil {
+		return err
+	}
+
+	for _, f := range scene.Files.List() {
+		// don't delete files in zip archives
+		if f.ZipFileID == nil {
 			// delete caption/subtitle files if they exist
 			if err := s.deleteCaptionFiles(ctx, f, fileDeleter); err != nil {
 				return err

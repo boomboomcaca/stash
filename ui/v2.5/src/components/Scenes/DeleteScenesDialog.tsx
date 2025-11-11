@@ -42,6 +42,7 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
   const [deleteGenerated, setDeleteGenerated] = useState<boolean>(
     config?.defaults.deleteGenerated ?? true
   );
+  const [deleteSubtitles, setDeleteSubtitles] = useState<boolean>(false);
 
   const Toast = useToast();
   const [deleteScene] = useScenesDestroy(getScenesDeleteInput());
@@ -54,6 +55,7 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
       ids: props.selected.map((scene) => scene.id),
       delete_file: deleteFile,
       delete_generated: deleteGenerated,
+      delete_subtitles: deleteSubtitles,
     };
   }
 
@@ -160,6 +162,14 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
             id: "actions.delete_generated_supporting_files",
           })}
           onChange={() => setDeleteGenerated(!deleteGenerated)}
+        />
+        <Form.Check
+          id="delete-subtitles"
+          checked={deleteSubtitles}
+          label={intl.formatMessage({
+            id: "actions.delete_subtitle_files",
+          })}
+          onChange={() => setDeleteSubtitles(!deleteSubtitles)}
         />
       </Form>
     </ModalComponent>

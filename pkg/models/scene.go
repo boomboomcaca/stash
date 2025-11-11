@@ -203,12 +203,14 @@ type SceneDestroyInput struct {
 	ID              string `json:"id"`
 	DeleteFile      *bool  `json:"delete_file"`
 	DeleteGenerated *bool  `json:"delete_generated"`
+	DeleteSubtitles *bool  `json:"delete_subtitles"`
 }
 
 type ScenesDestroyInput struct {
 	Ids             []string `json:"ids"`
 	DeleteFile      *bool    `json:"delete_file"`
 	DeleteGenerated *bool    `json:"delete_generated"`
+	DeleteSubtitles *bool    `json:"delete_subtitles"`
 }
 
 func NewSceneQueryResult(getter SceneGetter) *SceneQueryResult {
