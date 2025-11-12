@@ -86,12 +86,14 @@ mutation SceneDestroy(
   $id: ID!
   $delete_file: Boolean
   $delete_generated: Boolean
+  $delete_subtitles: Boolean
 ) {
   sceneDestroy(
     input: {
       id: $id
       delete_file: $delete_file
       delete_generated: $delete_generated
+      delete_subtitles: $delete_subtitles
     }
   )
 }
@@ -100,12 +102,14 @@ mutation ScenesDestroy(
   $ids: [ID!]!
   $delete_file: Boolean
   $delete_generated: Boolean
+  $delete_subtitles: Boolean
 ) {
   scenesDestroy(
     input: {
       ids: $ids
       delete_file: $delete_file
       delete_generated: $delete_generated
+      delete_subtitles: $delete_subtitles
     }
   )
 }
