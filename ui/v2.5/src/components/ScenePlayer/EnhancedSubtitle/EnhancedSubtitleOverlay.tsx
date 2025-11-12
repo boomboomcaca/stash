@@ -1357,7 +1357,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       }}
     >
       <div 
-        className={`subtitle-text ${!currentCue ? 'no-content' : ''}`}
+        className={`subtitle-text ${!currentCue ? 'no-content' : ''} ${isPlayerPaused ? 'player-paused' : ''}`}
         title={
           isDragging 
             ? (dragMode === 'size' ? `Resizing... (${Math.round(fontSize * 100)}%)` : "Moving...") 
