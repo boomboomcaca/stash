@@ -8,6 +8,10 @@ import { playWordPronunciation } from './pronunciation';
 import { getFavorites, addFavorite, removeFavorite, checkFavorite, FavoriteWord } from './favorites';
 import './styles.scss';
 
+const AUTO_PAUSE_THRESHOLD = 0.3;
+
+const getCueSignature = (cue: SubtitleCue) => `${cue.startTime}-${cue.endTime}-${cue.text}`;
+
 interface EnhancedSubtitleOverlayProps {
   currentTime: number;
   subtitleTrack: string | null;
@@ -88,6 +92,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const lastPausedStateRef = useRef<boolean | null>(null);
   const userResumedPlaybackRef = useRef(false);
   const lastCurrentTimeRef = useRef<number>(0); // Track last currentTime to detect replays
+  const autoPauseTimeoutRef = useRef<number | null>(null);
+  const scheduledCueSignatureRef = useRef<string | null>(null);
+  const currentCueRef = useRef<SubtitleCue | null>(null);
+  const autoPauseEnabledRef = useRef<boolean>(autoPauseEnabled);
+  const getPlayerPausedRef = useRef<typeof getPlayerPaused>(getPlayerPaused);
+  const onPausePlayerRef = useRef<typeof onPausePlayer>(onPausePlayer);
   const lastUpArrowPressRef = useRef<number>(0);
   const lastDownArrowPressRef = useRef<number>(0);
   
@@ -555,6 +565,100 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     };
   }, [subtitleTrack, parseVTT, onSubtitlesLoaded]);
 
+  const clearAutoPauseTimeout = useCallback(() => {
+    if (autoPauseTimeoutRef.current !== null) {
+      clearTimeout(autoPauseTimeoutRef.current);
+      autoPauseTimeoutRef.current = null;
+    }
+    scheduledCueSignatureRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => clearAutoPauseTimeout();
+  }, [clearAutoPauseTimeout]);
+
+  useEffect(() => {
+    autoPauseEnabledRef.current = autoPauseEnabled;
+    if (!autoPauseEnabled) {
+      clearAutoPauseTimeout();
+    }
+  }, [autoPauseEnabled, clearAutoPauseTimeout]);
+
+  useEffect(() => {
+    getPlayerPausedRef.current = getPlayerPaused;
+  }, [getPlayerPaused]);
+
+  useEffect(() => {
+    onPausePlayerRef.current = onPausePlayer;
+  }, [onPausePlayer]);
+
+  useEffect(() => {
+    currentCueRef.current = currentCue;
+  }, [currentCue]);
+
+  const attemptAutoPause = useCallback(
+    (reason: 'timer' | 'threshold') => {
+      if (!autoPauseEnabledRef.current) {
+        return;
+      }
+
+      const pausePlayer = onPausePlayerRef.current;
+      const getPaused = getPlayerPausedRef.current;
+
+      if (!pausePlayer || !getPaused) {
+        return;
+      }
+
+      if (autoPauseTriggeredRef.current || userResumedPlaybackRef.current) {
+        return;
+      }
+
+      if (getPaused()) {
+        return;
+      }
+
+      console.log(
+        reason === 'timer'
+          ? '🎬 Auto-pausing before subtitle ends (scheduled)'
+          : '🎬 Auto-pausing before subtitle ends'
+      );
+      pausePlayer();
+      autoPauseTriggeredRef.current = true;
+      setIsAutoPaused(true);
+      clearAutoPauseTimeout();
+    },
+    [clearAutoPauseTimeout]
+  );
+
+  const scheduleAutoPause = useCallback(
+    (cue: SubtitleCue, timeUntilEnd: number) => {
+      const delayMs = Math.max((timeUntilEnd - AUTO_PAUSE_THRESHOLD) * 1000, 0);
+      const cueSignature = getCueSignature(cue);
+
+      if (scheduledCueSignatureRef.current === cueSignature && autoPauseTimeoutRef.current !== null) {
+        return;
+      }
+
+      clearAutoPauseTimeout();
+      scheduledCueSignatureRef.current = cueSignature;
+      autoPauseTimeoutRef.current = setTimeout(() => {
+        if (scheduledCueSignatureRef.current !== cueSignature) {
+          return;
+        }
+
+        const activeCue = currentCueRef.current;
+        const activeCueSignature = activeCue ? getCueSignature(activeCue) : null;
+
+        if (activeCueSignature !== cueSignature) {
+          return;
+        }
+
+        attemptAutoPause('timer');
+      }, delayMs);
+    },
+    [attemptAutoPause, clearAutoPauseTimeout]
+  );
+
   // Find current subtitle cue and handle auto-pause
   // 🚀 性能优化：使用 useMemo 缓存字幕查找结果，避免每次 currentTime 更新都重新查找
   const currentCueData = useMemo(() => {
@@ -628,6 +732,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           autoPauseTriggeredRef.current = false;
           userResumedPlaybackRef.current = false;
           setIsAutoPaused(false);
+          clearAutoPauseTimeout();
         }
       }
       
@@ -641,6 +746,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         setIsAutoPaused(false); // Clear auto-paused state for new subtitle
         lastCueRef.current = cue;
         lastPausedStateRef.current = isPaused; // Initialize paused state for new subtitle
+        clearAutoPauseTimeout();
       }
       
       // Detect if user manually paused playback (not auto-paused)
@@ -667,6 +773,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           setIsAutoPaused(false); // Clear auto-paused state when user resumes
           lastPausedStateRef.current = isPaused;
           // Don't check for auto-pause in this cycle since user just resumed
+          clearAutoPauseTimeout();
           return;
         } else if (autoPauseTriggeredRef.current && !isAutoPaused) {
           // If autoPauseTriggeredRef is true but isAutoPaused is false,
@@ -674,6 +781,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           console.log('🎬 User resumed playback after manual pause, resetting auto-pause flags');
           autoPauseTriggeredRef.current = false;
           userResumedPlaybackRef.current = false;
+          clearAutoPauseTimeout();
         }
       }
       
@@ -682,14 +790,16 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       // If we have a current cue and haven't triggered pause yet and user hasn't manually resumed
       if (cue && !autoPauseTriggeredRef.current && !userResumedPlaybackRef.current && !isPaused) {
         const timeUntilEnd = cue.endTime - currentTime;
-        const pauseThreshold = 0.3; // Pause 0.3 seconds before subtitle ends
-        
-        if (timeUntilEnd <= pauseThreshold && timeUntilEnd > 0) {
-          console.log('🎬 Auto-pausing before subtitle ends');
-          onPausePlayer();
-          autoPauseTriggeredRef.current = true;
-          setIsAutoPaused(true); // Set auto-paused state when pausing
+
+        if (timeUntilEnd <= 0) {
+          clearAutoPauseTimeout();
+        } else if (timeUntilEnd <= AUTO_PAUSE_THRESHOLD) {
+          attemptAutoPause('threshold');
+        } else {
+          scheduleAutoPause(cue, timeUntilEnd);
         }
+      } else {
+        clearAutoPauseTimeout();
       }
       
       // Clear last cue when no cue is active
@@ -698,6 +808,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         autoPauseTriggeredRef.current = false;
         userResumedPlaybackRef.current = false;
         setIsAutoPaused(false); // Clear auto-paused state when no subtitle
+        clearAutoPauseTimeout();
       }
     }
     
