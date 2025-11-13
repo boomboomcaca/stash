@@ -23,6 +23,7 @@ export function useControlBarManagement({
   hideControlBarRef,
 }: UseControlBarManagementProps) {
   const unlockTimerRef = useRef<number | null>(null);
+  const originalReportUserActivityRef = useRef<((event?: Event) => void) | null>(null);
 
   // 临时解锁控制栏的函数（由AP图标双击调用）
   const temporarilyUnlockControlBar = useCallback(() => {
@@ -132,7 +133,15 @@ export function useControlBarManagement({
       
       // 修改Video.js的用户活跃检测机制
       // 允许键盘事件触发用户活跃，但保持控制栏锁定
-      const originalReportUserActivity = (player as any).reportUserActivity;
+      // 保存原始的 reportUserActivity 方法（如果还没有保存）
+      if (!originalReportUserActivityRef.current) {
+        originalReportUserActivityRef.current = (player as any).reportUserActivity;
+      }
+      const originalReportUserActivity = originalReportUserActivityRef.current;
+      
+      if (!originalReportUserActivity) {
+        return;
+      }
       
       (player as any).reportUserActivity = function(this: typeof player, event?: Event) {
         const playerEl = player.el();
@@ -182,7 +191,9 @@ export function useControlBarManagement({
       
       // 清理函数：恢复原始方法
       return () => {
-        (player as any).reportUserActivity = originalReportUserActivity;
+        if (originalReportUserActivityRef.current) {
+          (player as any).reportUserActivity = originalReportUserActivityRef.current;
+        }
         
         // 清理焦点管理
         const playerEl = player.el();
@@ -193,6 +204,12 @@ export function useControlBarManagement({
       };
     } else {
       // 增强字幕关闭时，解除锁定
+      
+      // 恢复原始的 reportUserActivity 方法
+      if (originalReportUserActivityRef.current) {
+        (player as any).reportUserActivity = originalReportUserActivityRef.current;
+        originalReportUserActivityRef.current = null;
+      }
       
       // 清除临时解锁计时器（如果有）
       if (unlockTimerRef.current) {
@@ -217,6 +234,7 @@ export function useControlBarManagement({
       if ((player as any).reportUserActivity) {
         (player as any).reportUserActivity(new Event('useractive'));
       }
+      player.userActive(true);
       
     }
   }, [getPlayer, showEnhancedSubtitles]);

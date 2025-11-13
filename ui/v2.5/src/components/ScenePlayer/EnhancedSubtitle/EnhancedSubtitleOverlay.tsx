@@ -8,7 +8,7 @@ import { playWordPronunciation } from './pronunciation';
 import { getFavorites, addFavorite, removeFavorite, checkFavorite, FavoriteWord } from './favorites';
 import './styles.scss';
 
-const AUTO_PAUSE_THRESHOLD = 0.3;
+const AUTO_PAUSE_THRESHOLD = 0.1;
 
 const getCueSignature = (cue: SubtitleCue) => `${cue.startTime}-${cue.endTime}-${cue.text}`;
 
@@ -98,6 +98,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const autoPauseEnabledRef = useRef<boolean>(autoPauseEnabled);
   const getPlayerPausedRef = useRef<typeof getPlayerPaused>(getPlayerPaused);
   const onPausePlayerRef = useRef<typeof onPausePlayer>(onPausePlayer);
+  const onGetPlayerRef = useRef<typeof onGetPlayer>(onGetPlayer);
   const lastUpArrowPressRef = useRef<number>(0);
   const lastDownArrowPressRef = useRef<number>(0);
   
@@ -593,6 +594,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, [onPausePlayer]);
 
   useEffect(() => {
+    onGetPlayerRef.current = onGetPlayer;
+  }, [onGetPlayer]);
+
+  useEffect(() => {
     currentCueRef.current = currentCue;
   }, [currentCue]);
 
@@ -632,7 +637,23 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
 
   const scheduleAutoPause = useCallback(
     (cue: SubtitleCue, timeUntilEnd: number) => {
-      const delayMs = Math.max((timeUntilEnd - AUTO_PAUSE_THRESHOLD) * 1000, 0);
+      // Get playback rate to adjust delay for speed playback
+      let playbackRate = 1;
+      const getPlayer = onGetPlayerRef.current;
+      if (getPlayer) {
+        try {
+          const player = getPlayer();
+          if (player && typeof player.playbackRate === 'function') {
+            playbackRate = player.playbackRate() || 1;
+          }
+        } catch (error) {
+          console.warn('[EnhancedSubtitle] Failed to get playback rate:', error);
+        }
+      }
+
+      // Calculate delay in video time, then divide by playback rate to get real time
+      const videoTimeDelay = Math.max(timeUntilEnd - AUTO_PAUSE_THRESHOLD, 0);
+      const delayMs = (videoTimeDelay * 1000) / playbackRate;
       const cueSignature = getCueSignature(cue);
 
       if (scheduledCueSignatureRef.current === cueSignature && autoPauseTimeoutRef.current !== null) {
