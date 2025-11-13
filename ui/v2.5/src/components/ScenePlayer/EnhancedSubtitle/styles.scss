@@ -256,16 +256,16 @@
     }
 
     &.auto-pause-paused {
-      border-color: rgba(250, 204, 21, 0.9); // 黄色边框 - 自动暂停生效
+      border-color: rgba(255, 255, 0, 0.9); // 黄色边框 - 自动暂停生效，与字幕一致
       background: rgba(0, 0, 0, 0.75);
 
       &:hover {
-        border-color: rgba(250, 204, 21, 1);
-        box-shadow: 0 0 12px rgba(250, 204, 21, 0.6);
+        border-color: rgba(255, 255, 0, 1);
+        box-shadow: 0 0 12px rgba(255, 255, 0, 0.6);
       }
 
       .drag-dots {
-        color: rgba(250, 204, 21, 1); // 黄色文字
+        color: #ffff00; // 黄色文字，与字幕一致
       }
     }
 
