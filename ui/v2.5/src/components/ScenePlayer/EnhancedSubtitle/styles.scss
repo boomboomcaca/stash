@@ -71,16 +71,6 @@
       border-radius: 8px;
       margin-left: 60px; // 为 AP 图标预留空间
       
-      &.player-paused {
-        border: 2px solid rgba(239, 68, 68, 0.95);
-        box-shadow: 0 0 12px rgba(239, 68, 68, 0.45);
-
-        &.no-content {
-          border: none;
-          box-shadow: none;
-        }
-      }
-
       // 全屏模式支持自动换行，完整显示字幕
       white-space: pre-wrap;
       
@@ -126,16 +116,6 @@
     padding: 6px;
     border-radius: 8px;
     
-    &.player-paused {
-      border: 2px solid rgba(239, 68, 68, 0.95);
-      box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
-
-      &.no-content {
-        border: none;
-        box-shadow: none;
-      }
-    }
-
     // 支持自动换行，完整显示字幕内容
     white-space: pre-wrap;
     cursor: grab;
@@ -261,20 +241,34 @@
     }
     
     // Auto-paused state (currently paused by auto-pause or manually)
-    &.auto-pause-paused {
-      border-color: rgba(239, 68, 68, 0.9); // 红色边框 (red-500) - 正在暂停
-      background: rgba(0, 0, 0, 0.75); // 保持一致的黑色背景
-      
+    &.manual-paused {
+      border-color: rgba(239, 68, 68, 0.9); // 红色边框 (red-500) - 手动暂停
+      background: rgba(0, 0, 0, 0.75);
+
       &:hover {
         border-color: rgba(239, 68, 68, 1);
         box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
       }
-      
+
       .drag-dots {
         color: rgba(239, 68, 68, 1); // 红色文字
       }
     }
-    
+
+    &.auto-pause-paused {
+      border-color: rgba(250, 204, 21, 0.9); // 黄色边框 - 自动暂停生效
+      background: rgba(0, 0, 0, 0.75);
+
+      &:hover {
+        border-color: rgba(250, 204, 21, 1);
+        box-shadow: 0 0 12px rgba(250, 204, 21, 0.6);
+      }
+
+      .drag-dots {
+        color: rgba(250, 204, 21, 1); // 黄色文字
+      }
+    }
+
     .drag-dots {
       display: inline-block;
       color: rgba(156, 163, 175, 0.9); // 灰色文字 - 未启用

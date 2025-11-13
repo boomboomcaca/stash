@@ -1378,7 +1378,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       }}
     >
       <div 
-        className={`subtitle-text ${!currentCue ? 'no-content' : ''} ${isPlayerPaused ? 'player-paused' : ''}`}
+        className={`subtitle-text ${!currentCue ? 'no-content' : ''}`}
         title={
           isDragging 
             ? (dragMode === 'size' ? `Resizing... (${Math.round(fontSize * 100)}%)` : "Moving...") 
@@ -1391,7 +1391,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       >
         {/* Auto-pause toggle button with drag support - 增强字幕开启时一直显示 */}
         <div 
-          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${isAutoPaused ? 'auto-pause-paused' : ''}`}
+          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${isAutoPaused ? 'auto-pause-paused' : ''} ${isPlayerPaused && !isAutoPaused ? 'manual-paused' : ''}`}
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
