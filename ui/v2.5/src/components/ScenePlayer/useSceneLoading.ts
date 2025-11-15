@@ -110,17 +110,7 @@ export function useSceneLoading({
     );
 
     function getDefaultLanguageCode() {
-      let languageCode = window.navigator.language;
-
-      if (languageCode.indexOf("-") !== -1) {
-        languageCode = languageCode.split("-")[0];
-      }
-
-      if (languageCode.indexOf("_") !== -1) {
-        languageCode = languageCode.split("_")[0];
-      }
-
-      return languageCode;
+      return window.navigator.language.split(/[-_]/)[0];
     }
 
     if (scene.captions && scene.captions.length > 0) {
@@ -131,12 +121,7 @@ export function useSceneLoading({
 
       for (let caption of scene.captions) {
         const lang = caption.language_code;
-        let label = lang;
-        if (languageMap.has(lang)) {
-          label = languageMap.get(lang)!;
-        }
-
-        label = label + " (" + caption.caption_type + ")";
+        const label = `${languageMap.get(lang) || lang} (${caption.caption_type})`;
         const setAsDefault = !hasDefault && languageCode == lang;
         const trackSrc = `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`;
         
@@ -152,8 +137,8 @@ export function useSceneLoading({
             src: trackSrc,
             kind: "captions",
             srclang: lang,
-            label: label,
-            default: false, // 不自动显示原生字幕
+            label,
+            default: false,
           },
           false
         );
@@ -163,7 +148,7 @@ export function useSceneLoading({
       if (defaultTrackSrc) {
         setCurrentSubtitleTrack(defaultTrackSrc);
         setSubtitleLanguage(defaultLang);
-      } else if (scene.captions.length > 0) {
+      } else {
         const firstCaption = scene.captions[0];
         setCurrentSubtitleTrack(
           `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`

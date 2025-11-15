@@ -359,10 +359,25 @@ func (s *Server) Start() error {
 }
 
 // Shutdown gracefully shuts down the server without interrupting any active connections.
+// It waits up to 30 seconds for active connections to complete before forcing shutdown.
 func (s *Server) Shutdown() {
-	err := s.Server.Shutdown(context.TODO())
+	// Give 30 seconds for graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	
+	err := s.Server.Shutdown(ctx)
 	if err != nil {
-		logger.Errorf("Error shutting down HTTP server: %v", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			logger.Warnf("Server shutdown timeout after 30s, forcing close")
+			// Force close remaining connections
+			if closeErr := s.Server.Close(); closeErr != nil {
+				logger.Errorf("Error forcing server close: %v", closeErr)
+			}
+		} else {
+			logger.Errorf("Error shutting down HTTP server: %v", err)
+		}
+	} else {
+		logger.Info("HTTP server shutdown gracefully")
 	}
 }
 

@@ -112,63 +112,44 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     minWordLength: 1
   }));
   
-  // Load font size and auto-pause setting from localStorage (position handled separately per orientation)
-  useEffect(() => {
-    const savedFontSize = localStorage.getItem('enhancedSubtitleFontSize');
-    if (savedFontSize) {
-      try {
-        const size = parseFloat(savedFontSize);
-        if (size >= 0.5 && size <= 3.0) { // Reasonable bounds for font size
-          setFontSize(size);
-          setLastSavedFontSize(size);
-        }
-      } catch (error) {
-        console.error('Failed to parse saved subtitle font size:', error);
-      }
+  // Helper: Load config from localStorage with type safety
+  const loadConfig = <T,>(key: string, defaultValue: T, parser?: (value: string) => T): T => {
+    try {
+      const saved = localStorage.getItem(key);
+      if (!saved) return defaultValue;
+      return parser ? parser(saved) : (saved as unknown as T);
+    } catch {
+      return defaultValue;
     }
+  };
 
-    const savedAutoPause = localStorage.getItem('enhancedSubtitleAutoPause');
-    if (savedAutoPause) {
-      try {
-        setAutoPauseEnabled(savedAutoPause === 'true');
-      } catch (error) {
-        console.error('Failed to parse saved auto-pause setting:', error);
-      }
+  // Load font size and auto-pause setting from localStorage
+  useEffect(() => {
+    const size = loadConfig('enhancedSubtitleFontSize', 1, parseFloat);
+    if (size >= 0.5 && size <= 3.0) {
+      setFontSize(size);
+      setLastSavedFontSize(size);
     }
+    const autoPause = loadConfig('enhancedSubtitleAutoPause', '', (v) => v);
+    setAutoPauseEnabled(autoPause === 'true');
   }, []);
 
   // Orientation-aware load of saved position, with migration from legacy key
   useEffect(() => {
-    try {
-      const legacy = localStorage.getItem('enhancedSubtitlePosition');
-      const portraitKey = 'enhancedSubtitlePosition_portrait';
-      const landscapeKey = 'enhancedSubtitlePosition_landscape';
+    const legacy = localStorage.getItem('enhancedSubtitlePosition');
+    const portraitKey = 'enhancedSubtitlePosition_portrait';
+    const landscapeKey = 'enhancedSubtitlePosition_landscape';
 
-      // Migrate legacy single position to both keys if present and not yet migrated
-      if (legacy) {
-        if (!localStorage.getItem(portraitKey)) {
-          localStorage.setItem(portraitKey, legacy);
-        }
-        if (!localStorage.getItem(landscapeKey)) {
-          localStorage.setItem(landscapeKey, legacy);
-        }
-        // Do not remove legacy to keep backward compatibility, but we no longer read it
-      }
-
-      const key = isPortrait ? portraitKey : landscapeKey;
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        const pos = JSON.parse(saved);
-        setDragPosition(pos);
-        setLastSavedPosition(pos);
-      } else {
-        // No saved position for this orientation; reset to default
-        setDragPosition({ y: 0 });
-        setLastSavedPosition({ y: 0 });
-      }
-    } catch (error) {
-      console.error('Failed to load orientation-specific subtitle position:', error);
+    // Migrate legacy position if present
+    if (legacy && !localStorage.getItem(portraitKey)) {
+      localStorage.setItem(portraitKey, legacy);
+      localStorage.setItem(landscapeKey, legacy);
     }
+
+    const key = isPortrait ? portraitKey : landscapeKey;
+    const position = loadConfig(key, { y: 0 }, JSON.parse);
+    setDragPosition(position);
+    setLastSavedPosition(position);
   }, [isPortrait]);
 
   // Update portrait state on resize/orientation change and swap position without cross-influence

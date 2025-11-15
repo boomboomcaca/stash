@@ -92,6 +92,21 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly SPEED_RATES = [0.25, 0.5, 0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20]; // 支持所有Video.js倍速档位
   private readonly SPEED_STORAGE_KEY = 'stash-video-speed-rate'; // localStorage存储键
 
+  // 辅助函数：统一的播放控制
+  private playIfPaused(): void {
+    if (this.player.paused()) {
+      this.player.play()?.catch(() => {
+        // 静默处理播放失败，避免控制台污染
+      });
+    }
+  }
+
+  // 辅助函数：统一的字幕跳转
+  private jumpToSubtitle(cue: { startTime: number; text: string }): void {
+    this.player.currentTime(cue.startTime);
+    this.playIfPaused();
+  }
+
   // 辅助函数：查找最接近当前时间的字幕索引
   private findNearestCueIndex(
     currentTime: number,
@@ -551,7 +566,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 检查点击次数
       if (this.state.tapCount === 3) {
         // 三连击
-        this.handleTripleTap(x, y);
+        this.handleTripleTap(x);
         this.state.tapCount = 0;
         this.state.lastTapTime = 0;
       } else if (this.state.tapCount === 2) {
@@ -565,7 +580,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       } else if (this.state.tapCount === 1) {
         // 可能是单击，等待看是否有第二击
         this.state.doubleTapTimer = window.setTimeout(() => {
-          this.handleSingleTap(x, y);
+          this.handleSingleTap();
           this.state.tapCount = 0;
           this.state.lastTapTime = 0;
           this.state.doubleTapTimer = null;
@@ -589,7 +604,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       
       // 等待可能的双击或三连击
       this.state.doubleTapTimer = window.setTimeout(() => {
-        this.handleSingleTap(x, y);
+        this.handleSingleTap();
         this.state.tapCount = 0;
         this.state.lastTapTime = 0;
         this.state.doubleTapTimer = null;
@@ -698,18 +713,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     }
   }
 
-  private handleSingleTap(x: number, y: number): void {
-    // 单击切换播放/暂停
-    try {
-      if (this.player.paused()) {
-        this.player.play()?.catch((error) => {
-          console.warn("播放失败:", error);
-        });
-      } else {
-        this.player.pause();
-      }
-    } catch (error) {
-      console.warn("单击操作失败:", error);
+  private handleSingleTap(): void {
+    if (this.player.paused()) {
+      this.player.play()?.catch(() => {});
+    } else {
+      this.player.pause();
     }
   }
 
@@ -724,37 +732,16 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       if (currentIndex === -1 && nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
         // 没有当前字幕，播放上一个字幕
         if (nearestIndex > 0) {
-          const prevCue = this.subtitleCues[nearestIndex - 1];
-          console.log("[MobileTouchControls] 双击播放上一个字幕:", prevCue.text);
-          this.player.currentTime(prevCue.startTime);
-          if (this.player.paused()) {
-            this.player.play()?.catch((error) => {
-              console.warn("播放失败:", error);
-            });
-          }
+          this.jumpToSubtitle(this.subtitleCues[nearestIndex - 1]);
           return;
         } else if (nearestIndex === 0) {
           // 如果 nearestIndex 为 0，说明在第一个字幕之前，直接播放第一个字幕
-          const firstCue = this.subtitleCues[0];
-          console.log("[MobileTouchControls] 双击播放第一个字幕:", firstCue.text);
-          this.player.currentTime(firstCue.startTime);
-          if (this.player.paused()) {
-            this.player.play()?.catch((error) => {
-              console.warn("播放失败:", error);
-            });
-          }
+          this.jumpToSubtitle(this.subtitleCues[0]);
           return;
         }
       } else if (currentIndex >= 0 && nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
         // 有当前字幕，重播当前字幕
-        const currentCue = this.subtitleCues[nearestIndex];
-        console.log("[MobileTouchControls] 双击重播当前字幕:", currentCue.text);
-        this.player.currentTime(currentCue.startTime);
-        if (this.player.paused()) {
-          this.player.play()?.catch((error) => {
-            console.warn("播放失败:", error);
-          });
-        }
+        this.jumpToSubtitle(this.subtitleCues[nearestIndex]);
         return;
       }
     }
@@ -773,49 +760,26 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     }
   }
 
-  private handleTripleTap(x: number, y: number): void {
+  private handleTripleTap(x: number): void {
     // 三连击仅在增强字幕启用时生效
     if (!this.enhancedSubtitlesEnabled || this.subtitleCues.length === 0) {
-      console.log("[MobileTouchControls] 三连击需要增强字幕启用");
       return;
     }
 
-    const playerEl = this.player.el() as HTMLElement;
-    const videoWidth = playerEl?.offsetWidth || 0;
-    const isLeftSide = x < videoWidth / 2;
-    
     const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
     const currentTime = this.player.currentTime() || 0;
     const nearestIndex = this.findNearestCueIndex(currentTime, this.subtitleCues, currentIndex);
     
-    if (isLeftSide) {
+    const playerEl = this.player.el() as HTMLElement;
+    const videoWidth = playerEl?.offsetWidth || 0;
+    const isLeftSide = x < videoWidth / 2;
+    
+    if (isLeftSide && nearestIndex > 0) {
       // 左侧三连击：播放上一个字幕
-      if (nearestIndex > 0) {
-        const prevCue = this.subtitleCues[nearestIndex - 1];
-        console.log("[MobileTouchControls] 三连击左侧，播放上一个字幕:", prevCue.text);
-        this.player.currentTime(prevCue.startTime);
-        if (this.player.paused()) {
-          this.player.play()?.catch((error) => {
-            console.warn("播放失败:", error);
-          });
-        }
-      } else {
-        console.log("[MobileTouchControls] 已经是第一个字幕");
-      }
-    } else {
+      this.jumpToSubtitle(this.subtitleCues[nearestIndex - 1]);
+    } else if (!isLeftSide && nearestIndex < this.subtitleCues.length - 1) {
       // 右侧三连击：播放下一个字幕
-      if (nearestIndex < this.subtitleCues.length - 1) {
-        const nextCue = this.subtitleCues[nearestIndex + 1];
-        console.log("[MobileTouchControls] 三连击右侧，播放下一个字幕:", nextCue.text);
-        this.player.currentTime(nextCue.startTime);
-        if (this.player.paused()) {
-          this.player.play()?.catch((error) => {
-            console.warn("播放失败:", error);
-          });
-        }
-      } else {
-        console.log("[MobileTouchControls] 已经是最后一个字幕");
-      }
+      this.jumpToSubtitle(this.subtitleCues[nearestIndex + 1]);
     }
   }
 
