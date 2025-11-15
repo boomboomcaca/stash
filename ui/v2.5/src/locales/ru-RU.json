@@ -31,6 +31,7 @@
         "delete_file": "Удалить файл",
         "delete_file_and_funscript": "Удалить файл (вместе с funscript)",
         "delete_generated_supporting_files": "Удалить сгенерированные вспомогательные файлы",
+        "delete_subtitle_files": "Удалить файлы субтитров",
         "disallow": "Запретить",
         "download": "Скачать",
         "download_anonymised": "Скачать анонимно",

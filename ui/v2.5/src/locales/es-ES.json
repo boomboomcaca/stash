@@ -31,6 +31,7 @@
         "delete_file": "Eliminar archivo",
         "delete_file_and_funscript": "Eliminar archivo (y funscript)",
         "delete_generated_supporting_files": "Eliminar ficheros de soporte generados",
+        "delete_subtitle_files": "Eliminar archivos de subtítulos",
         "disallow": "No permitir/Denegar",
         "download": "Descargar",
         "download_anonymised": "Descargar anonimizado",

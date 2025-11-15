@@ -33,6 +33,7 @@
         "delete_file": "Supprimer le fichier",
         "delete_file_and_funscript": "Supprimer le fichier (et script interactif)",
         "delete_generated_supporting_files": "Supprimer les fichiers générés associés",
+        "delete_subtitle_files": "Supprimer les fichiers de sous-titres",
         "disallow": "Refuser",
         "download": "Télécharger",
         "download_anonymised": "Téléchargement anonymisé",

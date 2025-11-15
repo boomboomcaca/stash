@@ -41,6 +41,7 @@
     "delete_file": "Delete file",
     "delete_file_and_funscript": "Delete file (and funscript)",
     "delete_generated_supporting_files": "Delete generated supporting files",
+    "delete_subtitle_files": "Delete subtitle files",
     "disable": "Disable",
     "disallow": "Disallow",
     "download": "Download",

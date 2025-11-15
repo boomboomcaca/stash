@@ -3,6 +3,7 @@
         "anonymise": "Anonymize",
         "download_anonymised": "Download anonymized",
         "customise": "Customize",
+        "delete_subtitle_files": "Delete subtitle files",
         "optimise_database": "Optimize Database"
     },
     "config": {

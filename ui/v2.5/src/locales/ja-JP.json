@@ -30,6 +30,7 @@
         "delete_file": "ファイルを削除",
         "delete_file_and_funscript": "ファイルを削除 (ファンスクリプトを含む)",
         "delete_generated_supporting_files": "生成済みのサポートファイルを削除",
+        "delete_subtitle_files": "字幕ファイルを削除",
         "disallow": "拒否",
         "download": "ダウンロード",
         "download_anonymised": "匿名でダウンロード",
