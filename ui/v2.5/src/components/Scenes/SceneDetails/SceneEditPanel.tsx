@@ -161,7 +161,7 @@ export const SceneEditPanel: React.FC<IProps> = ({
     onSubmit: (values) => onSave(schema.cast(values)),
   });
 
-  const { tags, updateTagsStateFromScraper, tagsControl } = useTagsEdit(
+  const { tags, onSetTags, updateTagsStateFromScraper, tagsControl } = useTagsEdit(
     scene.tags,
     (ids) => formik.setFieldValue("tag_ids", ids)
   );
@@ -209,6 +209,33 @@ export const SceneEditPanel: React.FC<IProps> = ({
   function onSetStudio(item: Studio | null) {
     setStudio(item);
     formik.setFieldValue("studio_id", item ? item.id : null);
+  }
+
+  function onClearScrapedInfo() {
+    // 清空所有刮削信息字段
+    formik.setFieldValue("title", "");
+    formik.setFieldValue("code", "");
+    formik.setFieldValue("details", "");
+    formik.setFieldValue("director", "");
+    formik.setFieldValue("date", "");
+    formik.setFieldValue("urls", []);
+    formik.setFieldValue("gallery_ids", []);
+    formik.setFieldValue("studio_id", null);
+    formik.setFieldValue("performer_ids", []);
+    formik.setFieldValue("groups", []);
+    formik.setFieldValue("stash_ids", []);
+    formik.setFieldValue("cover_image", null);
+    
+    // 清空对应的状态
+    setGalleries([]);
+    setStudio(null);
+    setPerformers([]);
+    onSetTags([]);  // 清空标签状态和formik值
+    setGroups([]);
+    
+    Toast.success(
+      intl.formatMessage({ id: "toast.cleared_scraped_info" })
+    );
   }
 
   useEffect(() => {
@@ -709,6 +736,15 @@ export const SceneEditPanel: React.FC<IProps> = ({
             >
               <FormattedMessage id="actions.save" />
             </Button>
+            {!isNew && (
+              <Button
+                className="edit-button"
+                variant="warning"
+                onClick={() => onClearScrapedInfo()}
+              >
+                <FormattedMessage id="actions.clear_scraped_info" />
+              </Button>
+            )}
             {onDelete && (
               <Button
                 className="edit-button"

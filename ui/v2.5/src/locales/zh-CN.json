@@ -17,7 +17,8 @@
         "clear_back_image": "清除背面图片",
         "clear_front_image": "清除正面图片",
         "clear_image": "清除图片",
-        "close": "关闭",
+        "clear_query": "清空查询",
+        "clear_scraped_info": "清除刮削信息",
         "confirm": "确认",
         "continue": "继续",
         "create": "创建",
@@ -1373,6 +1374,7 @@
     "toast": {
         "added_entity": "已添加{count, plural, one {{singularEntity}} other {{pluralEntity}}}",
         "added_generation_job_to_queue": "已添加生成工作至队列",
+        "cleared_scraped_info": "已清除刮削信息",
         "created_entity": "已创建{entity}",
         "default_filter_set": "默认过滤器",
         "delete_past_tense": "已删除{count, plural, one {{singularEntity}} other {{pluralEntity}}}",

@@ -25,6 +25,7 @@
     "clear_date_data": "Clear date data",
     "clear_front_image": "Clear front image",
     "clear_image": "Clear Image",
+    "clear_scraped_info": "Clear Scraped Info",
     "close": "Close",
     "confirm": "Confirm",
     "continue": "Continue",
@@ -1511,6 +1512,7 @@
   "toast": {
     "added_entity": "Added {count, plural, one {{singularEntity}} other {{pluralEntity}}}",
     "added_generation_job_to_queue": "Added generation job to queue",
+    "cleared_scraped_info": "Cleared scraped info",
     "created_entity": "Created {entity}",
     "default_filter_set": "Default filter set",
     "delete_past_tense": "Deleted {count, plural, one {{singularEntity}} other {{pluralEntity}}}",
