@@ -230,11 +230,8 @@ export function useControlBarManagement({
         }
       }
       
-      // 触发一次用户活跃报告，让Video.js按正常流程处理（显示控制栏，2秒后自动隐藏）
-      if ((player as any).reportUserActivity) {
-        (player as any).reportUserActivity(new Event('useractive'));
-      }
-      player.userActive(true);
+      // 不主动触发 userActive，让 Video.js 按照正常的用户交互来处理控制栏显示和隐藏
+      // 这样可以确保 inactivityTimeout 机制正常工作
       
     }
   }, [getPlayer, showEnhancedSubtitles]);
