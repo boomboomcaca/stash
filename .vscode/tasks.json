@@ -1,13 +1,19 @@
 {
   "version": "2.0.0",
   "tasks": [
+    // ============================================
+    // 工具任务
+    // ============================================
     {
       "label": "create-local-dir",
       "type": "shell",
       "command": "mkdir -p ${workspaceFolder}/.local",
       "windows": {
         "command": "powershell",
-        "args": ["-Command", "if (!(Test-Path \"${workspaceFolder}\\.local\")) { New-Item -ItemType Directory -Path \"${workspaceFolder}\\.local\" }"]
+        "args": [
+          "-Command",
+          "if (!(Test-Path \"${workspaceFolder}\\.local\")) { New-Item -ItemType Directory -Path \"${workspaceFolder}\\.local\" }"
+        ]
       },
       "linux": {
         "command": "mkdir",
@@ -23,22 +29,22 @@
         "close": true
       }
     },
+    // ============================================
+    // 前端开发任务
+    // ============================================
     {
-      "label": "start-frontend",
+      "label": "start-frontend-dev",
       "type": "shell",
-      "command": "cd ${workspaceFolder}/ui/v2.5 && yarn start --host",
+      "command": "cd ${workspaceFolder}/ui/v2.5 && npm run start",
       "isBackground": true,
       "problemMatcher": {
         "pattern": {
-          "regexp": "^.*$",
-          "file": 1,
-          "location": 2,
-          "message": 3
+          "regexp": "^.*$"
         },
         "background": {
           "activeOnStart": true,
-          "beginsPattern": "VITE.*ready in",
-          "endsPattern": "Local:.*http"
+          "beginsPattern": "VITE",
+          "endsPattern": "Local:.*http://localhost:([0-9]+)"
         }
       },
       "presentation": {
@@ -50,24 +56,66 @@
     {
       "label": "stop-frontend",
       "type": "shell",
-      "command": "kill $(lsof -t -i:5173) || true",
+      "command": "kill $(lsof -t -i:3000) || true",
       "windows": {
         "command": "powershell",
-        "args": ["-Command", "Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"]
+        "args": [
+          "-Command",
+          "Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
+        ]
       },
       "linux": {
         "command": "bash",
-        "args": ["-c", "kill $(lsof -t -i:5173) || true"]
+        "args": ["-c", "kill $(lsof -t -i:3000) || true"]
       },
       "osx": {
         "command": "bash",
-        "args": ["-c", "kill $(lsof -t -i:5173) || true"]
+        "args": ["-c", "kill $(lsof -t -i:3000) || true"]
       },
       "problemMatcher": [],
       "presentation": {
         "reveal": "silent",
         "close": true
       }
+    },
+    // ============================================
+    // Chrome 调试任务 (WSL + Windows)
+    // ============================================
+    {
+      "label": "start-chrome-debug",
+      "type": "shell",
+      "command": "powershell.exe",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/.vscode/start-chrome-debug.ps1"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Chrome started"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "frontend"
+      }
+    },
+    // ============================================
+    // 复合任务
+    // ============================================
+    {
+      "label": "start-frontend-and-chrome",
+      "dependsOn": ["start-frontend-dev", "start-chrome-debug"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
     }
   ]
 }

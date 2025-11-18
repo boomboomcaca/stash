@@ -1,19 +1,17 @@
 {
   "version": "0.2.0",
+  // 复合调试配置
   "compounds": [
     {
       "name": "🚀 Full Stack Debug",
       "configurations": ["Backend", "Frontend"],
       "stopAll": true,
-      "preLaunchTask": "create-local-dir",
-      "presentation": {
-        "hidden": false,
-        "group": "fullstack",
-        "order": 1
-      }
+      "preLaunchTask": "create-local-dir"
     }
   ],
+  // 调试配置
   "configurations": [
+    // Go 后端调试
     {
       "name": "Backend",
       "type": "go",
@@ -28,16 +26,20 @@
       "console": "integratedTerminal",
       "showLog": true
     },
+    // React 前端调试 (WSL + Windows Chrome)
     {
       "name": "Frontend",
-      "type": "node-terminal",
-      "request": "launch",
-      "command": "npm run start",
-      "cwd": "${workspaceFolder}/ui/v2.5",
-      "serverReadyAction": {
-        "pattern": "Local:.*http://localhost:([0-9]+)",
-        "uriFormat": "http://localhost:%s",
-        "action": "openExternally"
+      "type": "chrome",
+      "request": "attach",
+      "port": 9222,
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/ui/v2.5/src",
+      "preLaunchTask": "start-frontend-and-chrome",
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "webpack:///./*": "${webRoot}/*",
+        "webpack:///src/*": "${webRoot}/*",
+        "webpack:///*": "*"
       }
     }
   ]

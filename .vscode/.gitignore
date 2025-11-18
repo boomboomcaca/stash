@@ -1,0 +1,3 @@
+# VS Code 调试临时文件
+chrome-debug-profile/
+*.log
