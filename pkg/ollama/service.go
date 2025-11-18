@@ -26,8 +26,11 @@ type OllamaConfig struct {
 
 // DefaultConfig returns the default Ollama configuration
 func DefaultConfig() *OllamaConfig {
+	// Auto-detect available Ollama service
+	baseURL := autoDetectOllamaURL()
+
 	return &OllamaConfig{
-		BaseURL:                   "http://192.168.1.113:11434",
+		BaseURL:                   baseURL,
 		Model:                     "qwen3:latest",
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
@@ -46,6 +49,51 @@ func DefaultConfig() *OllamaConfig {
 4. 词性部分必须包含单词的中文翻译，多个翻译用顿号分隔
 5. 不要使用markdown标题符号（#）或分割线（---）`,
 	}
+}
+
+// autoDetectOllamaURL tries to detect available Ollama service
+func autoDetectOllamaURL() string {
+	// List of URLs to try in order of priority
+	candidateURLs := []string{
+		"http://localhost:11434",            // WSL2, local installation
+		"http://host.docker.internal:11434", // Docker Desktop
+		"http://192.168.1.113:11434",        // Specific LAN address (fallback)
+	}
+
+	client := &http.Client{
+		Timeout: 2 * time.Second, // Quick timeout for detection
+	}
+
+	for _, baseURL := range candidateURLs {
+		versionURL, err := url.JoinPath(baseURL, "/api/version")
+		if err != nil {
+			continue
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		req, err := http.NewRequestWithContext(ctx, "GET", versionURL, nil)
+		if err != nil {
+			cancel()
+			continue
+		}
+
+		resp, err := client.Do(req)
+		cancel()
+
+		if err == nil && resp.StatusCode == http.StatusOK {
+			resp.Body.Close()
+			logrus.WithField("detected_url", baseURL).Info("Ollama service auto-detected")
+			return baseURL
+		}
+
+		if resp != nil {
+			resp.Body.Close()
+		}
+	}
+
+	// If no service found, return localhost as default (user can configure later)
+	logrus.Warn("No Ollama service detected, using default localhost:11434")
+	return "http://localhost:11434"
 }
 
 // OllamaRequest represents a request to Ollama API
