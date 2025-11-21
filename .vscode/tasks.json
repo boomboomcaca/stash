@@ -49,8 +49,7 @@
       },
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated",
-        "group": "frontend"
+        "panel": "dedicated"
       }
     },
     {
@@ -104,8 +103,7 @@
       },
       "presentation": {
         "reveal": "always",
-        "panel": "dedicated",
-        "group": "frontend"
+        "panel": "dedicated"
       }
     },
     // ============================================
