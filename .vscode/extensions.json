@@ -1,7 +1,6 @@
 {
   "recommendations": [
     "golang.go",
-    "msjsdiag.debugger-for-chrome",
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode"
   ]

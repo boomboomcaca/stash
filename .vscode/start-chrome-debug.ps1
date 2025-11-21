@@ -43,3 +43,4 @@ try {
 catch {
     Write-Host "❌ Failed to start Chrome: $_" -ForegroundColor Red
     exit 1
+}
