@@ -1,10 +1,11 @@
-{
+module.exports = {
   "env": {
     "browser": true
   },
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.json",
+    "tsconfigRootDir": __dirname
   },
   "plugins": ["@typescript-eslint", "jsx-a11y"],
   "extends": [
@@ -76,4 +77,4 @@
     "react/style-prop-object": ["error", { "allow": ["FormattedNumber"] }],
     "spaced-comment": ["error", "always", { "markers": ["/"] }]
   }
-}
+};

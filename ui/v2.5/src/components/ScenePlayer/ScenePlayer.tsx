@@ -31,7 +31,6 @@ import {
   useSceneIncrementPlayCount,
 } from "src/core/StashService";
 
-import * as GQL from "src/core/generated-graphql";
 import { ScenePlayerScrubber } from "./ScenePlayerScrubber";
 import { ConfigurationContext } from "src/hooks/Config";
 import {
@@ -59,6 +58,7 @@ import { usePlayerSetup } from "./usePlayerSetup";
 import { usePlayerEvents } from "./usePlayerEvents";
 import { useSceneLoading } from "./useSceneLoading";
 import { useControlBarManagement } from "./useControlBarManagement";
+import { useMediaSession } from "./useMediaSession";
 
 export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
   "ScenePlayer",
@@ -109,11 +109,11 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState<number>(-1);
 
     const started = useRef(false);
-    const enhancedSubtitleButtonRef = useRef<any>(null);
+    const enhancedSubtitleButtonRef = useRef<HTMLButtonElement>(null);
     const auto = useRef(false);
     const interactiveReady = useRef(false);
     const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
-    const enhancedSubtitleNavigationRef = useRef<any>(null);
+    const enhancedSubtitleNavigationRef = useRef<unknown>(null);
     const minimumPlayPercent = uiConfig?.minimumPlayPercent ?? 0;
     const trackActivity = uiConfig?.trackActivity ?? true;
     const vrTag = uiConfig?.vrTag ?? undefined;
@@ -124,7 +124,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     }, [showEnhancedSubtitles]);
     
     // Callback to receive navigation ref from EnhancedSubtitleOverlay
-    const handleNavigationRef = useCallback((navRef: any) => {
+    const handleNavigationRef = useCallback((navRef: unknown) => {
       enhancedSubtitleNavigationRef.current = navRef;
     }, []);
 
@@ -306,6 +306,13 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       started,
     });
 
+    useMediaSession({
+      getPlayer,
+      scene,
+      onNext,
+      onPrevious,
+    });
+
     useEffect(() => {
       const player = getPlayer();
       if (!player) return;
@@ -431,9 +438,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             
             // 恢复原始播放状态
             if (draggingState.current.wasPlaying) {
-              player.play()?.catch((error) => {
-                console.warn("恢复播放失败:", error);
-              });
+              player.play()?.catch(() => {});
             }
           } else {
             // 非拖拽模式的正常seek
