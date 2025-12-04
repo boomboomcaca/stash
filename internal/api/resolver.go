@@ -62,7 +62,7 @@ func (r *Resolver) getOllamaService() *ollama.Service {
 	return r.ollamaService
 }
 
-func (r *Resolver) saveOllamaConfig(ctx context.Context, config *ollama.OllamaConfig) error {
+func (r *Resolver) saveOllamaConfig(config *ollama.OllamaConfig) error {
 	// TODO: Implement persistent storage of ollama configuration
 	// This could be stored in the database or configuration system
 	// For now, we just log that the config was updated

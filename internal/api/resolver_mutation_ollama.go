@@ -22,7 +22,7 @@ func (r *mutationResolver) ConfigureOllama(ctx context.Context, input OllamaConf
 
 	// Save configuration to database/config store if needed
 	// This might need to be stored in the configuration system
-	if err := r.saveOllamaConfig(ctx, config); err != nil {
+	if err := r.saveOllamaConfig(config); err != nil {
 		return nil, err
 	}
 

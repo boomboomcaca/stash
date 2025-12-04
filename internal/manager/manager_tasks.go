@@ -374,6 +374,12 @@ const (
 	batchTagAll
 )
 
+// GetEndpoint returns the deprecated Endpoint field for backward compatibility.
+// This method exists to access the deprecated field without triggering linter warnings.
+func (input StashBoxBatchTagInput) GetEndpoint() *int {
+	return input.Endpoint //nolint:staticcheck
+}
+
 // getBatchTagType determines the batch tag mode based on the input
 func (input StashBoxBatchTagInput) getBatchTagType(hasPerformerFields bool) batchTagType {
 	switch {
