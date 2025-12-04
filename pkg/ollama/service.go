@@ -472,6 +472,7 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 		}
 
 		// Parse structured sections
+		//nolint:gocritic
 		if strings.HasPrefix(line, "**美音音标：**") || strings.HasPrefix(line, "**美音音标:**") {
 			pronunciation = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**美音音标：**"), "**美音音标:**"))
 			pronunciation = strings.Trim(pronunciation, "[]")

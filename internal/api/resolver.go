@@ -39,8 +39,8 @@ type Resolver struct {
 	galleryService manager.GalleryService
 	groupService   manager.GroupService
 
-	hookExecutor   hookExecutor
-	ollamaService  *ollama.Service
+	hookExecutor  hookExecutor
+	ollamaService *ollama.Service
 }
 
 func (r *Resolver) scraperCache() *scraper.Cache {
@@ -51,12 +51,12 @@ func (r *Resolver) getOllamaService() *ollama.Service {
 	if r.ollamaService == nil {
 		// Initialize with default config, could be loaded from persistent storage
 		config := ollama.DefaultConfig()
-		
+
 		// TODO: Load saved configuration from database/config store
 		// if savedConfig := r.loadOllamaConfig(); savedConfig != nil {
 		//     config = savedConfig
 		// }
-		
+
 		r.ollamaService = ollama.NewService(config)
 	}
 	return r.ollamaService

@@ -333,7 +333,7 @@ func (s *Server) Start() error {
 				httpsAddr = parts[0] + ":11111"
 			}
 		} else {
-			httpsAddr = httpsAddr + ":11111"
+			httpsAddr += ":11111"
 		}
 
 		httpsServer := &http.Server{
@@ -364,7 +364,7 @@ func (s *Server) Shutdown() {
 	// Give 30 seconds for graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	err := s.Server.Shutdown(ctx)
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {

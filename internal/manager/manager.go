@@ -69,9 +69,9 @@ type Manager struct {
 	GalleryService GalleryService
 	GroupService   GroupService
 
-	scanSubs      *subscriptionManager
+	scanSubs       *subscriptionManager
 	LibraryWatcher *LibraryWatcher
-	MemoryManager *utils.MemoryManager
+	MemoryManager  *utils.MemoryManager
 }
 
 var instance *Manager

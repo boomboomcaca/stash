@@ -51,7 +51,7 @@ func (rs ttsRoutes) Pronounce(w http.ResponseWriter, r *http.Request) {
 
 	// Create HTTP client with proper headers
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", ttsURL, nil)
+	req, err := http.NewRequestWithContext(r.Context(), "GET", ttsURL, nil)
 	if err != nil {
 		logger.Errorf("Failed to create TTS request: %v", err)
 		http.Error(w, "Failed to create request", http.StatusInternalServerError)
@@ -91,4 +91,3 @@ func (rs ttsRoutes) Pronounce(w http.ResponseWriter, r *http.Request) {
 
 	logger.Debugf("TTS pronunciation served: text=%s, lang=%s", text, lang)
 }
-

@@ -56,7 +56,9 @@ func (rs favoritesRoutes) GetFavorites(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	json.NewEncoder(w).Encode(favorites)
+	if err := json.NewEncoder(w).Encode(favorites); err != nil {
+		logger.Warnf("Failed to encode favorites response: %v", err)
+	}
 }
 
 // AddFavorite adds a word to favorites
@@ -85,7 +87,9 @@ func (rs favoritesRoutes) AddFavorite(w http.ResponseWriter, r *http.Request) {
 			// Already exists, return success
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-			json.NewEncoder(w).Encode(map[string]bool{"success": true, "exists": true})
+			if err := json.NewEncoder(w).Encode(map[string]bool{"success": true, "exists": true}); err != nil {
+				logger.Warnf("Failed to encode response: %v", err)
+			}
 			return
 		}
 	}
@@ -103,7 +107,9 @@ func (rs favoritesRoutes) AddFavorite(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true, "exists": false})
+	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true, "exists": false}); err != nil {
+		logger.Warnf("Failed to encode response: %v", err)
+	}
 }
 
 // RemoveFavorite removes a word from favorites
@@ -141,7 +147,9 @@ func (rs favoritesRoutes) RemoveFavorite(w http.ResponseWriter, r *http.Request)
 		// Word not in favorites, return success anyway
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		json.NewEncoder(w).Encode(map[string]bool{"success": true})
+		if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
+			logger.Warnf("Failed to encode response: %v", err)
+		}
 		return
 	}
 
@@ -155,7 +163,9 @@ func (rs favoritesRoutes) RemoveFavorite(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	json.NewEncoder(w).Encode(map[string]bool{"success": true})
+	if err := json.NewEncoder(w).Encode(map[string]bool{"success": true}); err != nil {
+		logger.Warnf("Failed to encode response: %v", err)
+	}
 }
 
 // CheckFavorite checks if a word is in favorites
@@ -185,7 +195,9 @@ func (rs favoritesRoutes) CheckFavorite(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	json.NewEncoder(w).Encode(map[string]bool{"isFavorite": isFavorite})
+	if err := json.NewEncoder(w).Encode(map[string]bool{"isFavorite": isFavorite}); err != nil {
+		logger.Warnf("Failed to encode response: %v", err)
+	}
 }
 
 // loadFavorites loads favorites from JSON file
@@ -194,7 +206,7 @@ func loadFavorites() ([]FavoriteWord, error) {
 	defer favoritesLock.RUnlock()
 
 	file := getFavoritesFile()
-	
+
 	// Check if file exists
 	if _, err := os.Stat(file); os.IsNotExist(err) {
 		return []FavoriteWord{}, nil
@@ -219,7 +231,7 @@ func saveFavorites(favorites []FavoriteWord) error {
 	defer favoritesLock.Unlock()
 
 	file := getFavoritesFile()
-	
+
 	data, err := json.MarshalIndent(favorites, "", "  ")
 	if err != nil {
 		return err
@@ -233,4 +245,3 @@ func saveFavorites(favorites []FavoriteWord) error {
 
 	return os.WriteFile(file, data, 0644)
 }
-
