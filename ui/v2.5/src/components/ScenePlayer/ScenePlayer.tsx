@@ -1,7 +1,6 @@
 import React, {
   KeyboardEvent,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -25,6 +24,8 @@ import "./vrmode";
 import "./mobile-touch-controls";
 import "./enhanced-subtitle-button";
 import "./playback-rate-button";
+import "./media-session";
+import "./wake-sentinel";
 import cx from "classnames";
 import {
   useSceneSaveActivity,
@@ -32,7 +33,7 @@ import {
 } from "src/core/StashService";
 
 import { ScenePlayerScrubber } from "./ScenePlayerScrubber";
-import { ConfigurationContext } from "src/hooks/Config";
+import { useConfigurationContext } from "src/hooks/Config";
 import {
   ConnectionState,
   InteractiveContext,
@@ -81,7 +82,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       isDragging: false,
       wasPlaying: false,
     });
-    const { configuration } = useContext(ConfigurationContext);
+    const { configuration } = useConfigurationContext();
     const interfaceConfig = configuration?.interface;
     const uiConfig = configuration?.ui;
     const videoRef = useRef<HTMLDivElement>(null);
@@ -384,6 +385,23 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     // ✅ 将 useCallback 移到组件顶层
     const handleSubtitlesLoaded = useCallback((cues) => setSubtitleCues(cues), []);
     const handleCurrentCueChange = useCallback((index) => setCurrentSubtitleIndex(index), []);
+
+    // set up mediaSession plugin
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+
+      // set up mediasession plugin
+      // get performer names as array
+      const performers = scene?.performers.map((p) => p.name).join(", ");
+      player
+        .mediaSession()
+        .setMetadata(
+          scene?.title ?? "Stash",
+          scene?.studio?.name ?? performers ?? "Stash",
+          scene.paths.screenshot || ""
+        );
+    }, [getPlayer, scene]);
 
     function onScrubberScroll() {
       if (started.current) {

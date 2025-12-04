@@ -386,6 +386,7 @@ func (s *Server) getPerformerRoutes() chi.Router {
 	return performerRoutes{
 		routes:          routes{txnManager: repo.TxnManager},
 		performerFinder: repo.Performer,
+		sfwConfig:       s.manager.Config,
 	}.Routes()
 }
 

@@ -23,6 +23,7 @@ type FileDeleter struct {
 }
 
 // MarkGeneratedFiles marks for deletion the generated files for the provided scene.
+// Generated files bypass trash and are permanently deleted since they can be regenerated.
 func (d *FileDeleter) MarkGeneratedFiles(scene *models.Scene) error {
 	sceneHash := scene.GetHash(d.FileNamingAlgo)
 
@@ -34,7 +35,7 @@ func (d *FileDeleter) MarkGeneratedFiles(scene *models.Scene) error {
 
 	exists, _ := fsutil.FileExists(markersFolder)
 	if exists {
-		if err := d.Dirs([]string{markersFolder}); err != nil {
+		if err := d.DirsWithoutTrash([]string{markersFolder}); err != nil {
 			return err
 		}
 	}
@@ -77,11 +78,12 @@ func (d *FileDeleter) MarkGeneratedFiles(scene *models.Scene) error {
 		files = append(files, heatmapPath)
 	}
 
-	return d.Files(files)
+	return d.FilesWithoutTrash(files)
 }
 
 // MarkMarkerFiles deletes generated files for a scene marker with the
 // provided scene and timestamp.
+// Generated files bypass trash and are permanently deleted since they can be regenerated.
 func (d *FileDeleter) MarkMarkerFiles(scene *models.Scene, seconds int) error {
 	videoPath := d.Paths.SceneMarkers.GetVideoPreviewPath(scene.GetHash(d.FileNamingAlgo), seconds)
 	imagePath := d.Paths.SceneMarkers.GetWebpPreviewPath(scene.GetHash(d.FileNamingAlgo), seconds)
@@ -104,7 +106,7 @@ func (d *FileDeleter) MarkMarkerFiles(scene *models.Scene, seconds int) error {
 		files = append(files, screenshotPath)
 	}
 
-	return d.Files(files)
+	return d.FilesWithoutTrash(files)
 }
 
 // Destroy deletes a scene and its associated relationships from the
