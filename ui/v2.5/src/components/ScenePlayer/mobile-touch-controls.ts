@@ -9,7 +9,7 @@ interface ITouchControlState {
   tripleTapTimer: number | null;
   tapCount: number;
   originalPlaybackRate: number;
-  
+
   // 拖拽进度相关状态
   isDragging: boolean;
   dragStartX: number;
@@ -17,7 +17,7 @@ interface ITouchControlState {
   dragStartTime: number;
   dragCurrentProgress: number;
   wasPlayingBeforeDrag: boolean; // 拖拽前的播放状态
-  
+
   // 长按倍速控制相关状态
   isLongPressSpeedControl: boolean;
   longPressStartY: number;
@@ -40,7 +40,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     tripleTapTimer: null,
     tapCount: 0,
     originalPlaybackRate: 1,
-    
+
     // 拖拽进度相关状态初始化
     isDragging: false,
     dragStartX: 0,
@@ -48,7 +48,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     dragStartTime: 0,
     dragCurrentProgress: 0,
     wasPlayingBeforeDrag: false,
-    
+
     // 长按倍速控制相关状态初始化
     isLongPressSpeedControl: false,
     longPressStartY: 0,
@@ -65,14 +65,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private boundTouchStart: ((event: TouchEvent) => void) | null = null;
   private boundTouchEnd: ((event: TouchEvent) => void) | null = null;
   private boundTouchMove: ((event: TouchEvent) => void) | null = null;
-  
+
   // 全局事件监听器引用，用于正确移除
   private boundOrientationChange: (() => void) | null = null;
   private boundResize: (() => void) | null = null;
-  
+
   // 防抖计时器
   private resizeTimer: number | null = null;
-  
+
   // 倍速反馈相关
   private speedFeedbackElement: HTMLElement | null = null;
   private speedFeedbackTimer: number | null = null;
@@ -82,7 +82,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   // 增强字幕相关
   private enhancedSubtitlesEnabled: boolean = false;
-  private subtitleCues: Array<{ startTime: number; endTime: number; text: string }> = [];
+  private subtitleCues: Array<{
+    startTime: number;
+    endTime: number;
+    text: string;
+  }> = [];
   private getCurrentSubtitleIndex: (() => number) | null = null;
   private showControlBar: (() => void) | null = null;
   private isDraggingMode: boolean = false; // 标记是否正在拖动
@@ -95,17 +99,20 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly DOUBLE_TAP_DISTANCE = 50; // 双击检测距离（像素）
   private readonly SEEK_STEP = 10; // 默认快进/快退步长（秒）
   private readonly CONTINUOUS_SEEK_STEP = 5; // 连续点击每次增加的步长（秒）
-  
+
   // 拖拽进度相关常量
   private readonly DRAG_THRESHOLD = 15; // 开始拖拽的最小距离（像素）
   private readonly MAX_VERTICAL_DRAG = 100; // 拖拽时允许的最大垂直偏移（像素）
-  
+
   // 长按倍速控制相关常量
   private readonly SPEED_CONTROL_SENSITIVITY = 20; // 倍速控制灵敏度（像素）- 提高灵敏度
   private readonly MIN_SPEED_RATE = 0.25; // 最小倍速
   private readonly MAX_SPEED_RATE = 20; // 最大倍速
-  private readonly SPEED_RATES = [0.25, 0.5, 0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20]; // 支持所有Video.js倍速档位
-  private readonly SPEED_STORAGE_KEY = 'stash-video-speed-rate'; // localStorage存储键
+  private readonly SPEED_RATES = [
+    0.25, 0.5, 0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6,
+    8, 10, 12, 16, 20,
+  ]; // 支持所有Video.js倍速档位
+  private readonly SPEED_STORAGE_KEY = "stash-video-speed-rate"; // localStorage存储键
 
   // 辅助函数：统一的播放控制
   private playIfPaused(): void {
@@ -132,12 +139,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     if (currentIndex >= 0 && currentIndex < cues.length) {
       return currentIndex;
     }
-    
+
     // 如果没有字幕，返回 -1
     if (!cues || cues.length === 0) {
       return -1;
     }
-    
+
     // 查找最接近的字幕
     // 优先查找已经开始的字幕（即使已过结束时间）
     for (let i = 0; i < cues.length; i++) {
@@ -145,14 +152,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         return i;
       }
     }
-    
+
     // 如果没有正在进行的字幕，查找下一个即将开始的字幕
     for (let i = 0; i < cues.length; i++) {
       if (currentTime < cues[i].startTime) {
         return i;
       }
     }
-    
+
     // 如果已经过了所有字幕，返回最后一个字幕的索引
     return cues.length - 1;
   }
@@ -186,26 +193,32 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private calculateSpeedFromGesture(deltaY: number): number {
     // 向上滑动为负值，向下滑动为正值
     // 向上滑动增加倍速，向下滑动减少倍速
-    
+
     // 使用保存的默认倍速作为基准（长按的默认倍速）
     const baseSpeedRate = this.state.savedSpeedRate;
     let currentIndex = this.SPEED_RATES.indexOf(baseSpeedRate);
     if (currentIndex === -1) {
       // 如果默认倍速不在预设数组中，找到最接近的
-      currentIndex = this.SPEED_RATES.indexOf(this.getClosestSpeedRate(baseSpeedRate));
+      currentIndex = this.SPEED_RATES.indexOf(
+        this.getClosestSpeedRate(baseSpeedRate)
+      );
     }
-    
+
     // 计算滑动步数，使用更灵敏的计算方式
     // 每25像素为一个档位，并且支持小数步长以实现更平滑的响应
     const sensitivitySteps = -deltaY / this.SPEED_CONTROL_SENSITIVITY;
     const steps = Math.round(sensitivitySteps);
-    
+
     // 对于小幅度滑动，也要给予反馈，提高响应灵敏度
-    const minStep = Math.abs(sensitivitySteps) > 0.2 ? Math.sign(sensitivitySteps) : 0;
+    const minStep =
+      Math.abs(sensitivitySteps) > 0.2 ? Math.sign(sensitivitySteps) : 0;
     const finalSteps = steps !== 0 ? steps : minStep;
-    
-    const newIndex = Math.max(0, Math.min(this.SPEED_RATES.length - 1, currentIndex + finalSteps));
-    
+
+    const newIndex = Math.max(
+      0,
+      Math.min(this.SPEED_RATES.length - 1, currentIndex + finalSteps)
+    );
+
     return this.SPEED_RATES[newIndex];
   }
 
@@ -213,7 +226,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private getClosestSpeedRate(targetRate: number): number {
     let closest = this.SPEED_RATES[0];
     let minDiff = Math.abs(targetRate - closest);
-    
+
     for (const rate of this.SPEED_RATES) {
       const diff = Math.abs(targetRate - rate);
       if (diff < minDiff) {
@@ -225,36 +238,39 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   // 显示倍速反馈
-  private showSpeedFeedback(speedRate: number, preventAutoHide: boolean = false): void {
+  private showSpeedFeedback(
+    speedRate: number,
+    preventAutoHide: boolean = false
+  ): void {
     if (!this.speedFeedbackElement) {
       this.createSpeedFeedbackElement();
     }
-    
+
     if (this.speedFeedbackElement) {
       // 根据倍速提供更友好的显示文本
       let displayText = `${speedRate}x`;
       if (speedRate > 1) {
-        displayText += ' 快进';
+        displayText += " 快进";
       } else if (speedRate < 1) {
-        displayText += ' 慢放';
+        displayText += " 慢放";
       } else {
-        displayText = '正常速度';
+        displayText = "正常速度";
       }
-      
+
       this.speedFeedbackElement.textContent = displayText;
-      this.speedFeedbackElement.classList.add('visible');
-      
+      this.speedFeedbackElement.classList.add("visible");
+
       // 清除之前的计时器
       if (this.speedFeedbackTimer) {
         clearTimeout(this.speedFeedbackTimer);
         this.speedFeedbackTimer = null;
       }
-      
+
       // 只有在不阻止自动隐藏时才设置自动隐藏计时器
       if (!preventAutoHide) {
         this.speedFeedbackTimer = window.setTimeout(() => {
           if (this.speedFeedbackElement) {
-            this.speedFeedbackElement.classList.remove('visible');
+            this.speedFeedbackElement.classList.remove("visible");
           }
         }, 1000);
       }
@@ -265,21 +281,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private createSpeedFeedbackElement(): void {
     const playerEl = this.player.el();
     if (!playerEl) return;
-    
-    this.speedFeedbackElement = document.createElement('div');
-    this.speedFeedbackElement.className = 'mobile-speed-feedback';
-    this.speedFeedbackElement.textContent = '1x';
-    
+
+    this.speedFeedbackElement = document.createElement("div");
+    this.speedFeedbackElement.className = "mobile-speed-feedback";
+    this.speedFeedbackElement.textContent = "1x";
+
     playerEl.appendChild(this.speedFeedbackElement);
   }
 
   // 移除倍速反馈元素
   private removeSpeedFeedbackElement(): void {
     if (this.speedFeedbackElement && this.speedFeedbackElement.parentNode) {
-      this.speedFeedbackElement.parentNode.removeChild(this.speedFeedbackElement);
+      this.speedFeedbackElement.parentNode.removeChild(
+        this.speedFeedbackElement
+      );
       this.speedFeedbackElement = null;
     }
-    
+
     if (this.speedFeedbackTimer) {
       clearTimeout(this.speedFeedbackTimer);
       this.speedFeedbackTimer = null;
@@ -301,7 +319,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 绑定并监听屏幕方向变化
     this.boundOrientationChange = () => {
       // 不再重置播放速度，保持用户设置的播放速度
-      
+
       // 延迟检查触摸控制状态，确保屏幕尺寸已更新
       setTimeout(() => {
         this.updateTouchControlsState();
@@ -315,7 +333,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       if (this.resizeTimer) {
         clearTimeout(this.resizeTimer);
       }
-      
+
       this.resizeTimer = setTimeout(() => {
         this.updateTouchControlsState();
       }, 100);
@@ -327,7 +345,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 检查是否为移动触摸设备
     const isMobile = window.matchMedia("(max-width: 1199px)").matches;
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
-    
+
     // 只有在移动设备且支持触摸时才启用触摸控制
     return isMobile && isTouch;
   }
@@ -336,7 +354,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 检查当前触摸控制状态
     const shouldEnable = this.shouldEnableTouchControls();
     const isCurrentlyEnabled = this.boundTouchStart !== null;
-    
+
     if (shouldEnable && !isCurrentlyEnabled) {
       // 需要启用但当前未启用 - 初始化触摸控制
       this.initializeTouchControls();
@@ -361,9 +379,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.boundTouchMove = this.handleTouchMove.bind(this);
 
     // 添加触摸事件监听器
-    videoEl.addEventListener("touchstart", this.boundTouchStart, { passive: false });
-    videoEl.addEventListener("touchend", this.boundTouchEnd, { passive: false });
-    videoEl.addEventListener("touchmove", this.boundTouchMove, { passive: false });
+    videoEl.addEventListener("touchstart", this.boundTouchStart, {
+      passive: false,
+    });
+    videoEl.addEventListener("touchend", this.boundTouchEnd, {
+      passive: false,
+    });
+    videoEl.addEventListener("touchmove", this.boundTouchMove, {
+      passive: false,
+    });
 
     // 添加样式
     this.addTouchControlStyles();
@@ -391,12 +415,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       clearTimeout(this.state.longPressTimer);
       this.state.longPressTimer = null;
     }
-    
+
     if (this.state.doubleTapTimer) {
       clearTimeout(this.state.doubleTapTimer);
       this.state.doubleTapTimer = null;
     }
-    
+
     if (this.state.tripleTapTimer) {
       clearTimeout(this.state.tripleTapTimer);
       this.state.tripleTapTimer = null;
@@ -434,7 +458,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.state.doubleTapTimer = null;
     this.state.tripleTapTimer = null;
     this.state.longPressTimer = null;
-    
+
     // 重置拖拽状态
     if (this.state.isDragging) {
       this.resetVisualFeedback();
@@ -445,7 +469,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.state.dragStartTime = 0;
     this.state.dragCurrentProgress = 0;
     this.state.wasPlayingBeforeDrag = false;
-    
+
     // 重置长按倍速控制状态
     this.state.isLongPressSpeedControl = false;
     this.state.longPressStartY = 0;
@@ -461,7 +485,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     // 记录触摸位置
     this.state.lastTapPosition = { x, y };
-    
+
     // 记录拖拽起始位置和时间
     this.state.dragStartX = x;
     this.state.dragStartY = y;
@@ -515,21 +539,21 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         this.state.savedSpeedRate = this.state.currentSpeedRate;
         this.saveSpeedRate(this.state.savedSpeedRate);
       }
-      
+
       // 释放手指后恢复到1x正常速度
       this.player.playbackRate(1);
-      
+
       // 立即隐藏倍速反馈
       if (this.speedFeedbackElement) {
-        this.speedFeedbackElement.classList.remove('visible');
+        this.speedFeedbackElement.classList.remove("visible");
       }
-      
+
       // 清除可能存在的自动隐藏计时器
       if (this.speedFeedbackTimer) {
         clearTimeout(this.speedFeedbackTimer);
         this.speedFeedbackTimer = null;
       }
-      
+
       this.state.isLongPress = false;
       this.state.isLongPressSpeedControl = false;
       this.state.currentSpeedRate = 1;
@@ -541,19 +565,22 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const now = Date.now();
     const timeSinceLastTap = now - this.state.lastTapTime;
     const distance = Math.sqrt(
-      Math.pow(x - this.state.lastTapPosition.x, 2) + 
-      Math.pow(y - this.state.lastTapPosition.y, 2)
+      Math.pow(x - this.state.lastTapPosition.x, 2) +
+        Math.pow(y - this.state.lastTapPosition.y, 2)
     );
 
     // 如果距离上次点击时间在检测范围内且距离足够近，增加点击计数
     // 注意：对于连续点击，我们需要放宽时间限制，只要在 CONTINUOUS_TAP_TIMEOUT 内都算连续点击
-    const tapTimeout = (!this.enhancedSubtitlesEnabled || this.subtitleCues.length === 0) ? this.CONTINUOUS_TAP_TIMEOUT : this.TRIPLE_TAP_DURATION;
-    
+    const tapTimeout =
+      !this.enhancedSubtitlesEnabled || this.subtitleCues.length === 0
+        ? this.CONTINUOUS_TAP_TIMEOUT
+        : this.TRIPLE_TAP_DURATION;
+
     if (timeSinceLastTap < tapTimeout && distance < this.DOUBLE_TAP_DISTANCE) {
       this.state.tapCount++;
       this.state.lastTapTime = now;
       this.state.lastTapPosition = { x, y };
-      
+
       // 清除之前的计时器
       if (this.state.doubleTapTimer) {
         clearTimeout(this.state.doubleTapTimer);
@@ -563,7 +590,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         clearTimeout(this.state.tripleTapTimer);
         this.state.tripleTapTimer = null;
       }
-      
+
       // 分支处理：增强字幕启用 vs 未启用
       if (this.enhancedSubtitlesEnabled && this.subtitleCues.length > 0) {
         // 原有逻辑：增强字幕启用时的处理
@@ -591,7 +618,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         }
       } else {
         // 新逻辑：增强字幕未启用时的连续点击累积快进/快退
-        
+
         // 清除连续点击重置计时器（如果有）
         if (this.state.continuousSeekTimer) {
           clearTimeout(this.state.continuousSeekTimer);
@@ -601,7 +628,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         if (this.state.tapCount >= 2) {
           // 2次或更多次点击：立即执行快进/快退并累积
           this.handleContinuousSeek(x);
-          
+
           // 设置连续点击重置计时器
           this.state.continuousSeekTimer = window.setTimeout(() => {
             this.state.tapCount = 0;
@@ -616,7 +643,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.state.tapCount = 1;
       this.state.lastTapTime = now;
       this.state.lastTapPosition = { x, y };
-      
+
       // 清除之前的计时器
       if (this.state.doubleTapTimer) {
         clearTimeout(this.state.doubleTapTimer);
@@ -626,7 +653,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         clearTimeout(this.state.tripleTapTimer);
         this.state.tripleTapTimer = null;
       }
-      
+
       // 清除连续点击相关状态
       if (this.state.continuousSeekTimer) {
         clearTimeout(this.state.continuousSeekTimer);
@@ -634,7 +661,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       }
       this.state.continuousSeekTotal = 0;
       this.removeSeekFeedback();
-      
+
       // 等待可能的双击（用于两种模式）
       this.state.doubleTapTimer = window.setTimeout(() => {
         this.handleSingleTap();
@@ -649,72 +676,86 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   private handleTouchMove(event: TouchEvent): void {
     if (event.touches.length !== 1) return;
-    
+
     const touch = event.touches[0];
     const rect = (event.target as HTMLElement).getBoundingClientRect();
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
-    
+
     const deltaX = x - this.state.dragStartX;
     const deltaY = y - this.state.dragStartY;
     const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
+
     // 如果已经在长按倍速控制模式，处理垂直滑动
     if (this.state.isLongPressSpeedControl) {
       const verticalDelta = y - this.state.longPressStartY;
       const newSpeedRate = this.calculateSpeedFromGesture(verticalDelta);
-      
+
       if (newSpeedRate !== this.state.currentSpeedRate) {
         this.state.currentSpeedRate = newSpeedRate;
         this.player.playbackRate(newSpeedRate);
         this.showSpeedFeedback(newSpeedRate, true);
       }
-      
+
       event.preventDefault();
       return;
     }
-    
+
     // 检测是否开始拖拽
-    if (!this.state.isDragging && !this.state.isLongPress && distance > this.DRAG_THRESHOLD) {
+    if (
+      !this.state.isDragging &&
+      !this.state.isLongPress &&
+      distance > this.DRAG_THRESHOLD
+    ) {
       const horizontalDistance = Math.abs(deltaX);
       const verticalDistance = Math.abs(deltaY);
-      
+
       // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大，则进入拖拽模式
-      if (horizontalDistance > verticalDistance && verticalDistance < this.MAX_VERTICAL_DRAG) {
+      if (
+        horizontalDistance > verticalDistance &&
+        verticalDistance < this.MAX_VERTICAL_DRAG
+      ) {
         this.state.isDragging = true;
         this.isDraggingMode = true; // 标记正在拖动
-        
+
         // 记录拖拽前的播放状态并暂停播放
         this.state.wasPlayingBeforeDrag = !this.player.paused();
         if (this.state.wasPlayingBeforeDrag) {
           this.player.pause();
         }
-        
+
         // 取消长按计时器
         if (this.state.longPressTimer) {
           clearTimeout(this.state.longPressTimer);
           this.state.longPressTimer = null;
         }
-        
+
         // 当拖动开始时，显示控制栏但不启动自动隐藏计时器
         if (this.enhancedSubtitlesEnabled) {
           // 如果增强字幕启用，临时解锁控制栏并显示
           const playerEl = this.player.el();
           if (playerEl) {
             // 添加临时解锁类，允许控制栏显示
-            playerEl.classList.add('vjs-controls-unlocked-once');
-            playerEl.classList.remove('vjs-controls-locked-hidden');
+            playerEl.classList.add("vjs-controls-unlocked-once");
+            playerEl.classList.remove("vjs-controls-locked-hidden");
           }
-          
+
           this.player.userActive(true);
-          
+
           // 保存原始的 reportUserActivity 并临时修改它来阻止自动隐藏
           if (!this.originalReportUserActivity) {
-            this.originalReportUserActivity = (this.player as VideoJsPlayer & { reportUserActivity?: (event?: Event) => void }).reportUserActivity;
+            this.originalReportUserActivity = (
+              this.player as VideoJsPlayer & {
+                reportUserActivity?: (event?: Event) => void;
+              }
+            ).reportUserActivity;
           }
-          
+
           const self = this;
-          (this.player as VideoJsPlayer).reportUserActivity = function(this: VideoJsPlayer, evt?: Event) {
+          (this.player as VideoJsPlayer).reportUserActivity = function (
+            this: VideoJsPlayer,
+            evt?: Event
+          ) {
             // 如果正在拖动，阻止触发用户活动（这样就不会重置自动隐藏计时器）
             if (self.isDraggingMode) {
               return;
@@ -728,14 +769,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         }
       }
     }
-    
+
     // 如果已经在拖拽模式，更新进度
     if (this.state.isDragging) {
       this.updateDragProgress(deltaX);
       event.preventDefault();
       return;
     }
-    
+
     // 如果移动距离过大且不在长按状态，取消长按
     if (this.state.longPressTimer && !this.state.isLongPress && distance > 20) {
       clearTimeout(this.state.longPressTimer);
@@ -756,10 +797,18 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     if (this.enhancedSubtitlesEnabled && this.subtitleCues.length > 0) {
       const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
       const currentTime = this.player.currentTime() || 0;
-      const nearestIndex = this.findNearestCueIndex(currentTime, this.subtitleCues, currentIndex);
-      
+      const nearestIndex = this.findNearestCueIndex(
+        currentTime,
+        this.subtitleCues,
+        currentIndex
+      );
+
       // 检查是否有当前字幕（currentIndex 为 -1 表示没有当前字幕）
-      if (currentIndex === -1 && nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
+      if (
+        currentIndex === -1 &&
+        nearestIndex >= 0 &&
+        nearestIndex < this.subtitleCues.length
+      ) {
         // 没有当前字幕，播放上一个字幕
         if (nearestIndex > 0) {
           this.jumpToSubtitle(this.subtitleCues[nearestIndex - 1]);
@@ -769,7 +818,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
           this.jumpToSubtitle(this.subtitleCues[0]);
           return;
         }
-      } else if (currentIndex >= 0 && nearestIndex >= 0 && nearestIndex < this.subtitleCues.length) {
+      } else if (
+        currentIndex >= 0 &&
+        nearestIndex >= 0 &&
+        nearestIndex < this.subtitleCues.length
+      ) {
         // 有当前字幕，重播当前字幕
         this.jumpToSubtitle(this.subtitleCues[nearestIndex]);
         return;
@@ -798,12 +851,16 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
     const currentTime = this.player.currentTime() || 0;
-    const nearestIndex = this.findNearestCueIndex(currentTime, this.subtitleCues, currentIndex);
-    
+    const nearestIndex = this.findNearestCueIndex(
+      currentTime,
+      this.subtitleCues,
+      currentIndex
+    );
+
     const playerEl = this.player.el() as HTMLElement;
     const videoWidth = playerEl?.offsetWidth || 0;
     const isLeftSide = x < videoWidth / 2;
-    
+
     if (isLeftSide && nearestIndex > 0) {
       // 左侧三连击：播放上一个字幕
       this.jumpToSubtitle(this.subtitleCues[nearestIndex - 1]);
@@ -817,12 +874,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const playerEl = this.player.el() as HTMLElement;
     const videoWidth = playerEl?.offsetWidth || 0;
     const isLeftSide = x < videoWidth / 2;
-    
+
     // 确定本次点击的快进/快退方向
     // 注意：这里简化处理，如果中途改变点击方向，会从当前累积值继续加减
     // 例如：先右点两次(+10)，再左点一次(-5)，总计(+5)
-    const seekStep = isLeftSide ? -this.CONTINUOUS_SEEK_STEP : this.CONTINUOUS_SEEK_STEP;
-    
+    const seekStep = isLeftSide
+      ? -this.CONTINUOUS_SEEK_STEP
+      : this.CONTINUOUS_SEEK_STEP;
+
     // 累积快进/快退时间
     // 如果是第2次点击（双击），起始值为 seekStep * 1 (即 5s 或 -5s)
     // 如果 tapCount > 2，则在原有基础上增加 seekStep
@@ -831,10 +890,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     } else {
       this.state.continuousSeekTotal += seekStep;
     }
-    
+
     // 执行跳转
     this.seekRelative(seekStep);
-    
+
     // 显示反馈
     this.showSeekFeedback(this.state.continuousSeekTotal);
   }
@@ -843,15 +902,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     if (!this.seekFeedbackElement) {
       this.createSeekFeedbackElement();
     }
-    
+
     if (this.seekFeedbackElement) {
       const absSeconds = Math.abs(totalSeconds);
-      const directionText = totalSeconds > 0 ? '快进' : '快退';
-      const sign = totalSeconds > 0 ? '+' : '-';
-      
+      const directionText = totalSeconds > 0 ? "快进" : "快退";
+      const sign = totalSeconds > 0 ? "+" : "-";
+
       this.seekFeedbackElement.textContent = `${directionText} ${sign}${absSeconds}s`;
-      this.seekFeedbackElement.classList.add('visible');
-      
+      this.seekFeedbackElement.classList.add("visible");
+
       // 移除可能存在的自动隐藏计时器（由连续点击逻辑控制隐藏）
       if (this.state.seekFeedbackTimer) {
         clearTimeout(this.state.seekFeedbackTimer);
@@ -862,9 +921,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   private removeSeekFeedback(): void {
     if (this.seekFeedbackElement) {
-      this.seekFeedbackElement.classList.remove('visible');
+      this.seekFeedbackElement.classList.remove("visible");
     }
-    
+
     if (this.state.seekFeedbackTimer) {
       clearTimeout(this.state.seekFeedbackTimer);
       this.state.seekFeedbackTimer = null;
@@ -874,11 +933,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private createSeekFeedbackElement(): void {
     const playerEl = this.player.el();
     if (!playerEl) return;
-    
-    this.seekFeedbackElement = document.createElement('div');
-    this.seekFeedbackElement.className = 'mobile-seek-feedback';
-    this.seekFeedbackElement.textContent = '';
-    
+
+    this.seekFeedbackElement = document.createElement("div");
+    this.seekFeedbackElement.className = "mobile-seek-feedback";
+    this.seekFeedbackElement.textContent = "";
+
     playerEl.appendChild(this.seekFeedbackElement);
   }
 
@@ -888,17 +947,17 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.state.originalPlaybackRate = this.player.playbackRate() || 1;
       this.state.isLongPress = true;
       this.state.isLongPressSpeedControl = true;
-      
+
       // 保存长按开始的Y坐标，用于后续的垂直滑动检测
       this.state.longPressStartY = this.state.dragStartY;
-      
+
       // 设置初始倍速为保存的默认倍速（按住不放的默认倍速）
       this.state.currentSpeedRate = this.state.savedSpeedRate;
       this.player.playbackRate(this.state.currentSpeedRate);
-      
+
       // 长按时立即显示当前倍速，且阻止自动隐藏
       this.showSpeedFeedback(this.state.currentSpeedRate, true);
-      
+
       // 确保视频在播放状态
       if (this.player.paused()) {
         this.player.play()?.catch(() => {
@@ -925,13 +984,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 移除分段逻辑，消除临界点突兀感，提供一致的"越滑越快"手感
     const sign = Math.sign(deltaX);
     const absDelta = Math.abs(deltaX);
-    
+
     // 参数配置
     // DAMPING (阻尼系数): 类似于"摩擦力"，值越大越难滑
     // EXPONENT (指数): 决定加速的猛烈程度，2.4 提供了平滑的起步和强劲的后劲
     const DAMPING = 18;
-    const EXPONENT = 2.4; 
-    
+    const EXPONENT = 2.4;
+
     // 核心公式：(距离 / 阻尼) ^ 指数
     // 20px -> ~1.3s
     // 50px -> ~11s
@@ -939,45 +998,49 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 200px -> ~318s (5分半)
     // 300px -> ~840s (14分钟)
     let seekSeconds = Math.pow(absDelta / DAMPING, EXPONENT);
-    
+
     // 安全限制：单次滑动最大不超过视频时长的 75% 或 45分钟
     const maxSeek = Math.min(duration * 0.75, 2700);
     seekSeconds = Math.min(seekSeconds, maxSeek);
 
     const progressDelta = sign * seekSeconds;
-    const newProgress = Math.max(0, Math.min(this.state.dragStartTime + progressDelta, duration));
-    
+    const newProgress = Math.max(
+      0,
+      Math.min(this.state.dragStartTime + progressDelta, duration)
+    );
+
     this.state.dragCurrentProgress = newProgress;
-    
+
     // 实时更新进度条和时间显示的视觉反馈
     this.updateVisualFeedback(newProgress);
   }
 
   private handleDragEnd(): void {
     if (!this.state.isDragging) return;
-    
+
     // 由于视频时间已经在拖拽过程中实时更新，这里不需要重复设置
     // 只需要恢复播放状态和重置视觉反馈
-    
+
     // 清除拖动模式标志
     this.isDraggingMode = false;
-    
+
     // 恢复原始的 reportUserActivity
     if (this.originalReportUserActivity) {
-      (this.player as VideoJsPlayer).reportUserActivity = this.originalReportUserActivity;
+      (this.player as VideoJsPlayer).reportUserActivity =
+        this.originalReportUserActivity;
       this.originalReportUserActivity = null;
     }
-    
+
     // 恢复原始播放状态
     if (this.state.wasPlayingBeforeDrag) {
       this.player.play()?.catch(() => {
         // 忽略播放失败
       });
     }
-    
+
     // 重置视觉反馈
     this.resetVisualFeedback();
-    
+
     // 在拖动结束时，启动控制栏的自动隐藏计时器
     // 这会触发用户活动，让Video.js启动自动隐藏计时器
     if (this.enhancedSubtitlesEnabled && this.showControlBar) {
@@ -990,14 +1053,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         // 2秒后重新锁定控制栏
         setTimeout(() => {
           if (playerEl && this.enhancedSubtitlesEnabled) {
-            playerEl.classList.remove('vjs-controls-unlocked-once');
-            playerEl.classList.add('vjs-controls-locked-hidden');
+            playerEl.classList.remove("vjs-controls-unlocked-once");
+            playerEl.classList.add("vjs-controls-locked-hidden");
             this.player.userActive(false);
           }
         }, 2000);
       }
     }
-    
+
     // 重置拖拽状态
     this.state.isDragging = false;
     this.state.dragCurrentProgress = 0;
@@ -1009,16 +1072,18 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 更新视频的实际时间位置
       // 注意：在拖动过程中，currentTime 的更新可能会触发 Video.js 的用户活动检测
       // 但我们通过修改 reportUserActivity 来阻止这个行为
-      const videoElement = this.player.el().querySelector('video') as HTMLVideoElement;
+      const videoElement = this.player
+        .el()
+        .querySelector("video") as HTMLVideoElement;
       if (videoElement) {
         videoElement.currentTime = currentProgress;
       }
-      
+
       // 手动触发 timeupdate 事件，让进度条更新，但不触发用户活动（通过 reportUserActivity 拦截）
       try {
         if (videoElement && videoElement.readyState >= 2) {
           // 直接触发timeupdate事件，但由于我们修改了 reportUserActivity，它不会重置自动隐藏计时器
-          this.player.trigger('timeupdate');
+          this.player.trigger("timeupdate");
         }
       } catch {
         // 忽略错误
@@ -1026,10 +1091,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
       // 为拖拽状态添加视觉样式
       const playerEl = this.player.el();
-      if (!playerEl.classList.contains('vjs-touch-seeking')) {
-        playerEl.classList.add('vjs-touch-seeking');
+      if (!playerEl.classList.contains("vjs-touch-seeking")) {
+        playerEl.classList.add("vjs-touch-seeking");
       }
-
     } catch {
       // 忽略错误
     }
@@ -1039,8 +1103,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     try {
       // 移除拖拽状态的视觉样式
       const playerEl = this.player.el();
-      if (playerEl.classList.contains('vjs-touch-seeking')) {
-        playerEl.classList.remove('vjs-touch-seeking');
+      if (playerEl.classList.contains("vjs-touch-seeking")) {
+        playerEl.classList.remove("vjs-touch-seeking");
       }
     } catch {
       // 忽略错误
@@ -1053,9 +1117,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const secs = Math.floor(seconds % 60);
 
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
     } else {
-      return `${minutes}:${secs.toString().padStart(2, '0')}`;
+      return `${minutes}:${secs.toString().padStart(2, "0")}`;
     }
   }
 
@@ -1136,29 +1202,32 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   dispose(): void {
     // 在插件销毁时重置播放速度
     this.resetPlaybackRate();
-    
+
     // 清理拖拽状态
-    
+
     // 移除触摸事件监听器
     this.removeTouchControls();
-    
+
     // 移除全局事件监听器
     if (this.boundOrientationChange) {
-      window.removeEventListener("orientationchange", this.boundOrientationChange);
+      window.removeEventListener(
+        "orientationchange",
+        this.boundOrientationChange
+      );
       this.boundOrientationChange = null;
     }
-    
+
     if (this.boundResize) {
       window.removeEventListener("resize", this.boundResize);
       this.boundResize = null;
     }
-    
+
     // 清理计时器
     if (this.resizeTimer) {
       clearTimeout(this.resizeTimer);
       this.resizeTimer = null;
     }
-    
+
     // 清理倍速反馈元素
     this.removeSpeedFeedbackElement();
 
@@ -1167,14 +1236,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.seekFeedbackElement.parentNode.removeChild(this.seekFeedbackElement);
       this.seekFeedbackElement = null;
     }
-    
+
     // 清理样式
     const styleId = "mobile-touch-controls-styles";
     const style = document.getElementById(styleId);
     if (style) {
       style.remove();
     }
-    
+
     // 调用父类的dispose方法
     super.dispose();
   }
@@ -1196,7 +1265,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   // 公共方法：设置字幕列表
-  public setSubtitleCues(cues: Array<{ startTime: number; endTime: number; text: string }>): void {
+  public setSubtitleCues(
+    cues: Array<{ startTime: number; endTime: number; text: string }>
+  ): void {
     this.subtitleCues = cues;
   }
 
@@ -1204,7 +1275,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   public setGetCurrentSubtitleIndex(callback: () => number): void {
     this.getCurrentSubtitleIndex = callback;
   }
-  
+
   // 公共方法：设置显示控制栏的回调函数
   public setShowControlBar(callback: () => void): void {
     this.showControlBar = callback;
@@ -1212,14 +1283,30 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 }
 
 // 注册插件
-videojs.registerPlugin("mobileTouchControls", function(this: VideoJsPlayer) {
+videojs.registerPlugin("mobileTouchControls", function (this: VideoJsPlayer) {
   // 如果已经存在插件实例，先销毁它
-  if ((this as VideoJsPlayer & { _mobileTouchControlsPlugin?: MobileTouchControlsPlugin })._mobileTouchControlsPlugin) {
-    ((this as VideoJsPlayer & { _mobileTouchControlsPlugin?: MobileTouchControlsPlugin })._mobileTouchControlsPlugin as MobileTouchControlsPlugin).dispose();
+  if (
+    (
+      this as VideoJsPlayer & {
+        _mobileTouchControlsPlugin?: MobileTouchControlsPlugin;
+      }
+    )._mobileTouchControlsPlugin
+  ) {
+    (
+      (
+        this as VideoJsPlayer & {
+          _mobileTouchControlsPlugin?: MobileTouchControlsPlugin;
+        }
+      )._mobileTouchControlsPlugin as MobileTouchControlsPlugin
+    ).dispose();
   }
-  
+
   // 创建新的插件实例并保存引用
-  (this as VideoJsPlayer & { _mobileTouchControlsPlugin?: MobileTouchControlsPlugin })._mobileTouchControlsPlugin = new MobileTouchControlsPlugin(this);
+  (
+    this as VideoJsPlayer & {
+      _mobileTouchControlsPlugin?: MobileTouchControlsPlugin;
+    }
+  )._mobileTouchControlsPlugin = new MobileTouchControlsPlugin(this);
 });
 
 export default MobileTouchControlsPlugin;

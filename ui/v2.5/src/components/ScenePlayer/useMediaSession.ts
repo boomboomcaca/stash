@@ -23,7 +23,7 @@ export function useMediaSession({
     const title = objectTitle(scene);
     const artist = scene.studio?.name || "";
     const album = scene.code || "";
-    
+
     // Construct artwork array
     const artwork = [];
     if (scene.paths.screenshot) {
@@ -82,12 +82,16 @@ export function useMediaSession({
       [
         "seekto",
         (details) => {
-             const p = getPlayer();
-             if (p && details.seekTime !== undefined) {
-                 p.currentTime(details.seekTime);
-             }
-        }
-      ]
+          const p = getPlayer();
+          if (
+            p &&
+            details.seekTime !== undefined &&
+            details.seekTime !== null
+          ) {
+            p.currentTime(details.seekTime);
+          }
+        },
+      ],
     ];
 
     if (onPrevious) {
@@ -117,9 +121,9 @@ export function useMediaSession({
     });
 
     return () => {
-      // Cleanup handlers is not strictly necessary as they are replaced, 
+      // Cleanup handlers is not strictly necessary as they are replaced,
       // but good practice if we were unmounting completely.
-      // However, removing them might clear them for other players if multiple exist, 
+      // However, removing them might clear them for other players if multiple exist,
       // so we rely on the next effect setup to overwrite them.
     };
   }, [getPlayer, onNext, onPrevious]);
@@ -140,7 +144,7 @@ export function useMediaSession({
     player.on("play", updateState);
     player.on("pause", updateState);
     player.on("ended", () => {
-        navigator.mediaSession.playbackState = "none";
+      navigator.mediaSession.playbackState = "none";
     });
 
     return () => {

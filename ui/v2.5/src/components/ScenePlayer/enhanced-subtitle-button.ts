@@ -12,7 +12,10 @@ class EnhancedSubtitleButton extends Button {
   private toggleCallback?: (enabled: boolean) => void;
   private subtitlesAvailable: boolean = true;
 
-  constructor(player: videojs.Player, options: IEnhancedSubtitleButtonOptions = {}) {
+  constructor(
+    player: videojs.Player,
+    options: IEnhancedSubtitleButtonOptions = {}
+  ) {
     super(player, options as videojs.ComponentOptions);
     this.toggleCallback = options.onToggle;
     this.controlText("增强字幕");
@@ -32,7 +35,7 @@ class EnhancedSubtitleButton extends Button {
 
     this.subtitlesEnabled = !this.subtitlesEnabled;
     this.updateIcon();
-    
+
     if (this.toggleCallback) {
       this.toggleCallback(this.subtitlesEnabled);
     }
@@ -45,20 +48,20 @@ class EnhancedSubtitleButton extends Button {
     } else {
       this.removeClass("subtitles-enabled");
     }
-    
+
     // 更新禁用状态的类
     if (!this.subtitlesAvailable) {
       this.addClass("vjs-disabled");
       this.disable();
       // 强制设置 disabled 属性
-      this.el().setAttribute('disabled', 'disabled');
-      this.el().setAttribute('aria-disabled', 'true');
+      this.el().setAttribute("disabled", "disabled");
+      this.el().setAttribute("aria-disabled", "true");
     } else {
       this.removeClass("vjs-disabled");
       this.enable();
       // 移除 disabled 属性
-      this.el().removeAttribute('disabled');
-      this.el().removeAttribute('aria-disabled');
+      this.el().removeAttribute("disabled");
+      this.el().removeAttribute("aria-disabled");
     }
   }
 
@@ -93,19 +96,26 @@ class EnhancedSubtitleButton extends Button {
 videojs.registerComponent("EnhancedSubtitleButton", EnhancedSubtitleButton);
 
 // 定义插件
-function enhancedSubtitleButton(this: videojs.Player, options: IEnhancedSubtitleButtonOptions = {}) {
+function enhancedSubtitleButton(
+  this: videojs.Player,
+  options: IEnhancedSubtitleButtonOptions = {}
+) {
   const player = this;
-  
+
   // 创建按钮
   const button = new EnhancedSubtitleButton(player, options);
-  
+
   // 添加到控制栏，放在字幕按钮的位置
   const controlBar = player.getChild("ControlBar");
   if (controlBar) {
     // 尝试在全屏按钮之前插入
     const fullscreenToggle = controlBar.getChild("FullscreenToggle");
     if (fullscreenToggle) {
-      controlBar.addChild(button, {}, controlBar.children().indexOf(fullscreenToggle));
+      controlBar.addChild(
+        button,
+        {},
+        controlBar.children().indexOf(fullscreenToggle)
+      );
     } else {
       controlBar.addChild(button);
     }
@@ -122,10 +132,11 @@ declare module "video.js" {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   export interface VideoJsPlayer {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    enhancedSubtitleButton: (options?: IEnhancedSubtitleButtonOptions) => EnhancedSubtitleButton;
+    enhancedSubtitleButton: (
+      options?: IEnhancedSubtitleButtonOptions
+    ) => EnhancedSubtitleButton;
   }
 }
 
 export default enhancedSubtitleButton;
 export { EnhancedSubtitleButton };
-

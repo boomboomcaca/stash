@@ -22,12 +22,12 @@ export function handleHotkeys(
     if (currentIndex >= 0 && currentIndex < cues.length) {
       return currentIndex;
     }
-    
+
     // 如果没有字幕，返回 -1
     if (!cues || cues.length === 0) {
       return -1;
     }
-    
+
     // 查找最接近的字幕
     // 优先查找已经开始的字幕（即使已过结束时间）
     for (let i = 0; i < cues.length; i++) {
@@ -35,14 +35,14 @@ export function handleHotkeys(
         return i;
       }
     }
-    
+
     // 如果没有正在进行的字幕，查找下一个即将开始的字幕
     for (let i = 0; i < cues.length; i++) {
       if (currentTime < cues[i].startTime) {
         return i;
       }
     }
-    
+
     // 如果已经过了所有字幕，返回最后一个字幕的索引
     return cues.length - 1;
   }
@@ -57,7 +57,7 @@ export function handleHotkeys(
     } else {
       player.currentTime(duration);
     }
-    
+
     // 当调整播放进度时，如果增强字幕已开启，显示控制栏
     if (showControlBar) {
       showControlBar();
@@ -95,32 +95,41 @@ export function handleHotkeys(
 
   // Check if control bar is visible
   const controlBarVisible = isControlBarVisible ? isControlBarVisible() : false;
-  
+
   // Handle ESC key to hide control bar when it's visible
   if (event.which === 27) {
     // If not in word navigation mode and auto-paused, resume playback
-    if (!enhancedSubtitleNavigation?.isInWordNavigationMode && 
-        enhancedSubtitleNavigation?.isAutoPaused && 
-        enhancedSubtitleNavigation?.resumePlayback) {
+    if (
+      !enhancedSubtitleNavigation?.isInWordNavigationMode &&
+      enhancedSubtitleNavigation?.isAutoPaused &&
+      enhancedSubtitleNavigation?.resumePlayback
+    ) {
       event.preventDefault();
       event.stopPropagation();
       enhancedSubtitleNavigation.resumePlayback();
       return;
     }
-    
-    if (controlBarVisible && hideControlBar && !enhancedSubtitleNavigation?.isInWordNavigationMode) {
+
+    if (
+      controlBarVisible &&
+      hideControlBar &&
+      !enhancedSubtitleNavigation?.isInWordNavigationMode
+    ) {
       event.preventDefault();
       event.stopPropagation();
       hideControlBar();
       return;
     }
   }
-  
+
   // Handle enhanced subtitle navigation
   if (enhancedSubtitleNavigation && !controlBarVisible) {
     // Enter word navigation mode with left/right arrows when enhanced subtitles are active
     // and control bar is not visible
-    if (!enhancedSubtitleNavigation.isInWordNavigationMode && (event.which === 37 || event.which === 39)) {
+    if (
+      !enhancedSubtitleNavigation.isInWordNavigationMode &&
+      (event.which === 37 || event.which === 39)
+    ) {
       event.preventDefault();
       event.stopPropagation();
       if (enhancedSubtitleNavigation.enterWordNavigationMode) {
@@ -130,7 +139,7 @@ export function handleHotkeys(
       }
       return;
     }
-    
+
     // Handle word navigation mode
     if (enhancedSubtitleNavigation.isInWordNavigationMode) {
       switch (event.which) {
@@ -258,21 +267,27 @@ export function handleHotkeys(
         const now = Date.now();
         const lastPress = player._lastUpArrowPress || 0;
         const timeSinceLastPress = now - lastPress;
-        
+
         // Clear any pending single-click timer
         if (player._upArrowTimer) {
           clearTimeout(player._upArrowTimer);
           player._upArrowTimer = null;
         }
-        
+
         if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
           // Double up arrow - go to previous subtitle
-          const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-          const videoTime = enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
+          const currentCueIndex =
+            enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
+          const videoTime =
+            enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
           const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
-          
+
           if (cues && cues.length > 0) {
-            const nearestIndex = findNearestCueIndex(videoTime, cues, currentCueIndex);
+            const nearestIndex = findNearestCueIndex(
+              videoTime,
+              cues,
+              currentCueIndex
+            );
             if (nearestIndex > 0) {
               const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
               if (navPlayer) {
@@ -291,20 +306,26 @@ export function handleHotkeys(
         } else {
           // Single up arrow - repeat current subtitle (will trigger after timeout)
           player._lastUpArrowPress = now;
-          
+
           player._upArrowTimer = setTimeout(() => {
             // Only execute if this is still a single press (not a double press)
             const checkTime = Date.now();
             const timeSincePress = checkTime - (player._lastUpArrowPress || 0);
-            
+
             if (timeSincePress >= 400 && player._lastUpArrowPress !== 0) {
               // This was a single press, not a double press
-              const currentCueIndex = enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
-              const videoTime = enhancedSubtitleNavigation?.onGetPlayer?.().currentTime() ?? 0;
+              const currentCueIndex =
+                enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
+              const videoTime =
+                enhancedSubtitleNavigation?.onGetPlayer?.().currentTime() ?? 0;
               const cues = enhancedSubtitleNavigation?.parsedSubtitles?.cues;
-              
+
               if (cues && cues.length > 0) {
-                const nearestIndex = findNearestCueIndex(videoTime, cues, currentCueIndex);
+                const nearestIndex = findNearestCueIndex(
+                  videoTime,
+                  cues,
+                  currentCueIndex
+                );
                 const targetCue = cues[nearestIndex];
                 if (targetCue) {
                   const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
@@ -334,21 +355,27 @@ export function handleHotkeys(
         const now = Date.now();
         const lastPress = player._lastDownArrowPress || 0;
         const timeSinceLastPress = now - lastPress;
-        
+
         // Clear any pending single-click timer
         if (player._downArrowTimer) {
           clearTimeout(player._downArrowTimer);
           player._downArrowTimer = null;
         }
-        
+
         if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
           // Double down arrow - go to next subtitle
-          const currentCueIndex = enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-          const videoTime = enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
+          const currentCueIndex =
+            enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
+          const videoTime =
+            enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
           const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
-          
+
           if (cues && cues.length > 0) {
-            const nearestIndex = findNearestCueIndex(videoTime, cues, currentCueIndex);
+            const nearestIndex = findNearestCueIndex(
+              videoTime,
+              cues,
+              currentCueIndex
+            );
             if (nearestIndex < cues.length - 1) {
               const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
               if (navPlayer) {
@@ -367,12 +394,13 @@ export function handleHotkeys(
         } else {
           // Single down arrow - show control bar
           player._lastDownArrowPress = now;
-          
+
           player._downArrowTimer = setTimeout(() => {
             // Only execute if this is still a single press (not a double press)
             const checkTime = Date.now();
-            const timeSincePress = checkTime - (player._lastDownArrowPress || 0);
-            
+            const timeSincePress =
+              checkTime - (player._lastDownArrowPress || 0);
+
             if (timeSincePress >= 400 && player._lastDownArrowPress !== 0) {
               // This was a single press, not a double press - show control bar
               if (showControlBar) {
@@ -437,4 +465,3 @@ export function handleHotkeys(
       break;
   }
 }
-

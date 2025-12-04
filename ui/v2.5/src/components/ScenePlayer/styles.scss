@@ -22,11 +22,11 @@ $sceneTabWidth: 450px;
     // 保持原有的高度计算逻辑，但增加最大高度限制
     // height: 177.78vw;
     max-height: 100vh;
-    
+
     .video-js {
+      height: 100%;
       object-fit: contain;
       width: 100%;
-      height: 100%;
     }
   }
 }
@@ -35,11 +35,11 @@ $sceneTabWidth: 450px;
 @media (max-width: 768px) {
   .portrait .video-wrapper {
     height: 100vh;
-    
+
     .video-js {
+      height: 100%;
       object-fit: contain;
       width: 100%;
-      height: 100%;
     }
   }
 }
@@ -82,55 +82,71 @@ $sceneTabWidth: 450px;
   &.vjs-controls-locked-hidden {
     // 强制隐藏控制栏，即使用户处于活跃状态
     .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 0 !important;
-      visibility: hidden !important;
       pointer-events: none !important;
       transition: opacity 0.3s, visibility 0s 0.3s;
+      visibility: hidden !important;
+      /* stylelint-enable declaration-no-important */
     }
-    
+
     // 禁用所有用户交互导致的控制栏显示
     // 包括键盘事件触发的用户活跃状态
     &.vjs-user-active .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 0 !important;
       visibility: hidden !important;
+      /* stylelint-enable declaration-no-important */
     }
-    
+
     &:hover .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 0 !important;
       visibility: hidden !important;
+      /* stylelint-enable declaration-no-important */
     }
-    
+
     // 确保键盘事件不会显示控制栏
     &.vjs-user-active.vjs-controls-locked-hidden .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 0 !important;
       visibility: hidden !important;
+      /* stylelint-enable declaration-no-important */
     }
   }
 
   // 临时解锁控制栏（双击AP图标后）
   &.vjs-controls-unlocked-once {
     .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 1 !important;
-      visibility: visible !important;
       pointer-events: auto !important;
       transition: opacity 0.3s, visibility 0s;
+      visibility: visible !important;
+      /* stylelint-enable declaration-no-important */
     }
-    
+
     // 确保临时解锁状态覆盖所有锁定状态
     &.vjs-controls-locked-hidden .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 1 !important;
-      visibility: visible !important;
       pointer-events: auto !important;
+      visibility: visible !important;
+      /* stylelint-enable declaration-no-important */
     }
-    
+
     &.vjs-user-active .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 1 !important;
       visibility: visible !important;
+      /* stylelint-enable declaration-no-important */
     }
-    
+
     &:hover .vjs-control-bar {
+      /* stylelint-disable declaration-no-important */
       opacity: 1 !important;
       visibility: visible !important;
+      /* stylelint-enable declaration-no-important */
     }
   }
 
@@ -150,16 +166,22 @@ $sceneTabWidth: 450px;
   }
 
   .vjs-big-button-group {
+    /* stylelint-disable declaration-no-important */
     display: none !important;
+    /* stylelint-enable declaration-no-important */
     height: 80px;
     justify-content: space-around;
     opacity: 0;
+    /* stylelint-disable declaration-no-important */
+    pointer-events: none !important;
+    /* stylelint-enable declaration-no-important */
     position: absolute;
     top: calc(50% - 40px);
+    /* stylelint-disable declaration-no-important */
+    visibility: hidden !important;
+    /* stylelint-enable declaration-no-important */
     width: 100%;
     z-index: 1;
-    visibility: hidden !important;
-    pointer-events: none !important;
 
     .vjs-button {
       font-size: 4em;
@@ -392,12 +414,14 @@ $sceneTabWidth: 450px;
   @media (pointer: coarse) {
     &.vjs-touch-enabled {
       &.vjs-has-started .vjs-big-button-group {
+        /* stylelint-disable-next-line declaration-no-important */
         display: none !important;
         opacity: 0;
         visibility: hidden;
       }
 
       &.vjs-has-started.vjs-user-inactive.vjs-playing .vjs-big-button-group {
+        /* stylelint-disable-next-line declaration-no-important */
         display: none !important;
         opacity: 0;
         pointer-events: none;
@@ -541,27 +565,25 @@ $sceneTabWidth: 450px;
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
+  // Prevent touch behaviors during drag
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: none;
+  touch-action: pan-x;
+  -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  
-  // Prevent touch behaviors during drag
-  -webkit-touch-callout: none;
-  -webkit-text-size-adjust: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: pan-x;
 
   &.dragging {
     cursor: grabbing;
     // Prevent all touch behaviors while dragging
-    touch-action: none;
     pointer-events: auto;
-    
+    touch-action: none;
     // Prevent context menu and text selection during drag
     -webkit-touch-callout: none;
-    -webkit-user-select: none;
     -khtml-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    -webkit-user-select: none;
     user-select: none;
   }
 }
@@ -626,14 +648,13 @@ $sceneTabWidth: 450px;
   height: 20px;
   padding: 0 10px;
   position: absolute;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  
   // Prevent touch behaviors
-  -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  transform: translateX(-50%);
   -webkit-user-select: none;
   user-select: none;
+  white-space: nowrap;
 
   &:hover {
     background-color: #444;
@@ -663,12 +684,11 @@ $sceneTabWidth: 450px;
   font-size: 10px;
   margin: 0 auto;
   position: absolute;
+  // Prevent touch behaviors
+  -webkit-tap-highlight-color: transparent;
   text-align: center;
   text-shadow: 1px 1px black;
-  
-  // Prevent touch behaviors
   -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
 
@@ -700,72 +720,67 @@ $sceneTabWidth: 450px;
       display: flex;
       flex-direction: column-reverse;
     }
-    
+
     .scene-player-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
       background: #000;
-      padding: 0;
-      margin: 0;
       height: 100vh;
-      
+      left: 0;
+      margin: 0;
+      padding: 0;
+      position: fixed;
+      right: 0;
+      top: 0;
+      z-index: 1000;
+
       .VideoPlayer {
         height: 100vh;
         max-height: 100vh;
         padding-bottom: 0;
-        
+
         .video-wrapper {
           height: 100vh;
         }
       }
     }
-    
+
     .scene-tabs {
-      margin-top: 100vh;
-      padding-top: 1rem;
       background: var(--bs-body-bg);
+      margin-top: 100vh;
       min-height: 100vh;
       overflow-x: hidden;
-      
+      padding-top: 1rem;
+
       // 确保场景信息面板在横屏时可以正常滚动
       .tab-content {
         max-height: none;
         overflow-y: auto;
       }
     }
-    
+
     // 隐藏可能干扰全屏视频的元素
     body {
       overflow-x: hidden;
     }
-    
+
     // 确保视频控制栏在横屏模式下仍然可见
     .video-js .vjs-control-bar {
       z-index: 1001;
     }
-    
+
     // 横屏模式下的触摸控制优化
     .video-js.vjs-touch-enabled {
       touch-action: none;
-      
+
       .vjs-tech {
         pointer-events: auto;
       }
-      
+
       // 隐藏默认的video.js触摸控制，使用我们的自定义控制
       .vjs-touch-overlay {
+        /* stylelint-disable-next-line declaration-no-important */
         display: none !important;
       }
-      
-
-      
-
     }
-    
-
   }
 }
 @media (min-width: 1200px) {
@@ -826,31 +841,38 @@ $sceneTabWidth: 450px;
 
 // 伪全屏样式
 .vjs-pseudo-fullscreen {
+  /* stylelint-disable declaration-no-important */
+  background: #000 !important;
+  height: 100vh !important;
+  left: 0 !important;
   position: fixed !important;
   top: 0 !important;
-  left: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
   z-index: 9999 !important;
-  background: #000 !important;
+  /* stylelint-enable declaration-no-important */
 }
 
 body.vjs-pseudo-fullscreen {
+  /* stylelint-disable-next-line declaration-no-important */
   overflow: hidden !important;
-  
+
   .VideoPlayer {
+    /* stylelint-disable declaration-no-important */
+    background: #000 !important;
+    height: 100vh !important;
+    left: 0 !important;
+    max-height: 100vh !important;
     position: fixed !important;
     top: 0 !important;
-    left: 0 !important;
     width: 100vw !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
     z-index: 9999 !important;
-    background: #000 !important;
-    
+    /* stylelint-enable declaration-no-important */
+
     .video-wrapper {
+      /* stylelint-disable declaration-no-important */
       height: 100vh !important;
       width: 100vw !important;
+      /* stylelint-enable declaration-no-important */
     }
   }
 }

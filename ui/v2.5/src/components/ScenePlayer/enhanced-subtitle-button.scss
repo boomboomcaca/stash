@@ -1,36 +1,39 @@
 .vjs-enhanced-subtitles-button {
   cursor: pointer;
-  
+
   // 确保图标正确显示
   .vjs-icon-placeholder::before {
     font-family: VideoJS;
   }
-  
+
   // 字幕开启状态 - 使用不同的图标
   &.subtitles-enabled .vjs-icon-placeholder::before {
     content: "\f10d"; // VideoJS 字幕图标
   }
-  
+
   // 字幕关闭状态 - 使用默认的字幕图标但添加斜线效果
   &:not(.subtitles-enabled) .vjs-icon-placeholder::before {
     content: "\f10c"; // VideoJS 字幕关闭图标
   }
-  
+
   // 禁用状态样式
   &.vjs-disabled,
   &[disabled] {
-    opacity: 0.5 !important;
+    /* stylelint-disable declaration-no-important */
     cursor: not-allowed !important;
+    opacity: 0.5 !important;
     pointer-events: none !important;
-    
+    /* stylelint-enable declaration-no-important */
+
     // 禁用时可以添加额外的视觉效果
     .vjs-icon-placeholder::before {
+      /* stylelint-disable-next-line declaration-no-important */
       color: #666 !important;
     }
-    
+
     &:hover {
+      /* stylelint-disable-next-line declaration-no-important */
       background-color: transparent !important;
     }
   }
 }
-

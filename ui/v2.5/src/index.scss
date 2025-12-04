@@ -1045,6 +1045,7 @@ div.dropdown-menu {
 
   // 移动设备横屏时隐藏导航栏（不受断点限制）
   @media (orientation: landscape) and (max-width: 1024px) and (max-height: 768px) {
+    /* stylelint-disable-next-line declaration-no-important */
     display: none !important;
   }
 

@@ -1,4 +1,4 @@
-import { IWordSegment, ISegmentationOptions } from './types';
+import { IWordSegment, ISegmentationOptions } from "./types";
 
 // Simple word segmentation for different languages
 export class WordSegmenter {
@@ -11,13 +11,13 @@ export class WordSegmenter {
   // Segment text into words based on language
   segmentText(text: string): IWordSegment[] {
     switch (this.options.language) {
-      case 'zh':
-      case 'zh-CN':
-      case 'zh-TW':
+      case "zh":
+      case "zh-CN":
+      case "zh-TW":
         return this.segmentChinese(text);
-      case 'ja':
+      case "ja":
         return this.segmentJapanese(text);
-      case 'ko':
+      case "ko":
         return this.segmentKorean(text);
       default:
         return this.segmentLatin(text);
@@ -60,18 +60,18 @@ export class WordSegmenter {
   // Chinese segmentation (simplified approach)
   private segmentChinese(text: string): IWordSegment[] {
     const segments: IWordSegment[] = [];
-    
+
     // For now, treat each character as a word
     // In a real implementation, you'd use a library like jieba or nodejieba
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
-      
+
       // Skip whitespace and punctuation unless enabled
-      if (char.trim() === '') continue;
-      
+      if (char.trim() === "") continue;
+
       const isPunctuation = /[，。！？；：""''（）【】《》]/u.test(char);
       if (isPunctuation && !this.options.enablePunctuation) continue;
-      
+
       // Check if it's a Chinese character or punctuation
       if (/[\u4e00-\u9fff]|[，。！？；：""''（）【】《》]/u.test(char)) {
         segments.push({
@@ -88,19 +88,23 @@ export class WordSegmenter {
   // Japanese segmentation (simplified approach)
   private segmentJapanese(text: string): IWordSegment[] {
     const segments: IWordSegment[] = [];
-    
+
     // This is a very simplified approach
     // In a real implementation, you'd use MeCab or similar
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
-      
-      if (char.trim() === '') continue;
-      
+
+      if (char.trim() === "") continue;
+
       const isPunctuation = /[、。！？；：「」『』（）]/u.test(char);
       if (isPunctuation && !this.options.enablePunctuation) continue;
-      
+
       // Check if it's a Japanese character
-      if (/[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]|[、。！？；：「」『』（）]/u.test(char)) {
+      if (
+        /[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9fff]|[、。！？；：「」『』（）]/u.test(
+          char
+        )
+      ) {
         segments.push({
           word: char,
           startIndex: i,
@@ -115,11 +119,11 @@ export class WordSegmenter {
   // Korean segmentation (simplified approach)
   private segmentKorean(text: string): IWordSegment[] {
     const segments: IWordSegment[] = [];
-    
+
     // Space-based segmentation for Korean
     const words = text.split(/(\s+)/);
     let currentIndex = 0;
-    
+
     for (const word of words) {
       if (word.trim() && word.length >= this.options.minWordLength) {
         // Check if it contains Korean characters
@@ -139,9 +143,11 @@ export class WordSegmenter {
 }
 
 // Factory function to create segmenter
-export function createSegmenter(options: Partial<ISegmentationOptions> = {}): WordSegmenter {
+export function createSegmenter(
+  options: Partial<ISegmentationOptions> = {}
+): WordSegmenter {
   const defaultOptions: ISegmentationOptions = {
-    language: 'en',
+    language: "en",
     enablePunctuation: false,
     minWordLength: 1,
   };
@@ -153,20 +159,20 @@ export function createSegmenter(options: Partial<ISegmentationOptions> = {}): Wo
 export function detectLanguage(text: string): string {
   // Simple language detection based on character ranges
   if (/[\u4e00-\u9fff]/.test(text)) {
-    return 'zh';
+    return "zh";
   } else if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) {
-    return 'ja';
+    return "ja";
   } else if (/[\uac00-\ud7af]/.test(text)) {
-    return 'ko';
+    return "ko";
   } else if (/[а-яё]/i.test(text)) {
-    return 'ru';
+    return "ru";
   } else if (/[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/i.test(text)) {
-    return 'fr';
+    return "fr";
   } else if (/[äöüß]/i.test(text)) {
-    return 'de';
+    return "de";
   } else if (/[ñ¿¡]/i.test(text)) {
-    return 'es';
+    return "es";
   }
-  
-  return 'en'; // Default to English
+
+  return "en"; // Default to English
 }

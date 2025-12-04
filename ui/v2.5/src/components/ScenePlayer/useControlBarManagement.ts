@@ -23,7 +23,9 @@ export function useControlBarManagement({
   hideControlBarRef,
 }: IUseControlBarManagementProps) {
   const unlockTimerRef = useRef<number | null>(null);
-  const originalReportUserActivityRef = useRef<((event?: Event) => void) | null>(null);
+  const originalReportUserActivityRef = useRef<
+    ((event?: Event) => void) | null
+  >(null);
 
   const clearUnlockTimer = () => {
     if (unlockTimerRef.current) {
@@ -33,24 +35,24 @@ export function useControlBarManagement({
   };
 
   const setControlBarLock = (playerEl: HTMLElement, locked: boolean) => {
-    playerEl.classList.toggle('vjs-controls-locked-hidden', locked);
-    playerEl.classList.toggle('vjs-controls-unlocked-once', !locked);
+    playerEl.classList.toggle("vjs-controls-locked-hidden", locked);
+    playerEl.classList.toggle("vjs-controls-unlocked-once", !locked);
   };
 
   const temporarilyUnlockControlBar = useCallback(() => {
     const player = getPlayer();
-    const playerEl = player?.el();
+    const playerEl = player?.el() as HTMLElement | undefined;
     if (!player || !playerEl) return;
 
     clearUnlockTimer();
     controlBarVisibleRef.current = true;
-    
+
     if (!showEnhancedSubtitlesRef.current) return;
-    
+
     setControlBarLock(playerEl, false);
-    player.reportUserActivity(new Event('useractive'));
+    player.reportUserActivity(new Event("useractive"));
     player.userActive(true);
-    
+
     unlockTimerRef.current = window.setTimeout(() => {
       controlBarVisibleRef.current = false;
       if (showEnhancedSubtitlesRef.current && playerEl) {
@@ -63,13 +65,13 @@ export function useControlBarManagement({
 
   const hideControlBar = useCallback(() => {
     const player = getPlayer();
-    const playerEl = player?.el();
+    const playerEl = player?.el() as HTMLElement | undefined;
     if (!player || !playerEl) return;
 
     clearUnlockTimer();
     controlBarVisibleRef.current = false;
     player.userActive(false);
-    
+
     if (showEnhancedSubtitlesRef.current) {
       setControlBarLock(playerEl, true);
     }
@@ -78,7 +80,12 @@ export function useControlBarManagement({
   useEffect(() => {
     temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
     hideControlBarRef.current = hideControlBar;
-  }, [temporarilyUnlockControlBar, hideControlBar, temporarilyUnlockControlBarRef, hideControlBarRef]);
+  }, [
+    temporarilyUnlockControlBar,
+    hideControlBar,
+    temporarilyUnlockControlBarRef,
+    hideControlBarRef,
+  ]);
 
   // 控制栏锁定逻辑：当增强字幕开启时，锁定隐藏控制栏
   useEffect(() => {
@@ -88,7 +95,7 @@ export function useControlBarManagement({
     if (showEnhancedSubtitles) {
       // 禁用Video.js的用户活跃检测
       player.userActive(false);
-      
+
       // 修改Video.js的用户活跃检测机制
       // 允许键盘事件触发用户活跃，但保持控制栏锁定
       // 保存原始的 reportUserActivity 方法（如果还没有保存）
@@ -96,57 +103,61 @@ export function useControlBarManagement({
         originalReportUserActivityRef.current = player.reportUserActivity;
       }
       const originalReportUserActivity = originalReportUserActivityRef.current;
-      
+
       if (!originalReportUserActivity) {
         return;
       }
-      
+
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      player.reportUserActivity = function(this: typeof player, event?: any) {
+      player.reportUserActivity = function (this: typeof player, event?: any) {
         const el = player.el();
-        
+
         // 如果是键盘事件，允许报告用户活跃（这样Video.js可以处理键盘事件）
-        if (event && event.type === 'keydown') {
+        if (event && event.type === "keydown") {
           return originalReportUserActivity.call(this, event);
         }
-        
+
         // 对于其他事件（如鼠标移动、点击等），在锁定期间不报告用户活跃
         // 除非是临时解锁状态
-        if (el && !el.classList.contains('vjs-controls-unlocked-once')) {
+        if (el && !el.classList.contains("vjs-controls-unlocked-once")) {
           return;
         }
-        
+
         return originalReportUserActivity.call(this, event);
       };
-      
-      const playerEl = player.el() as HTMLElement & { _focusLossHandler?: () => void };
+
+      const playerEl = player.el() as HTMLElement & {
+        _focusLossHandler?: () => void;
+      };
       if (playerEl) {
-        playerEl.classList.add('vjs-controls-locked-hidden');
-        playerEl.setAttribute('tabindex', '0');
+        playerEl.classList.add("vjs-controls-locked-hidden");
+        playerEl.setAttribute("tabindex", "0");
         playerEl.focus();
-        
+
         const handleFocusLoss = () => {
           setTimeout(() => {
-            if (playerEl?.classList.contains('vjs-controls-locked-hidden')) {
+            if (playerEl?.classList.contains("vjs-controls-locked-hidden")) {
               playerEl.focus();
             }
           }, 100);
         };
-        
-        playerEl.addEventListener('blur', handleFocusLoss);
+
+        playerEl.addEventListener("blur", handleFocusLoss);
         playerEl._focusLossHandler = handleFocusLoss;
       }
-      
+
       // 清理函数：恢复原始方法
       return () => {
         if (originalReportUserActivityRef.current) {
           player.reportUserActivity = originalReportUserActivityRef.current;
         }
-        
+
         // 清理焦点管理
-        const el = player.el() as HTMLElement & { _focusLossHandler?: () => void };
+        const el = player.el() as HTMLElement & {
+          _focusLossHandler?: () => void;
+        };
         if (el && el._focusLossHandler) {
-          el.removeEventListener('blur', el._focusLossHandler);
+          el.removeEventListener("blur", el._focusLossHandler);
           delete el._focusLossHandler;
         }
       };
@@ -155,15 +166,20 @@ export function useControlBarManagement({
         player.reportUserActivity = originalReportUserActivityRef.current;
         originalReportUserActivityRef.current = null;
       }
-      
+
       clearUnlockTimer();
-      
-      const playerEl = player.el() as HTMLElement & { _focusLossHandler?: () => void };
+
+      const playerEl = player.el() as HTMLElement & {
+        _focusLossHandler?: () => void;
+      };
       if (playerEl) {
-        playerEl.classList.remove('vjs-controls-locked-hidden', 'vjs-controls-unlocked-once');
-        
+        playerEl.classList.remove(
+          "vjs-controls-locked-hidden",
+          "vjs-controls-unlocked-once"
+        );
+
         if (playerEl._focusLossHandler) {
-          playerEl.removeEventListener('blur', playerEl._focusLossHandler);
+          playerEl.removeEventListener("blur", playerEl._focusLossHandler);
           delete playerEl._focusLossHandler;
         }
       }
@@ -175,16 +191,21 @@ export function useControlBarManagement({
     const player = getPlayer();
     const touchPlugin = player?._mobileTouchControlsPlugin;
     if (!touchPlugin) return;
-    
+
     touchPlugin.setEnhancedSubtitlesEnabled?.(showEnhancedSubtitles);
     touchPlugin.setSubtitleCues?.(subtitleCues);
     touchPlugin.setGetCurrentSubtitleIndex?.(() => currentSubtitleIndex);
     touchPlugin.setShowControlBar?.(temporarilyUnlockControlBar);
-  }, [getPlayer, showEnhancedSubtitles, subtitleCues, currentSubtitleIndex, temporarilyUnlockControlBar]);
+  }, [
+    getPlayer,
+    showEnhancedSubtitles,
+    subtitleCues,
+    currentSubtitleIndex,
+    temporarilyUnlockControlBar,
+  ]);
 
   return {
     temporarilyUnlockControlBar,
     hideControlBar,
   };
 }
-

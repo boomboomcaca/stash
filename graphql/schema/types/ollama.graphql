@@ -1,4 +1,6 @@
-"""Ollama Configuration"""
+"""
+Ollama Configuration
+"""
 type OllamaConfig {
   baseUrl: String!
   model: String!
@@ -8,7 +10,9 @@ type OllamaConfig {
   promptTemplate: String!
 }
 
-"""Ollama Configuration Input"""
+"""
+Ollama Configuration Input
+"""
 input OllamaConfigInput {
   baseUrl: String!
   model: String!
@@ -18,7 +22,9 @@ input OllamaConfigInput {
   promptTemplate: String!
 }
 
-"""Dictionary Entry from Ollama"""
+"""
+Dictionary Entry from Ollama
+"""
 type OllamaDictionaryEntry {
   word: String!
   pronunciation: String
@@ -26,14 +32,18 @@ type OllamaDictionaryEntry {
   etymology: String!
 }
 
-"""Dictionary Definition"""
+"""
+Dictionary Definition
+"""
 type OllamaDictionaryDefinition {
   partOfSpeech: String!
   meaning: String!
   examples: [String!]!
 }
 
-"""Ollama Word Explanation Input"""
+"""
+Ollama Word Explanation Input
+"""
 input OllamaExplainWordInput {
   word: String!
   context: String!
@@ -41,13 +51,17 @@ input OllamaExplainWordInput {
   model: String
 }
 
-"""Ollama Generation Input"""
+"""
+Ollama Generation Input
+"""
 input OllamaGenerateInput {
   prompt: String!
   model: String
 }
 
-"""Ollama Generation Result"""
+"""
+Ollama Generation Result
+"""
 type OllamaGenerateResult {
   response: String!
   model: String!
@@ -55,7 +69,9 @@ type OllamaGenerateResult {
   evalCount: Int
 }
 
-"""Ollama Service Status"""
+"""
+Ollama Service Status
+"""
 type OllamaStatus {
   available: Boolean!
   config: OllamaConfig!

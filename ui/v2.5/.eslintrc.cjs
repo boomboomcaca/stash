@@ -1,58 +1,58 @@
 module.exports = {
-  "env": {
-    "browser": true
+  env: {
+    browser: true,
   },
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": {
-    "project": "./tsconfig.json",
-    "tsconfigRootDir": __dirname
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    project: "./tsconfig.json",
+    tsconfigRootDir: __dirname,
   },
-  "plugins": ["@typescript-eslint", "jsx-a11y"],
-  "extends": [
+  plugins: ["@typescript-eslint", "jsx-a11y"],
+  extends: [
     "airbnb-typescript",
     "plugin:import/recommended",
     "plugin:react/recommended",
     "plugin:react/jsx-runtime",
     "airbnb/hooks",
-    "prettier"
+    "prettier",
   ],
-  "settings": {
-    "react": {
-      "version": "detect"
-    }
+  settings: {
+    react: {
+      version: "detect",
+    },
   },
-  "ignorePatterns": [
+  ignorePatterns: [
     "node_modules/",
     "src/core/generated-graphql.ts",
-    "src/pluginApi.d.ts"
+    "src/pluginApi.d.ts",
   ],
-  "rules": {
+  rules: {
     "@typescript-eslint/lines-between-class-members": "off",
     "@typescript-eslint/naming-convention": [
       "error",
       {
-        "selector": "interface",
-        "format": ["PascalCase"],
-        "custom": {
-          "regex": "^I[A-Z]",
-          "match": true
-        }
-      }
+        selector: "interface",
+        format: ["PascalCase"],
+        custom: {
+          regex: "^I[A-Z]",
+          match: true,
+        },
+      },
     ],
     "@typescript-eslint/no-explicit-any": 2,
     "@typescript-eslint/no-use-before-define": [
       "error",
-      { "functions": false, "classes": false }
+      { functions: false, classes: false },
     ],
     "import/extensions": [
       "error",
       "ignorePackages",
       {
-        "js": "never",
-        "jsx": "never",
-        "ts": "never",
-        "tsx": "never"
-      }
+        js: "never",
+        jsx: "never",
+        ts: "never",
+        tsx: "never",
+      },
     ],
     "import/named": "off",
     "import/namespace": "off",
@@ -62,19 +62,19 @@ module.exports = {
     "prefer-destructuring": [
       "error",
       {
-        "VariableDeclarator": {
-          "array": false,
-          "object": true
+        VariableDeclarator: {
+          array: false,
+          object: true,
         },
-        "AssignmentExpression": {
-          "array": false,
-          "object": false
-        }
-      }
+        AssignmentExpression: {
+          array: false,
+          object: false,
+        },
+      },
     ],
     "react/display-name": "off",
     "react/prop-types": "off",
-    "react/style-prop-object": ["error", { "allow": ["FormattedNumber"] }],
-    "spaced-comment": ["error", "always", { "markers": ["/"] }]
-  }
+    "react/style-prop-object": ["error", { allow: ["FormattedNumber"] }],
+    "spaced-comment": ["error", "always", { markers: ["/"] }],
+  },
 };

@@ -156,8 +156,7 @@ export const App: React.FC = () => {
         if (res.ok) {
           setCustomMessages(await res.json());
         }
-      } catch (err) {
-      }
+      } catch (err) {}
     })();
   }, []);
 

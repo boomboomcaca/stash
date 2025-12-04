@@ -1,16 +1,23 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { Modal } from 'react-bootstrap';
-import { IWordSegment, IDictionaryEntry, ISubtitleCue } from './types';
-import { createSegmenter, detectLanguage } from './segmentation';
-import { lookupWord, lookupWordWithContext } from './dictionary';
-import { playWordPronunciation } from './pronunciation';
-import { getFavorites, addFavorite, removeFavorite } from './favorites';
-import './styles.scss';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import { createPortal } from "react-dom";
+import { Modal } from "react-bootstrap";
+import { IWordSegment, IDictionaryEntry, ISubtitleCue } from "./types";
+import { createSegmenter, detectLanguage } from "./segmentation";
+import { lookupWord, lookupWordWithContext } from "./dictionary";
+import { playWordPronunciation } from "./pronunciation";
+import { getFavorites, addFavorite, removeFavorite } from "./favorites";
+import "./styles.scss";
 
 const AUTO_PAUSE_THRESHOLD = 0.1;
 
-const getCueSignature = (cue: ISubtitleCue) => `${cue.startTime}-${cue.endTime}-${cue.text}`;
+const getCueSignature = (cue: ISubtitleCue) =>
+  `${cue.startTime}-${cue.endTime}-${cue.text}`;
 
 interface IEnhancedSubtitleOverlayProps {
   currentTime: number;
@@ -37,11 +44,13 @@ interface IParsedSubtitle {
   cues: ISubtitleCue[];
 }
 
-export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = ({
+export const EnhancedSubtitleOverlay: React.FC<
+  IEnhancedSubtitleOverlayProps
+> = ({
   currentTime,
   subtitleTrack,
   isVisible,
-  language = 'en',
+  language = "en",
   isFullscreen = false,
   // onToggleVisibility,
   onPausePlayer,
@@ -55,7 +64,8 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   onGetPlayer,
   onNavigationRef,
 }) => {
-  const [parsedSubtitles, setParsedSubtitles] = useState<IParsedSubtitle | null>(null);
+  const [parsedSubtitles, setParsedSubtitles] =
+    useState<IParsedSubtitle | null>(null);
   const [currentCue, setCurrentCue] = useState<ISubtitleCue | null>(null);
   const [wordSegments, setWordSegments] = useState<IWordSegment[]>([]);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
@@ -63,15 +73,17 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   const [isLoading, setIsLoading] = useState(false);
   const [showDictionary, setShowDictionary] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
-  const [fullscreenContainer, setFullscreenContainer] = useState<HTMLElement | null>(null);
+  const [fullscreenContainer, setFullscreenContainer] =
+    useState<HTMLElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState({ y: 0 });
   const [lastSavedPosition, setLastSavedPosition] = useState({ y: 0 });
-  const computeIsPortrait = () => typeof window !== 'undefined' && window.innerHeight > window.innerWidth;
+  const computeIsPortrait = () =>
+    typeof window !== "undefined" && window.innerHeight > window.innerWidth;
   const [isPortrait, setIsPortrait] = useState<boolean>(computeIsPortrait());
   const [fontSize, setFontSize] = useState(1.0); // Scale factor for font size
   const [lastSavedFontSize, setLastSavedFontSize] = useState(1.0);
-  const [dragMode, setDragMode] = useState<'position' | 'size'>('position');
+  const [dragMode, setDragMode] = useState<"position" | "size">("position");
   const [autoPauseEnabled, setAutoPauseEnabled] = useState(false);
   const [isAutoPaused, setIsAutoPaused] = useState(false); // Track if currently auto-paused
   const [isPlayerPaused, setIsPlayerPaused] = useState(false); // Track player pause state
@@ -80,14 +92,23 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   const [isFavorite, setIsFavorite] = useState(false);
   const dictionaryTouchStartYRef = useRef<number | null>(null);
   const dictionaryTouchTriggeredRef = useRef<boolean>(false);
-  
+
   // Word navigation mode state
   const [selectedWordIndex, setSelectedWordIndex] = useState<number>(-1);
   const [isInWordNavigationMode, setIsInWordNavigationMode] = useState(false);
-  
+
   const subtitleRef = useRef<HTMLDivElement>(null);
   const subtitleCacheRef = useRef<Map<string, ISubtitleCue[]>>(new Map()); // 字幕缓存
-  const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false, initialX: 0, initialY: 0 });
+  const dragStartRef = useRef({
+    y: 0,
+    startY: 0,
+    x: 0,
+    startX: 0,
+    startFontSize: 1.0,
+    hasDeterminedMode: false,
+    initialX: 0,
+    initialY: 0,
+  });
   const prevCueRef = useRef<ISubtitleCue | null>(null); // Track previous cue to detect actual changes
   const lastCueRef = useRef<ISubtitleCue | null>(null);
   const autoPauseTriggeredRef = useRef(false);
@@ -101,19 +122,25 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   const getPlayerPausedRef = useRef<typeof getPlayerPaused>(getPlayerPaused);
   const onPausePlayerRef = useRef<typeof onPausePlayer>(onPausePlayer);
   const onGetPlayerRef = useRef<typeof onGetPlayer>(onGetPlayer);
-  
+
   // AP图标双击检测
   const lastAPClickTimeRef = useRef<number>(0);
   const APDoubleClickTimeoutRef = useRef<number | null>(null);
-  
-  const segmenterRef = useRef(createSegmenter({
-    language: detectedLanguage,
-    enablePunctuation: false,
-    minWordLength: 1
-  }));
-  
+
+  const segmenterRef = useRef(
+    createSegmenter({
+      language: detectedLanguage,
+      enablePunctuation: false,
+      minWordLength: 1,
+    })
+  );
+
   // Helper: Load config from localStorage with type safety
-  const loadConfig = <T,>(key: string, defaultValue: T, parser?: (value: string) => T): T => {
+  const loadConfig = <T,>(
+    key: string,
+    defaultValue: T,
+    parser?: (value: string) => T
+  ): T => {
     try {
       const saved = localStorage.getItem(key);
       if (!saved) return defaultValue;
@@ -125,20 +152,20 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
 
   // Load font size and auto-pause setting from localStorage
   useEffect(() => {
-    const size = loadConfig('enhancedSubtitleFontSize', 1, parseFloat);
+    const size = loadConfig("enhancedSubtitleFontSize", 1, parseFloat);
     if (size >= 0.5 && size <= 3.0) {
       setFontSize(size);
       setLastSavedFontSize(size);
     }
-    const autoPause = loadConfig('enhancedSubtitleAutoPause', '', (v) => v);
-    setAutoPauseEnabled(autoPause === 'true');
+    const autoPause = loadConfig("enhancedSubtitleAutoPause", "", (v) => v);
+    setAutoPauseEnabled(autoPause === "true");
   }, []);
 
   // Orientation-aware load of saved position, with migration from legacy key
   useEffect(() => {
-    const legacy = localStorage.getItem('enhancedSubtitlePosition');
-    const portraitKey = 'enhancedSubtitlePosition_portrait';
-    const landscapeKey = 'enhancedSubtitlePosition_landscape';
+    const legacy = localStorage.getItem("enhancedSubtitlePosition");
+    const portraitKey = "enhancedSubtitlePosition_portrait";
+    const landscapeKey = "enhancedSubtitlePosition_landscape";
 
     // Migrate legacy position if present
     if (legacy && !localStorage.getItem(portraitKey)) {
@@ -156,7 +183,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   useEffect(() => {
     const onResize = () => {
       const nextIsPortrait = computeIsPortrait();
-      setIsPortrait(prev => {
+      setIsPortrait((prev) => {
         if (prev !== nextIsPortrait) {
           // Switched orientation; position will be loaded by the isPortrait effect above
           return nextIsPortrait;
@@ -164,11 +191,11 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         return prev;
       });
     };
-    window.addEventListener('resize', onResize);
-    window.addEventListener('orientationchange', onResize);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
     return () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
     };
   }, []);
 
@@ -176,7 +203,9 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   useEffect(() => {
     const saveTimer = setTimeout(() => {
       if (dragPosition.y !== lastSavedPosition.y) {
-        const key = isPortrait ? 'enhancedSubtitlePosition_portrait' : 'enhancedSubtitlePosition_landscape';
+        const key = isPortrait
+          ? "enhancedSubtitlePosition_portrait"
+          : "enhancedSubtitlePosition_landscape";
         localStorage.setItem(key, JSON.stringify(dragPosition));
         setLastSavedPosition(dragPosition);
       }
@@ -188,7 +217,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   useEffect(() => {
     const saveTimer = setTimeout(() => {
       if (fontSize !== lastSavedFontSize) {
-        localStorage.setItem('enhancedSubtitleFontSize', fontSize.toString());
+        localStorage.setItem("enhancedSubtitleFontSize", fontSize.toString());
         setLastSavedFontSize(fontSize);
       }
     }, 500); // Debounce saves
@@ -198,14 +227,17 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
 
   // Save auto-pause setting to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('enhancedSubtitleAutoPause', autoPauseEnabled.toString());
+    localStorage.setItem(
+      "enhancedSubtitleAutoPause",
+      autoPauseEnabled.toString()
+    );
   }, [autoPauseEnabled]);
 
   // Load favorites on mount
   useEffect(() => {
     const loadFavorites = async () => {
       const favorites = await getFavorites();
-      const favSet = new Set(favorites.map(f => `${f.word}:${f.language}`));
+      const favSet = new Set(favorites.map((f) => `${f.word}:${f.language}`));
       setFavoriteWords(favSet);
     };
     loadFavorites();
@@ -217,13 +249,18 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
       // 组件卸载时清理音频缓存
       try {
         // 使用动态导入避免require问题
-        import('./pronunciation').then(({ pronunciationService }) => {
-          if (pronunciationService && typeof pronunciationService.clearCache === 'function') {
-            pronunciationService.clearCache();
-          }
-        }).catch(() => {
-    // console.warn('Failed to clear pronunciation cache:', error);
-        });
+        import("./pronunciation")
+          .then(({ pronunciationService }) => {
+            if (
+              pronunciationService &&
+              typeof pronunciationService.clearCache === "function"
+            ) {
+              pronunciationService.clearCache();
+            }
+          })
+          .catch(() => {
+            // console.warn('Failed to clear pronunciation cache:', error);
+          });
       } catch (error) {
         // console.warn('Failed to clear pronunciation cache:', error);
       }
@@ -248,53 +285,59 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   }, [resetFontSizeTrigger]);
 
   // ✅ Mouse drag handlers - 使用 useRef 避免依赖更新
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    const deltaX = e.clientX - dragStartRef.current.x;
-    const deltaY = e.clientY - dragStartRef.current.y;
-    
-    // Auto-determine drag mode based on initial movement direction
-    if (!dragStartRef.current.hasDeterminedMode) {
-      const threshold = 10; // Minimum pixels to determine direction
-      const absX = Math.abs(deltaX);
-      const absY = Math.abs(deltaY);
-      
-      if (absX > threshold || absY > threshold) {
-        // Determine mode based on which direction has more movement
-        const newMode = absX > absY ? 'size' : 'position';
-        setDragMode(newMode);
-        dragStartRef.current.hasDeterminedMode = true;
-      } else {
-        return; // Wait for more movement to determine direction
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      const deltaX = e.clientX - dragStartRef.current.x;
+      const deltaY = e.clientY - dragStartRef.current.y;
+
+      // Auto-determine drag mode based on initial movement direction
+      if (!dragStartRef.current.hasDeterminedMode) {
+        const threshold = 10; // Minimum pixels to determine direction
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+
+        if (absX > threshold || absY > threshold) {
+          // Determine mode based on which direction has more movement
+          const newMode = absX > absY ? "size" : "position";
+          setDragMode(newMode);
+          dragStartRef.current.hasDeterminedMode = true;
+        } else {
+          return; // Wait for more movement to determine direction
+        }
       }
-    }
-    
-    if (dragMode === 'position') {
-      // Vertical dragging for position
-      const newY = dragStartRef.current.startY + deltaY;
-      
-      // Limit dragging to reasonable bounds
-      const containerHeight = window.innerHeight;
-      const containerWidth = window.innerWidth;
-      // Detect portrait mode: height > width
-      const isPortraitMode = containerHeight > containerWidth;
-      
-      const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
-      // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
-      const maxY = isPortraitMode ? containerHeight * 0.8 : containerHeight * 0.2;
-      
-      setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
-    } else if (dragMode === 'size') {
-      // Horizontal dragging for font size (left = larger, right = smaller)
-      const sensitivity = 0.003; // Adjust sensitivity as needed
-      const newSize = dragStartRef.current.startFontSize - (deltaX * sensitivity);
-      
-      // Limit font size to reasonable bounds
-      const minSize = 0.5;
-      const maxSize = 3.0;
-      
-      setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
-    }
-  }, [dragMode]); // ✅ 移除 isDragging 依赖
+
+      if (dragMode === "position") {
+        // Vertical dragging for position
+        const newY = dragStartRef.current.startY + deltaY;
+
+        // Limit dragging to reasonable bounds
+        const containerHeight = window.innerHeight;
+        const containerWidth = window.innerWidth;
+        // Detect portrait mode: height > width
+        const isPortraitMode = containerHeight > containerWidth;
+
+        const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
+        // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
+        const maxY = isPortraitMode
+          ? containerHeight * 0.8
+          : containerHeight * 0.2;
+
+        setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
+      } else if (dragMode === "size") {
+        // Horizontal dragging for font size (left = larger, right = smaller)
+        const sensitivity = 0.003; // Adjust sensitivity as needed
+        const newSize =
+          dragStartRef.current.startFontSize - deltaX * sensitivity;
+
+        // Limit font size to reasonable bounds
+        const minSize = 0.5;
+        const maxSize = 3.0;
+
+        setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
+      }
+    },
+    [dragMode]
+  ); // ✅ 移除 isDragging 依赖
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -304,54 +347,60 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
 
   // ✅ Touch drag handlers for mobile - 使用 useRef 避免依赖更新
   // 🚀 性能优化：不再调用 preventDefault，使用 CSS touch-action 代替
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - dragStartRef.current.x;
-    const deltaY = touch.clientY - dragStartRef.current.y;
-    
-    // Auto-determine drag mode based on initial movement direction
-    if (!dragStartRef.current.hasDeterminedMode) {
-      const threshold = 1; // Slightly higher threshold for touch
-      const absX = Math.abs(deltaX);
-      const absY = Math.abs(deltaY);
-      
-      if (absX > threshold || absY > threshold) {
-        // Determine mode based on which direction has more movement
-        const newMode = absX > absY ? 'size' : 'position';
-        setDragMode(newMode);
-        dragStartRef.current.hasDeterminedMode = true;
-      } else {
-        return; // Wait for more movement to determine direction
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - dragStartRef.current.x;
+      const deltaY = touch.clientY - dragStartRef.current.y;
+
+      // Auto-determine drag mode based on initial movement direction
+      if (!dragStartRef.current.hasDeterminedMode) {
+        const threshold = 1; // Slightly higher threshold for touch
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+
+        if (absX > threshold || absY > threshold) {
+          // Determine mode based on which direction has more movement
+          const newMode = absX > absY ? "size" : "position";
+          setDragMode(newMode);
+          dragStartRef.current.hasDeterminedMode = true;
+        } else {
+          return; // Wait for more movement to determine direction
+        }
       }
-    }
-    
-    if (dragMode === 'position') {
-      // Vertical dragging for position
-      const newY = dragStartRef.current.startY + deltaY;
-      
-      const containerHeight = window.innerHeight;
-      const containerWidth = window.innerWidth;
-      // Detect portrait mode: height > width
-      const isPortraitMode = containerHeight > containerWidth;
-      
-      const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
-      // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
-      const maxY = isPortraitMode ? containerHeight * 0.8 : containerHeight * 0.2;
-      
-      setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
-    } else if (dragMode === 'size') {
-      // Horizontal dragging for font size (left = larger, right = smaller)
-      const sensitivity = 0.003;
-      const newSize = dragStartRef.current.startFontSize - (deltaX * sensitivity);
-      
-      const minSize = 0.5;
-      const maxSize = 3.0;
-      
-      setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
-    }
-    
-    // 🚀 移除 preventDefault() - 使用 CSS touch-action: none 代替，性能更好
-  }, [dragMode]); // ✅ 移除 isDragging 依赖
+
+      if (dragMode === "position") {
+        // Vertical dragging for position
+        const newY = dragStartRef.current.startY + deltaY;
+
+        const containerHeight = window.innerHeight;
+        const containerWidth = window.innerWidth;
+        // Detect portrait mode: height > width
+        const isPortraitMode = containerHeight > containerWidth;
+
+        const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
+        // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
+        const maxY = isPortraitMode
+          ? containerHeight * 0.8
+          : containerHeight * 0.2;
+
+        setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
+      } else if (dragMode === "size") {
+        // Horizontal dragging for font size (left = larger, right = smaller)
+        const sensitivity = 0.003;
+        const newSize =
+          dragStartRef.current.startFontSize - deltaX * sensitivity;
+
+        const minSize = 0.5;
+        const maxSize = 3.0;
+
+        setFontSize(Math.max(minSize, Math.min(maxSize, newSize)));
+      }
+
+      // 🚀 移除 preventDefault() - 使用 CSS touch-action: none 代替，性能更好
+    },
+    [dragMode]
+  ); // ✅ 移除 isDragging 依赖
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -363,25 +412,33 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   // 🚀 性能优化：移动端使用 passive 事件监听器以提升性能
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
       // 🚀 移动端性能优化：使用 passive 监听器，只在必要时调用 preventDefault
-      document.addEventListener('touchmove', handleTouchMove, { passive: true });
-      document.addEventListener('touchend', handleTouchEnd, { passive: true });
-      
+      document.addEventListener("touchmove", handleTouchMove, {
+        passive: true,
+      });
+      document.addEventListener("touchend", handleTouchEnd, { passive: true });
+
       // Add dragging class to body to prevent text selection
-      document.body.classList.add('subtitle-dragging');
-      
+      document.body.classList.add("subtitle-dragging");
+
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-        document.body.classList.remove('subtitle-dragging');
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.removeEventListener("touchmove", handleTouchMove);
+        document.removeEventListener("touchend", handleTouchEnd);
+        document.body.classList.remove("subtitle-dragging");
       };
     }
     // ✅ 只依赖 isDragging，callback 函数现在稳定不变
-  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+  }, [
+    isDragging,
+    handleMouseMove,
+    handleMouseUp,
+    handleTouchMove,
+    handleTouchEnd,
+  ]);
 
   // ✅ Find fullscreen container when entering fullscreen mode (伪全屏)
   useEffect(() => {
@@ -393,14 +450,18 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
     // Look for pseudo fullscreen container
     const findFullscreenContainer = () => {
       // Check for pseudo fullscreen class
-      const pseudoFullscreen = document.querySelector('.vjs-pseudo-fullscreen') as HTMLElement;
+      const pseudoFullscreen = document.querySelector(
+        ".vjs-pseudo-fullscreen"
+      ) as HTMLElement;
       if (pseudoFullscreen) {
         setFullscreenContainer(pseudoFullscreen);
         return;
       }
-      
+
       // Check for video player container with pseudo fullscreen class
-      const playerContainer = document.querySelector('.video-js.vjs-pseudo-fullscreen') as HTMLElement;
+      const playerContainer = document.querySelector(
+        ".video-js.vjs-pseudo-fullscreen"
+      ) as HTMLElement;
       if (playerContainer) {
         setFullscreenContainer(playerContainer);
         return;
@@ -426,42 +487,49 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
 
   // Parse VTT timestamp to seconds
   const parseVTTTime = (timeStr: string): number => {
-    const [hours, minutes, seconds] = timeStr.split(':');
-    return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
+    const [hours, minutes, seconds] = timeStr.split(":");
+    return (
+      parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds)
+    );
   };
 
   // Parse VTT subtitles
   const parseVTT = useCallback((vttContent: string): ISubtitleCue[] => {
     const cues: ISubtitleCue[] = [];
-    const lines = vttContent.split('\n');
-    
+    const lines = vttContent.split("\n");
+
     let i = 0;
     while (i < lines.length) {
       const line = lines[i].trim();
-      
+
       // Skip WEBVTT header and empty lines
-      if (line === 'WEBVTT' || line === '' || line.startsWith('NOTE')) {
+      if (line === "WEBVTT" || line === "" || line.startsWith("NOTE")) {
         i++;
         continue;
       }
-      
+
       // Look for timestamp line
-      const timeMatch = line.match(/^(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})/);
+      const timeMatch = line.match(
+        /^(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})/
+      );
       if (timeMatch) {
         const startTime = parseVTTTime(timeMatch[1]);
         const endTime = parseVTTTime(timeMatch[2]);
-        
+
         i++; // Move to text lines
-        let text = '';
-        
+        let text = "";
+
         // Collect text lines until empty line or next timestamp
-        while (i < lines.length && lines[i].trim() !== '' && 
-               !lines[i].match(/^\d{2}:\d{2}:\d{2}\.\d{3} -->/)) {
-          if (text) text += '\n';
-          text += lines[i].trim().replace(/<[^>]*>/g, ''); // Remove HTML tags
+        while (
+          i < lines.length &&
+          lines[i].trim() !== "" &&
+          !lines[i].match(/^\d{2}:\d{2}:\d{2}\.\d{3} -->/)
+        ) {
+          if (text) text += "\n";
+          text += lines[i].trim().replace(/<[^>]*>/g, ""); // Remove HTML tags
           i++;
         }
-        
+
         if (text) {
           cues.push({ startTime, endTime, text });
         }
@@ -469,7 +537,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         i++;
       }
     }
-    
+
     return cues;
   }, []);
 
@@ -499,21 +567,21 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         }
 
         const response = await fetch(subtitleTrack, {
-          signal: abortController.signal
+          signal: abortController.signal,
         });
-        
+
         if (cancelled) return; // 防止状态更新
-        
+
         if (response.ok) {
           const content = await response.text();
-          
+
           if (cancelled) return; // 防止状态更新
-          
+
           const cues = parseVTT(content);
-          
+
           // ✅ 缓存字幕数据
           subtitleCacheRef.current.set(subtitleTrack, cues);
-          
+
           setParsedSubtitles({ cues });
           // 通知父组件字幕已加载
           if (onSubtitlesLoaded) {
@@ -521,11 +589,11 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
           }
         }
       } catch (error) {
-        if (error instanceof Error && error.name === 'AbortError') {
-      // console.log('Subtitle loading cancelled');
+        if (error instanceof Error && error.name === "AbortError") {
+          // console.log('Subtitle loading cancelled');
           return;
         }
-        console.error('Failed to load subtitles:', error);
+        console.error("Failed to load subtitles:", error);
         if (!cancelled) {
           setParsedSubtitles(null);
         }
@@ -582,39 +650,36 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
     currentCueRef.current = currentCue;
   }, [currentCue]);
 
-  const attemptAutoPause = useCallback(
-    () => {
-      if (!autoPauseEnabledRef.current) {
-        return;
-      }
+  const attemptAutoPause = useCallback(() => {
+    if (!autoPauseEnabledRef.current) {
+      return;
+    }
 
-      const pausePlayer = onPausePlayerRef.current;
-      const getPaused = getPlayerPausedRef.current;
+    const pausePlayer = onPausePlayerRef.current;
+    const getPaused = getPlayerPausedRef.current;
 
-      if (!pausePlayer || !getPaused) {
-        return;
-      }
+    if (!pausePlayer || !getPaused) {
+      return;
+    }
 
-      if (autoPauseTriggeredRef.current || userResumedPlaybackRef.current) {
-        return;
-      }
+    if (autoPauseTriggeredRef.current || userResumedPlaybackRef.current) {
+      return;
+    }
 
-      if (getPaused()) {
-        return;
-      }
+    if (getPaused()) {
+      return;
+    }
 
-      // console.log(
-      //   reason === 'timer'
-      //     ? '🎬 Auto-pausing before subtitle ends (scheduled)'
-      //     : '🎬 Auto-pausing before subtitle ends'
-      // );
-      pausePlayer();
-      autoPauseTriggeredRef.current = true;
-      setIsAutoPaused(true);
-      clearAutoPauseTimeout();
-    },
-    [clearAutoPauseTimeout]
-  );
+    // console.log(
+    //   reason === 'timer'
+    //     ? '🎬 Auto-pausing before subtitle ends (scheduled)'
+    //     : '🎬 Auto-pausing before subtitle ends'
+    // );
+    pausePlayer();
+    autoPauseTriggeredRef.current = true;
+    setIsAutoPaused(true);
+    clearAutoPauseTimeout();
+  }, [clearAutoPauseTimeout]);
 
   const scheduleAutoPause = useCallback(
     (cue: ISubtitleCue, timeUntilEnd: number) => {
@@ -624,7 +689,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
       if (getPlayer) {
         try {
           const player = getPlayer();
-          if (player && typeof player.playbackRate === 'function') {
+          if (player && typeof player.playbackRate === "function") {
             playbackRate = player.playbackRate() || 1;
           }
         } catch (error) {
@@ -637,7 +702,10 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
       const delayMs = (videoTimeDelay * 1000) / playbackRate;
       const cueSignature = getCueSignature(cue);
 
-      if (scheduledCueSignatureRef.current === cueSignature && autoPauseTimeoutRef.current !== null) {
+      if (
+        scheduledCueSignatureRef.current === cueSignature &&
+        autoPauseTimeoutRef.current !== null
+      ) {
         return;
       }
 
@@ -649,7 +717,9 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         }
 
         const activeCue = currentCueRef.current;
-        const activeCueSignature = activeCue ? getCueSignature(activeCue) : null;
+        const activeCueSignature = activeCue
+          ? getCueSignature(activeCue)
+          : null;
 
         if (activeCueSignature !== cueSignature) {
           return;
@@ -686,7 +756,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         break;
       }
     }
-    
+
     return { cue, cueIndex };
   }, [currentTime, parsedSubtitles]);
 
@@ -705,24 +775,26 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
     }
 
     const { cue, cueIndex } = currentCueData;
-    
+
     // Auto-pause logic: pause before subtitle disappears
     if (autoPauseEnabled && onPausePlayer && getPlayerPaused) {
       const isPaused = getPlayerPaused();
-      
+
       // When a new cue appears, reset the flags
       // Compare by content (startTime, endTime, text) instead of reference to avoid false positives
-      const isSameCue = cue && lastCueRef.current && 
-        cue.startTime === lastCueRef.current.startTime && 
+      const isSameCue =
+        cue &&
+        lastCueRef.current &&
+        cue.startTime === lastCueRef.current.startTime &&
         cue.endTime === lastCueRef.current.endTime &&
         cue.text === lastCueRef.current.text;
-      
+
       // 🔄 检测重播当前字幕的情况（双击重播）
       // 如果是同一个字幕，但时间跳转回了字幕开始附近（误差0.5秒内），说明是重播
       if (cue && isSameCue && autoPauseTriggeredRef.current) {
         const timeDiff = currentTime - lastCurrentTimeRef.current;
         const isNearStart = Math.abs(currentTime - cue.startTime) < 0.5;
-        
+
         // 如果时间倒退了（或跳转），且当前时间接近字幕开始位置，说明是重播
         if (timeDiff < -0.5 && isNearStart) {
           // console.log('🔄 Detected replay of current subtitle (double-tap), resetting auto-pause flags', {
@@ -737,7 +809,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
           clearAutoPauseTimeout();
         }
       }
-      
+
       if (cue && !isSameCue) {
         // console.log('🎬 New subtitle detected, resetting auto-pause flags', {
         //   newCue: { start: cue.startTime, end: cue.endTime, text: cue.text.substring(0, 20) },
@@ -750,7 +822,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         lastPausedStateRef.current = isPaused; // Initialize paused state for new subtitle
         clearAutoPauseTimeout();
       }
-      
+
       // Detect if user manually paused playback (not auto-paused)
       // This checks if the player state changed from playing to paused
       if (lastPausedStateRef.current === false && isPaused === true) {
@@ -762,7 +834,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
           // Don't reset autoPauseTriggeredRef here, as it might be needed to track state
         }
       }
-      
+
       // Detect if user manually resumed playback BEFORE we try to auto-pause
       // This checks if the player state changed from paused to playing
       if (lastPausedStateRef.current === true && isPaused === false) {
@@ -786,11 +858,16 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
           clearAutoPauseTimeout();
         }
       }
-      
+
       lastPausedStateRef.current = isPaused;
-      
+
       // If we have a current cue and haven't triggered pause yet and user hasn't manually resumed
-      if (cue && !autoPauseTriggeredRef.current && !userResumedPlaybackRef.current && !isPaused) {
+      if (
+        cue &&
+        !autoPauseTriggeredRef.current &&
+        !userResumedPlaybackRef.current &&
+        !isPaused
+      ) {
         const timeUntilEnd = cue.endTime - currentTime;
 
         if (timeUntilEnd <= 0) {
@@ -803,7 +880,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
       } else {
         clearAutoPauseTimeout();
       }
-      
+
       // Clear last cue when no cue is active
       if (!cue) {
         lastCueRef.current = null;
@@ -813,25 +890,40 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         clearAutoPauseTimeout();
       }
     }
-    
+
     // 🚀 性能优化：只在字幕真正变化时才更新状态，避免不必要的重渲染
-    const isSameCueContent = cue && currentCue && 
-      cue.startTime === currentCue.startTime && 
+    const isSameCueContent =
+      cue &&
+      currentCue &&
+      cue.startTime === currentCue.startTime &&
       cue.endTime === currentCue.endTime &&
       cue.text === currentCue.text;
-    
+
     if (!isSameCueContent) {
       setCurrentCue(cue || null);
-      
+
       // 通知父组件当前字幕索引变化
       if (onCurrentCueChange) {
         onCurrentCueChange(cueIndex);
       }
     }
-    
+
     // 更新上一次的时间，用于检测时间跳转（重播）
     lastCurrentTimeRef.current = currentTime;
-  }, [currentCueData, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange, currentCue, currentTime, attemptAutoPause, clearAutoPauseTimeout, isAutoPaused, parsedSubtitles, scheduleAutoPause]);
+  }, [
+    currentCueData,
+    autoPauseEnabled,
+    onPausePlayer,
+    getPlayerPaused,
+    onCurrentCueChange,
+    currentCue,
+    currentTime,
+    attemptAutoPause,
+    clearAutoPauseTimeout,
+    isAutoPaused,
+    parsedSubtitles,
+    scheduleAutoPause,
+  ]);
 
   // Segment current cue text
   useEffect(() => {
@@ -846,7 +938,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
       segmenterRef.current = createSegmenter({
         language: detected,
         enablePunctuation: false,
-        minWordLength: 1
+        minWordLength: 1,
       });
     }
 
@@ -855,68 +947,81 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   }, [currentCue, detectedLanguage]);
 
   // Handle word pronunciation
-  const handlePronunciation = useCallback(async (word: string) => {
-    try {
-      await playWordPronunciation(word, detectedLanguage);
-    } catch (error) {
-      console.error('Failed to play pronunciation:', error);
-    }
-  }, [detectedLanguage]);
+  const handlePronunciation = useCallback(
+    async (word: string) => {
+      try {
+        await playWordPronunciation(word, detectedLanguage);
+      } catch (error) {
+        console.error("Failed to play pronunciation:", error);
+      }
+    },
+    [detectedLanguage]
+  );
 
   // Handle word selection
-  const handleWordClick = useCallback(async (word: string) => {
-    // Pause the player when looking up a word
-    if (onPausePlayer) {
-      onPausePlayer();
-    }
-    
-    setSelectedWord(word);
-    setIsLoading(true);
-    setShowDictionary(true);
-    
-    try {
-      // Use the current subtitle text as context for better word explanation
-      const context = currentCue?.text || '';
-      // console.log('🔍 Looking up word with context:', { word, context, language: detectedLanguage });
-      
-      // Use contextual lookup if we have context, otherwise fallback to regular lookup
-      const entry = context 
-        ? await lookupWordWithContext(word, context, detectedLanguage)
-        : await lookupWord(word, detectedLanguage);
-        
-      setDictionary(entry);
-    } catch (error) {
-      console.error('Dictionary lookup failed:', error);
-      setDictionary(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [detectedLanguage, currentCue, onPausePlayer]);
+  const handleWordClick = useCallback(
+    async (word: string) => {
+      // Pause the player when looking up a word
+      if (onPausePlayer) {
+        onPausePlayer();
+      }
+
+      setSelectedWord(word);
+      setIsLoading(true);
+      setShowDictionary(true);
+
+      try {
+        // Use the current subtitle text as context for better word explanation
+        const context = currentCue?.text || "";
+        // console.log('🔍 Looking up word with context:', { word, context, language: detectedLanguage });
+
+        // Use contextual lookup if we have context, otherwise fallback to regular lookup
+        const entry = context
+          ? await lookupWordWithContext(word, context, detectedLanguage)
+          : await lookupWord(word, detectedLanguage);
+
+        setDictionary(entry);
+      } catch (error) {
+        console.error("Dictionary lookup failed:", error);
+        setDictionary(null);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [detectedLanguage, currentCue, onPausePlayer]
+  );
 
   // Handle word selection via keyboard (Enter/OK key)
   const handleWordSelection = useCallback(async () => {
-    if (selectedWordIndex >= 0 && selectedWordIndex < wordSegments.length && wordSegments[selectedWordIndex]) {
+    if (
+      selectedWordIndex >= 0 &&
+      selectedWordIndex < wordSegments.length &&
+      wordSegments[selectedWordIndex]
+    ) {
       const selectedWordText = wordSegments[selectedWordIndex].word;
       await handleWordClick(selectedWordText);
     }
   }, [selectedWordIndex, wordSegments, handleWordClick]);
 
   // Handle entering word navigation mode
-  const enterWordNavigationMode = useCallback((selectLastWord: boolean = false) => {
-    if (wordSegments.length > 0) {
-      setIsInWordNavigationMode(true);
-      // Select first word if selectLastWord is false, otherwise select last word
-      const initialIndex = selectLastWord ? wordSegments.length - 1 : 0;
-      setSelectedWordIndex(initialIndex);
-      // Update prevCueRef to current cue to prevent reset when useEffect triggers
-      prevCueRef.current = currentCue;
-      // Pause playback
-      if (onPausePlayer) {
-        onPausePlayer();
+  const enterWordNavigationMode = useCallback(
+    (selectLastWord: boolean = false) => {
+      if (wordSegments.length > 0) {
+        setIsInWordNavigationMode(true);
+        // Select first word if selectLastWord is false, otherwise select last word
+        const initialIndex = selectLastWord ? wordSegments.length - 1 : 0;
+        setSelectedWordIndex(initialIndex);
+        // Update prevCueRef to current cue to prevent reset when useEffect triggers
+        prevCueRef.current = currentCue;
+        // Pause playback
+        if (onPausePlayer) {
+          onPausePlayer();
+        }
+        // console.log('🎯 Entered word navigation mode', selectLastWord ? '(last word)' : '(first word)');
       }
-      // console.log('🎯 Entered word navigation mode', selectLastWord ? '(last word)' : '(first word)');
-    }
-  }, [wordSegments, onPausePlayer, currentCue]);
+    },
+    [wordSegments, onPausePlayer, currentCue]
+  );
 
   // Handle exiting word navigation mode
   const exitWordNavigationMode = useCallback(() => {
@@ -963,13 +1068,17 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
 
   // Update word navigation when cue changes (only when cue actually changes, not when entering mode)
   useEffect(() => {
-    if (isInWordNavigationMode && currentCue && prevCueRef.current !== currentCue) {
+    if (
+      isInWordNavigationMode &&
+      currentCue &&
+      prevCueRef.current !== currentCue
+    ) {
       setSelectedWordIndex(0); // Reset to first word when cue changes
     }
     // Update prevCueRef after checking
     prevCueRef.current = currentCue;
   }, [currentCue, isInWordNavigationMode]);
-  
+
   // Expose navigation functions to parent via callback (placed after function definitions)
   useEffect(() => {
     if (onNavigationRef) {
@@ -993,10 +1102,11 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         parsedSubtitles,
         getCurrentCueIndex: () => {
           if (currentCue && parsedSubtitles) {
-            return parsedSubtitles.cues.findIndex(c => 
-              c.startTime === currentCue.startTime && 
-              c.endTime === currentCue.endTime && 
-              c.text === currentCue.text
+            return parsedSubtitles.cues.findIndex(
+              (c) =>
+                c.startTime === currentCue.startTime &&
+                c.endTime === currentCue.endTime &&
+                c.text === currentCue.text
             );
           }
           return -1;
@@ -1020,126 +1130,138 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   ]);
 
   // Handle AP indicator mouse down - start drag
-  const handleAPMouseDown = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDragStartTime(Date.now());
-    setIsDragging(true);
-    setDragMode('position'); // Default to position initially
-    
-    dragStartRef.current = {
-      y: e.clientY,
-      startY: dragPosition.y,
-      x: e.clientX,
-      startX: 0,
-      startFontSize: fontSize,
-      hasDeterminedMode: false,
-      initialX: e.clientX,
-      initialY: e.clientY
-    };
-    
-    e.preventDefault();
-  }, [dragPosition.y, fontSize]);
+  const handleAPMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setDragStartTime(Date.now());
+      setIsDragging(true);
+      setDragMode("position"); // Default to position initially
+
+      dragStartRef.current = {
+        y: e.clientY,
+        startY: dragPosition.y,
+        x: e.clientX,
+        startX: 0,
+        startFontSize: fontSize,
+        hasDeterminedMode: false,
+        initialX: e.clientX,
+        initialY: e.clientY,
+      };
+
+      e.preventDefault();
+    },
+    [dragPosition.y, fontSize]
+  );
 
   // Handle AP indicator touch start - start drag
-  const handleAPTouchStart = useCallback((e: React.TouchEvent) => {
-    e.stopPropagation();
-    const touch = e.touches[0];
-    setDragStartTime(Date.now());
-    setIsDragging(true);
-    setDragMode('position'); // Default to position initially
-    
-    dragStartRef.current = {
-      y: touch.clientY,
-      startY: dragPosition.y,
-      x: touch.clientX,
-      startX: 0,
-      startFontSize: fontSize,
-      hasDeterminedMode: false,
-      initialX: touch.clientX,
-      initialY: touch.clientY
-    };
-  }, [dragPosition.y, fontSize]);
+  const handleAPTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      e.stopPropagation();
+      const touch = e.touches[0];
+      setDragStartTime(Date.now());
+      setIsDragging(true);
+      setDragMode("position"); // Default to position initially
+
+      dragStartRef.current = {
+        y: touch.clientY,
+        startY: dragPosition.y,
+        x: touch.clientX,
+        startX: 0,
+        startFontSize: fontSize,
+        hasDeterminedMode: false,
+        initialX: touch.clientX,
+        initialY: touch.clientY,
+      };
+    },
+    [dragPosition.y, fontSize]
+  );
 
   // Handle AP indicator click to toggle auto-pause (only if not dragged)
-  const handleAPClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // Only toggle if this was a click (not a drag)
-    // Check if drag time was less than 200ms and no significant movement
-    const dragDuration = Date.now() - dragStartTime;
-    const deltaX = Math.abs(e.clientX - dragStartRef.current.initialX);
-    const deltaY = Math.abs(e.clientY - dragStartRef.current.initialY);
-    const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    
-    // 更严格的点击检测：时间短、移动距离小、且没有确定拖动模式
-    const wasClick = dragDuration < 200 && totalMovement < 10 && !dragStartRef.current.hasDeterminedMode;
-    
-    if (wasClick) {
-      const now = Date.now();
-      const timeSinceLastClick = now - lastAPClickTimeRef.current;
-      
-      // 检测双击（300ms内的第二次点击）
-      if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
-        // 双击AP图标
-        // console.log('🎬 AP图标双击 - 临时显示控制栏');
-        if (onAPDoubleClick) {
-          onAPDoubleClick();
+  const handleAPClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      // Only toggle if this was a click (not a drag)
+      // Check if drag time was less than 200ms and no significant movement
+      const dragDuration = Date.now() - dragStartTime;
+      const deltaX = Math.abs(e.clientX - dragStartRef.current.initialX);
+      const deltaY = Math.abs(e.clientY - dragStartRef.current.initialY);
+      const totalMovement = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      // 更严格的点击检测：时间短、移动距离小、且没有确定拖动模式
+      const wasClick =
+        dragDuration < 200 &&
+        totalMovement < 10 &&
+        !dragStartRef.current.hasDeterminedMode;
+
+      if (wasClick) {
+        const now = Date.now();
+        const timeSinceLastClick = now - lastAPClickTimeRef.current;
+
+        // 检测双击（300ms内的第二次点击）
+        if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
+          // 双击AP图标
+          // console.log('🎬 AP图标双击 - 临时显示控制栏');
+          if (onAPDoubleClick) {
+            onAPDoubleClick();
+          }
+
+          // 清除计时器和重置点击时间
+          if (APDoubleClickTimeoutRef.current) {
+            clearTimeout(APDoubleClickTimeoutRef.current);
+            APDoubleClickTimeoutRef.current = null;
+          }
+          lastAPClickTimeRef.current = 0;
+
+          // 双击后不执行单击的切换AP功能
+          return;
         }
-        
-        // 清除计时器和重置点击时间
+
+        // 记录点击时间
+        lastAPClickTimeRef.current = now;
+
+        // 清除之前的单击计时器
         if (APDoubleClickTimeoutRef.current) {
           clearTimeout(APDoubleClickTimeoutRef.current);
+        }
+
+        // 等待可能的双击
+        APDoubleClickTimeoutRef.current = window.setTimeout(() => {
+          // 单击：切换AP功能
+          // 如果 AP 当前是启用状态（绿色或红色），点击后关闭到灰色
+          // 如果 AP 当前是灰色，点击后启用
+          if (autoPauseEnabled) {
+            // 关闭 AP 到灰色状态
+            setAutoPauseEnabled(false);
+            setIsAutoPaused(false); // 清除自动暂停状态
+            localStorage.setItem("enhancedSubtitleAutoPause", "false");
+            // console.log('🎬 Auto-pause disabled (turned to gray)');
+          } else {
+            // 从灰色启用 AP
+            setAutoPauseEnabled(true);
+            localStorage.setItem("enhancedSubtitleAutoPause", "true");
+            // console.log('🎬 Auto-pause enabled (turned to green/red)');
+          }
+
           APDoubleClickTimeoutRef.current = null;
-        }
-        lastAPClickTimeRef.current = 0;
-        
-        // 双击后不执行单击的切换AP功能
-        return;
+        }, 300);
       }
-      
-      // 记录点击时间
-      lastAPClickTimeRef.current = now;
-      
-      // 清除之前的单击计时器
-      if (APDoubleClickTimeoutRef.current) {
-        clearTimeout(APDoubleClickTimeoutRef.current);
-      }
-      
-      // 等待可能的双击
-      APDoubleClickTimeoutRef.current = window.setTimeout(() => {
-        // 单击：切换AP功能
-        // 如果 AP 当前是启用状态（绿色或红色），点击后关闭到灰色
-        // 如果 AP 当前是灰色，点击后启用
-        if (autoPauseEnabled) {
-          // 关闭 AP 到灰色状态
-          setAutoPauseEnabled(false);
-          setIsAutoPaused(false); // 清除自动暂停状态
-          localStorage.setItem('enhancedSubtitleAutoPause', 'false');
-          // console.log('🎬 Auto-pause disabled (turned to gray)');
-        } else {
-          // 从灰色启用 AP
-          setAutoPauseEnabled(true);
-          localStorage.setItem('enhancedSubtitleAutoPause', 'true');
-          // console.log('🎬 Auto-pause enabled (turned to green/red)');
-        }
-        
-        APDoubleClickTimeoutRef.current = null;
-      }, 300);
-    }
-  }, [autoPauseEnabled, dragStartTime, onAPDoubleClick]);
+    },
+    [autoPauseEnabled, dragStartTime, onAPDoubleClick]
+  );
 
   // Toggle favorite for selected word
   const toggleFavorite = useCallback(async () => {
     if (!selectedWord) return;
-    
+
     const key = `${selectedWord}:${detectedLanguage}`;
     const newIsFavorite = !isFavorite;
-    
+
     if (newIsFavorite) {
       // Add to favorites
       const success = await addFavorite(selectedWord, detectedLanguage);
       if (success) {
-        setFavoriteWords(prev => new Set(prev).add(key));
+        setFavoriteWords((prev) => new Set(prev).add(key));
         setIsFavorite(true);
         // console.log('⭐ Added to favorites:', selectedWord);
       }
@@ -1147,7 +1269,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
       // Remove from favorites
       const success = await removeFavorite(selectedWord, detectedLanguage);
       if (success) {
-        setFavoriteWords(prev => {
+        setFavoriteWords((prev) => {
           const newSet = new Set(prev);
           newSet.delete(key);
           return newSet;
@@ -1158,17 +1280,18 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
     }
   }, [selectedWord, detectedLanguage, isFavorite]);
 
-
   // Render segmented text with clickable words
   const renderSegmentedText = useMemo(() => {
     if (!currentCue || wordSegments.length === 0) {
       // If no segments, render text with line breaks
-      return currentCue?.text.split('\n').map((line, idx, arr) => (
-        <React.Fragment key={idx}>
-          {line}
-          {idx < arr.length - 1 && <br />}
-        </React.Fragment>
-      )) || '';
+      return (
+        currentCue?.text.split("\n").map((line, idx, arr) => (
+          <React.Fragment key={idx}>
+            {line}
+            {idx < arr.length - 1 && <br />}
+          </React.Fragment>
+        )) || ""
+      );
     }
 
     const elements: React.ReactNode[] = [];
@@ -1176,9 +1299,11 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
 
     // Helper function to render text with line breaks
     const renderTextWithBreaks = (text: string, keyPrefix: string) => {
-      const lines = text.split('\n');
+      const lines = text.split("\n");
       return lines.flatMap((line, idx) => {
-        const parts: React.ReactNode[] = [<span key={`${keyPrefix}-${idx}`}>{line}</span>];
+        const parts: React.ReactNode[] = [
+          <span key={`${keyPrefix}-${idx}`}>{line}</span>,
+        ];
         if (idx < lines.length - 1) {
           parts.push(<br key={`${keyPrefix}-br-${idx}`} />);
         }
@@ -1189,22 +1314,28 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
     wordSegments.forEach((segment, index) => {
       // Add text before this segment
       if (segment.startIndex > lastIndex) {
-        const betweenText = currentCue.text.slice(lastIndex, segment.startIndex);
+        const betweenText = currentCue.text.slice(
+          lastIndex,
+          segment.startIndex
+        );
         elements.push(...renderTextWithBreaks(betweenText, `between-${index}`));
       }
 
       // Check if word is favorited
       const wordKey = `${segment.word}:${detectedLanguage}`;
       const isFavorited = favoriteWords.has(wordKey);
-      
+
       // Check if word is currently selected in navigation mode
-      const isSelectedInNav = isInWordNavigationMode && index === selectedWordIndex;
+      const isSelectedInNav =
+        isInWordNavigationMode && index === selectedWordIndex;
 
       // Add the word segment as clickable
       elements.push(
         <span
           key={`word-${index}`}
-          className={`subtitle-word ${segment.isSelected ? 'selected' : ''} ${isSelectedInNav ? 'navigation-selected' : ''} ${isFavorited ? 'favorited' : ''}`}
+          className={`subtitle-word ${segment.isSelected ? "selected" : ""} ${
+            isSelectedInNav ? "navigation-selected" : ""
+          } ${isFavorited ? "favorited" : ""}`}
           onClick={() => handleWordClick(segment.word)}
           onTouchEnd={(e) => {
             // 确保触摸点击也能触发单词查询
@@ -1216,7 +1347,11 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
             e.stopPropagation();
             handleWordClick(segment.word);
           }}
-          title={isFavorited ? `⭐ "${segment.word}" (favorited)` : `Click to look up "${segment.word}"`}
+          title={
+            isFavorited
+              ? `⭐ "${segment.word}" (favorited)`
+              : `Click to look up "${segment.word}"`
+          }
         >
           {segment.word}
         </span>
@@ -1228,33 +1363,48 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
     // Add any remaining text
     if (lastIndex < currentCue.text.length) {
       elements.push(
-        ...renderTextWithBreaks(currentCue.text.slice(lastIndex), 'remaining')
+        ...renderTextWithBreaks(currentCue.text.slice(lastIndex), "remaining")
       );
     }
 
     return elements;
-  }, [currentCue, wordSegments, handleWordClick, detectedLanguage, favoriteWords, isInWordNavigationMode, selectedWordIndex, isDragging]);
+  }, [
+    currentCue,
+    wordSegments,
+    handleWordClick,
+    detectedLanguage,
+    favoriteWords,
+    isInWordNavigationMode,
+    selectedWordIndex,
+    isDragging,
+  ]);
 
-  const handleDictionaryTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!showDictionary) return;
-    if (e.touches.length !== 1) return;
-    dictionaryTouchStartYRef.current = e.touches[0].clientY;
-    dictionaryTouchTriggeredRef.current = false;
-  }, [showDictionary]);
+  const handleDictionaryTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!showDictionary) return;
+      if (e.touches.length !== 1) return;
+      dictionaryTouchStartYRef.current = e.touches[0].clientY;
+      dictionaryTouchTriggeredRef.current = false;
+    },
+    [showDictionary]
+  );
 
-  const handleDictionaryTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!showDictionary) return;
-    if (e.touches.length !== 1) return;
-    if (dictionaryTouchStartYRef.current == null) return;
-    const currentY = e.touches[0].clientY;
-    const deltaY = currentY - dictionaryTouchStartYRef.current;
-    const THRESHOLD = 5; // Make swipe-down to close more sensitive
-    if (deltaY > THRESHOLD && !dictionaryTouchTriggeredRef.current) {
-      dictionaryTouchTriggeredRef.current = true;
-      setShowDictionary(false);
-      e.stopPropagation();
-    }
-  }, [showDictionary]);
+  const handleDictionaryTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!showDictionary) return;
+      if (e.touches.length !== 1) return;
+      if (dictionaryTouchStartYRef.current == null) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = currentY - dictionaryTouchStartYRef.current;
+      const THRESHOLD = 5; // Make swipe-down to close more sensitive
+      if (deltaY > THRESHOLD && !dictionaryTouchTriggeredRef.current) {
+        dictionaryTouchTriggeredRef.current = true;
+        setShowDictionary(false);
+        e.stopPropagation();
+      }
+    },
+    [showDictionary]
+  );
 
   const handleDictionaryTouchEnd = useCallback(() => {
     dictionaryTouchStartYRef.current = null;
@@ -1263,24 +1413,30 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
 
   // Dictionary modal content - compact mode only
   const renderDictionaryModal = () => (
-    <Modal 
-      show={showDictionary} 
+    <Modal
+      show={showDictionary}
       onHide={() => setShowDictionary(false)}
-      className={`dictionary-modal ${isFullscreen ? 'fullscreen-dictionary' : ''}`}
+      className={`dictionary-modal ${
+        isFullscreen ? "fullscreen-dictionary" : ""
+      }`}
       centered
-      container={isFullscreen && fullscreenContainer ? fullscreenContainer : undefined}
+      container={
+        isFullscreen && fullscreenContainer ? fullscreenContainer : undefined
+      }
     >
-      <Modal.Header 
+      <Modal.Header
         closeButton
         onTouchStart={handleDictionaryTouchStart}
         onTouchMove={handleDictionaryTouchMove}
         onTouchEnd={handleDictionaryTouchEnd}
       >
-        <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <Modal.Title
+          style={{ display: "flex", alignItems: "center", gap: "10px" }}
+        >
           <span className="word-text">{selectedWord}</span>
           {dictionary?.pronunciation && (
-            <span 
-              className="phonetic clickable" 
+            <span
+              className="phonetic clickable"
               onClick={() => selectedWord && handlePronunciation(selectedWord)}
               title="点击播放发音"
             >
@@ -1288,23 +1444,23 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
             </span>
           )}
           <button
-            className={`favorite-toggle-btn ${isFavorite ? 'favorited' : ''}`}
+            className={`favorite-toggle-btn ${isFavorite ? "favorited" : ""}`}
             onClick={toggleFavorite}
-            title={isFavorite ? '取消收藏' : '添加到收藏'}
+            title={isFavorite ? "取消收藏" : "添加到收藏"}
             style={{
-              padding: '2px 6px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '1.1rem',
-              background: 'transparent',
-              color: isFavorite ? '#ff6b35' : '#999',
-              transition: 'all 0.2s ease',
+              padding: "2px 6px",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "1.1rem",
+              background: "transparent",
+              color: isFavorite ? "#ff6b35" : "#999",
+              transition: "all 0.2s ease",
             }}
           >
-            {isFavorite ? '⭐' : '☆'}
+            {isFavorite ? "⭐" : "☆"}
           </button>
-          {detectedLanguage !== 'en' && (
+          {detectedLanguage !== "en" && (
             <span className="language-badge">{detectedLanguage}</span>
           )}
         </Modal.Title>
@@ -1328,7 +1484,7 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
                   <span className="pos-tag">{def.partOfSpeech}</span>
                 </div>
                 <div className="meaning">
-                  {def.meaning.split('\n').map((line, lineIndex) => (
+                  {def.meaning.split("\n").map((line, lineIndex) => (
                     <p key={lineIndex} className="meaning-line">
                       {line}
                     </p>
@@ -1338,7 +1494,14 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
             ))}
           </div>
         ) : (
-          <div className="text-center py-3" style={{ minHeight: '100px', paddingTop: '20px', paddingBottom: '20px' }}>
+          <div
+            className="text-center py-3"
+            style={{
+              minHeight: "100px",
+              paddingTop: "20px",
+              paddingBottom: "20px",
+            }}
+          >
             <p className="mb-0 text-muted">未找到释义</p>
           </div>
         )}
@@ -1351,18 +1514,24 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
   }
 
   const subtitleContent = (
-    <div 
+    <div
       ref={subtitleRef}
-      className={`enhanced-subtitle-overlay ${isFullscreen ? 'fullscreen-mode' : ''} ${isDragging ? 'dragging' : ''} ${isPortrait ? 'portrait-mode' : 'landscape-mode'}`}
+      className={`enhanced-subtitle-overlay ${
+        isFullscreen ? "fullscreen-mode" : ""
+      } ${isDragging ? "dragging" : ""} ${
+        isPortrait ? "portrait-mode" : "landscape-mode"
+      }`}
       style={{
         transform: `translateX(-50%) translateY(${dragPosition.y}px)`,
       }}
     >
-      <div 
-        className={`subtitle-text ${!currentCue ? 'no-content' : ''}`}
+      <div
+        className={`subtitle-text ${!currentCue ? "no-content" : ""}`}
         title={
-          isDragging 
-            ? (dragMode === 'size' ? `Resizing... (${Math.round(fontSize * 100)}%)` : "Moving...") 
+          isDragging
+            ? dragMode === "size"
+              ? `Resizing... (${Math.round(fontSize * 100)}%)`
+              : "Moving..."
             : "Use AP button to drag or resize, 'R' key to reset size"
         }
         style={{
@@ -1371,29 +1540,35 @@ export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = 
         }}
       >
         {/* Auto-pause toggle button with drag support - 增强字幕开启时一直显示 */}
-        <div 
-          className={`drag-indicator ${autoPauseEnabled ? 'auto-pause-active' : ''} ${isAutoPaused ? 'auto-pause-paused' : ''} ${isPlayerPaused && !isAutoPaused ? 'manual-paused' : ''}`}
+        <div
+          className={`drag-indicator ${
+            autoPauseEnabled ? "auto-pause-active" : ""
+          } ${isAutoPaused ? "auto-pause-paused" : ""} ${
+            isPlayerPaused && !isAutoPaused ? "manual-paused" : ""
+          }`}
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
-          title={isAutoPaused ? 'Auto-paused (click or press space to resume)' : autoPauseEnabled ? 'Auto-pause enabled (click to disable)' : 'Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize.'}
+          title={
+            isAutoPaused
+              ? "Auto-paused (click or press space to resume)"
+              : autoPauseEnabled
+              ? "Auto-pause enabled (click to disable)"
+              : "Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize."
+          }
         >
-          <span className="drag-dots">
-            AP
-          </span>
+          <span className="drag-dots">AP</span>
         </div>
-        
+
         {/* 只有在有字幕内容时才显示字幕文本 */}
         {currentCue && renderSegmentedText}
       </div>
-      
+
       {/* Font size indicator */}
-      {(isDragging && dragMode === 'size') && (
-        <div className="font-size-indicator">
-          {Math.round(fontSize * 100)}%
-        </div>
+      {isDragging && dragMode === "size" && (
+        <div className="font-size-indicator">{Math.round(fontSize * 100)}%</div>
       )}
-      
+
       {renderDictionaryModal()}
     </div>
   );

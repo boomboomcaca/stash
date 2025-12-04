@@ -51,7 +51,9 @@ export interface IEnhancedSubtitleNavigation {
 // Mobile Touch Controls Plugin Interface
 export interface IMobileTouchControlsPlugin {
   setEnhancedSubtitlesEnabled(enabled: boolean): void;
-  setSubtitleCues(cues: Array<{ startTime: number; endTime: number; text: string }>): void;
+  setSubtitleCues(
+    cues: Array<{ startTime: number; endTime: number; text: string }>
+  ): void;
   setGetCurrentSubtitleIndex(fn: () => number): void;
   setShowControlBar(fn: () => void): void;
 }
@@ -65,15 +67,14 @@ declare module "video.js" {
     _upArrowTimer?: number | null;
     _lastDownArrowPress?: number;
     _downArrowTimer?: number | null;
-    
+
     // Internal methods that are not in official type definitions
     // Note: VideoJS has this as a method, we're extending the interface
     // Must match the exact signature from VideoJS to avoid conflicts
     /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     reportUserActivity: (event: any) => void;
-    
+
     // Custom plugins
     _mobileTouchControlsPlugin?: IMobileTouchControlsPlugin;
   }
 }
-

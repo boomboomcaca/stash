@@ -13,16 +13,10 @@ interface IUseSceneLoadingProps {
   file: GQL.VideoFileDataFragment | undefined;
   sceneId: React.MutableRefObject<string | undefined>;
   interactiveClient: { pause: () => void };
-  uiConfig: {
-    disableMobileMediaAutoRotateEnabled?: boolean;
-    alwaysStartFromBeginning?: boolean;
-    showRangeMarkers?: boolean;
-    [key: string]: unknown;
-  };
-  interfaceConfig: {
-    autostartVideo?: boolean;
-    [key: string]: unknown;
-  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  uiConfig: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  interfaceConfig: any;
   autoplay: boolean | undefined;
   initialTimestamp: number;
   setReady: (value: boolean) => void;
@@ -125,20 +119,22 @@ export function useSceneLoading({
       const languageCode = getDefaultLanguageCode();
       let hasDefault = false;
       let defaultTrackSrc = null;
-      let defaultLang = 'en';
+      let defaultLang = "en";
 
       for (let caption of scene.captions) {
         const lang = caption.language_code;
-        const label = `${languageMap.get(lang) || lang} (${caption.caption_type})`;
+        const label = `${languageMap.get(lang) || lang} (${
+          caption.caption_type
+        })`;
         const setAsDefault = !hasDefault && languageCode == lang;
         const trackSrc = `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`;
-        
+
         if (setAsDefault) {
           hasDefault = true;
           defaultTrackSrc = trackSrc;
           defaultLang = lang;
         }
-        
+
         // 原生字幕默认不显示，由增强字幕按钮控制增强字幕
         sourceSelector.addTextTrack(
           {
@@ -151,7 +147,7 @@ export function useSceneLoading({
           false
         );
       }
-      
+
       // Set the default or first track for enhanced subtitles
       if (defaultTrackSrc) {
         setCurrentSubtitleTrack(defaultTrackSrc);
@@ -224,47 +220,50 @@ export function useSceneLoading({
     sceneId,
   ]);
 
-  const loadMarkers = useCallback((player: VideoJsPlayer) => {
-    const markerData = scene.scene_markers.map((marker) => ({
-      title: getMarkerTitle(marker as MarkerFragment),
-      seconds: marker.seconds,
-      end_seconds: marker.end_seconds ?? null,
-      primaryTag: marker.primary_tag,
-    }));
+  const loadMarkers = useCallback(
+    (player: VideoJsPlayer) => {
+      const markerData = scene.scene_markers.map((marker) => ({
+        title: getMarkerTitle(marker as MarkerFragment),
+        seconds: marker.seconds,
+        end_seconds: marker.end_seconds ?? null,
+        primaryTag: marker.primary_tag,
+      }));
 
-    const markers = player.markers();
+      const markers = player.markers();
 
-    const uniqueTagNames = markerData
-      .map((marker) => marker.primaryTag.name)
-      .filter((value, index, self) => self.indexOf(value) === index);
+      const uniqueTagNames = markerData
+        .map((marker) => marker.primaryTag.name)
+        .filter((value, index, self) => self.indexOf(value) === index);
 
-    // Wait for colors
-    markers.findColors(uniqueTagNames);
+      // Wait for colors
+      markers.findColors(uniqueTagNames);
 
-    const showRangeTags =
-      !ScreenUtils.isMobile() && (uiConfig?.showRangeMarkers ?? true);
-    const timestampMarkers: IMarker[] = [];
-    const rangeMarkers: IMarker[] = [];
+      const showRangeTags =
+        !ScreenUtils.isMobile() && (uiConfig?.showRangeMarkers ?? true);
+      const timestampMarkers: IMarker[] = [];
+      const rangeMarkers: IMarker[] = [];
 
-    if (!showRangeTags) {
-      for (const marker of markerData) {
-        timestampMarkers.push(marker);
-      }
-    } else {
-      for (const marker of markerData) {
-        if (marker.end_seconds === null) {
+      if (!showRangeTags) {
+        for (const marker of markerData) {
           timestampMarkers.push(marker);
-        } else {
-          rangeMarkers.push(marker);
+        }
+      } else {
+        for (const marker of markerData) {
+          if (marker.end_seconds === null) {
+            timestampMarkers.push(marker);
+          } else {
+            rangeMarkers.push(marker);
+          }
         }
       }
-    }
 
-    requestAnimationFrame(() => {
-      markers.addDotMarkers(timestampMarkers);
-      markers.addRangeMarkers(rangeMarkers);
-    });
-  }, [scene, uiConfig]);
+      requestAnimationFrame(() => {
+        markers.addDotMarkers(timestampMarkers);
+        markers.addRangeMarkers(rangeMarkers);
+      });
+    },
+    [scene, uiConfig]
+  );
 
   useEffect(() => {
     const player = getPlayer();
@@ -295,4 +294,3 @@ export function useSceneLoading({
     };
   }, [getPlayer, scene, uiConfig, loadMarkers]);
 }
-

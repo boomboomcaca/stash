@@ -42,7 +42,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   const lastMouseEvent = useRef<MouseEvent | null>(null);
   const startMouseEvent = useRef<MouseEvent | null>(null);
   const velocity = useRef(0);
-  
+
   // Touch event handling
   const touchDown = useRef(false);
   const lastTouchEvent = useRef<TouchEvent | null>(null);
@@ -241,7 +241,9 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         if (delta === 0) return;
 
         // Check if this qualifies as a drag
-        const totalDelta = Math.abs(event.clientX - startMouseEvent.current!.clientX);
+        const totalDelta = Math.abs(
+          event.clientX - startMouseEvent.current!.clientX
+        );
         if (totalDelta >= dragThreshold) {
           isDragging.current = true;
           onScroll();
@@ -255,7 +257,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         velocity.current = movement;
 
         clearTransition();
-        
+
         // 使用节流减少频繁更新
         const now = performance.now();
         if (now - lastUpdateTime.current >= UPDATE_THROTTLE) {
@@ -268,7 +270,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
           setPosition(newPosition, false);
         }
       }
-      
+
       lastMouseEvent.current = event;
     },
     [onScroll, setPosition]
@@ -293,13 +295,15 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
 
       const touch = event.touches[0];
       const lastTouch = lastTouchEvent.current!.touches[0];
-      
+
       // negative dragging right (past), positive left (future)
       const delta = touch.clientX - lastTouch.clientX;
 
       if (lastTouchEvent.current === startTouchEvent.current) {
         // this is the first touchmove event after touchstart
-        const totalDelta = Math.abs(touch.clientX - startTouchEvent.current!.touches[0].clientX);
+        const totalDelta = Math.abs(
+          touch.clientX - startTouchEvent.current!.touches[0].clientX
+        );
         if (totalDelta >= dragThreshold) {
           isDragging.current = true;
           onScroll();
@@ -315,11 +319,11 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         velocity.current = movement;
 
         clearTransition();
-        
+
         // 降低拖拽灵敏度（0.1倍）
         const sensitivity = 0.1;
         const adjustedDelta = delta * sensitivity;
-        
+
         // 使用节流减少频繁更新
         const now = performance.now();
         if (now - lastUpdateTime.current >= UPDATE_THROTTLE) {
@@ -332,7 +336,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
           setPosition(newPosition, false);
         }
       }
-      
+
       lastTouchEvent.current = event;
     },
     [onScroll, setPosition]
@@ -341,9 +345,9 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   const onTouchEnd = useCallback(
     (event: TouchEvent) => {
       if (!touchDown.current) return;
-      
+
       const slider = sliderEl.current!;
-      
+
       touchDown.current = false;
       const wasDragging = isDragging.current;
       isDragging.current = false;
@@ -353,7 +357,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
       // If it was a drag, handle the end position
       if (wasDragging) {
         let newPosition = position.current;
-        
+
         if (Math.abs(velocity.current) > 25) {
           newPosition = position.current + velocity.current * 10;
           velocity.current = 0;
@@ -366,14 +370,18 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         const touch = event.changedTouches[0];
         const startTouch = startTouchEvent.current!.touches[0];
         const delta = Math.abs(touch.clientX - startTouch.clientX);
-        
+
         if (delta < dragThreshold) {
           // This was a tap, handle as click
           const target = event.target as HTMLDivElement;
-          if (target && (target.hasAttribute("data-sprite-item-id") || target.hasAttribute("data-marker-id"))) {
+          if (
+            target &&
+            (target.hasAttribute("data-sprite-item-id") ||
+              target.hasAttribute("data-marker-id"))
+          ) {
             const midpointOffset = slider.clientWidth / 2;
             let newPosition = position.current;
-            
+
             if (target.hasAttribute("data-sprite-item-id")) {
               const rect = target.getBoundingClientRect();
               const touchX = touch.clientX - rect.left;
@@ -383,7 +391,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
             if (target.hasAttribute("data-marker-id")) {
               newPosition = midpointOffset - target.offsetLeft;
             }
-            
+
             setEaseOutTransition();
             setPosition(newPosition, true, false); // 点击时，非拖拽模式
           }
@@ -411,13 +419,20 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
       content.removeEventListener("mousedown", onMouseDown);
       content.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
-      
+
       // Touch events
       content.removeEventListener("touchstart", onTouchStart);
       content.removeEventListener("touchmove", onTouchMove);
       content.removeEventListener("touchend", onTouchEnd);
     };
-  }, [onMouseDown, onMouseMove, onMouseUp, onTouchStart, onTouchMove, onTouchEnd]);
+  }, [
+    onMouseDown,
+    onMouseMove,
+    onMouseUp,
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+  ]);
 
   function goBack() {
     const slider = sliderEl.current!;

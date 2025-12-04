@@ -1,14 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import videojs, { VideoJsPlayer, VideoJsPlayerOptions } from "video.js";
-import { VIDEO_PLAYER_ID, togglePseudoFullscreen, isPseudoFullscreen } from "./util";
+import {
+  VIDEO_PLAYER_ID,
+  togglePseudoFullscreen,
+  isPseudoFullscreen,
+} from "./util";
 import { handleHotkeys } from "./handleHotkeys";
+import { EnhancedSubtitleButton } from "./enhanced-subtitle-button";
+import { IEnhancedSubtitleNavigation } from "./types";
 
 interface IUsePlayerSetupProps {
   videoRef: React.RefObject<HTMLDivElement>;
-  uiConfig: {
-    showAbLoopControls?: boolean;
-    [key: string]: unknown;
-  };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  uiConfig: any;
   currentSubtitleTrack: string | null;
   showEnhancedSubtitles: boolean;
   setShowEnhancedSubtitles: (value: boolean) => void;
@@ -74,7 +78,10 @@ export function usePlayerSetup({
         },
       },
       nativeControlsForTouch: false,
-      playbackRates: [0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10, 12, 16, 20],
+      playbackRates: [
+        0.75, 0.8, 0.9, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4, 6, 8, 10,
+        12, 16, 20,
+      ],
       inactivityTimeout: 3000,
       preload: "metadata",
       playsinline: true,
@@ -82,22 +89,24 @@ export function usePlayerSetup({
       userActions: {
         hotkeys: function (this: VideoJsPlayer, event) {
           handleHotkeys(
-            this, 
-            event, 
+            this,
+            event as unknown as KeyboardEvent,
             () => {
               // 只有在有字幕文件时才允许切换增强字幕
               if (currentSubtitleTrack !== null) {
                 setShowEnhancedSubtitles(!showEnhancedSubtitles);
               }
             },
-            () => setResetFontSizeTrigger(prev => prev + 1),
+            () => setResetFontSizeTrigger((prev) => prev + 1),
             () => {
               // 使用 ref 来调用最新的 temporarilyUnlockControlBar 函数
               if (temporarilyUnlockControlBarRef.current) {
                 temporarilyUnlockControlBarRef.current();
               }
             },
-            enhancedSubtitleNavigationRef.current,
+            enhancedSubtitleNavigationRef.current as
+              | IEnhancedSubtitleNavigation
+              | undefined,
             () => controlBarVisibleRef.current,
             () => {
               // 使用 ref 来调用最新的 hideControlBar 函数
@@ -162,14 +171,17 @@ export function usePlayerSetup({
     const subtitleButton = vjs.enhancedSubtitleButton({
       onToggle: (enabled: boolean) => {
         setShowEnhancedSubtitles(enabled);
-      }
+      },
     });
-    
+
     // 保存按钮引用
     enhancedSubtitleButtonRef.current = subtitleButton;
-    
+
     // 初始化时设置字幕可用性（默认为不可用，等待场景加载）
-    if (subtitleButton && typeof subtitleButton.setSubtitlesAvailable === 'function') {
+    if (
+      subtitleButton &&
+      typeof subtitleButton.setSubtitlesAvailable === "function"
+    ) {
       subtitleButton.setSubtitlesAvailable(false);
     }
 
@@ -179,8 +191,8 @@ export function usePlayerSetup({
       if (tracks) {
         for (let i = 0; i < tracks.length; i++) {
           const track = tracks[i];
-          if (track.mode !== 'disabled') {
-            track.mode = 'disabled';
+          if (track.mode !== "disabled") {
+            track.mode = "disabled";
           }
         }
       }
@@ -190,48 +202,53 @@ export function usePlayerSetup({
     disableNativeSubtitles();
 
     // 监听字幕轨道的变化并立即禁用
-    vjs.textTracks().addEventListener('change', disableNativeSubtitles);
-    vjs.textTracks().addEventListener('addtrack', disableNativeSubtitles);
+    vjs.textTracks().addEventListener("change", disableNativeSubtitles);
+    vjs.textTracks().addEventListener("addtrack", disableNativeSubtitles);
 
     // 在视频加载时也禁用
-    vjs.on('loadstart', disableNativeSubtitles);
-    vjs.on('loadedmetadata', disableNativeSubtitles);
-    vjs.on('canplay', disableNativeSubtitles);
+    vjs.on("loadstart", disableNativeSubtitles);
+    vjs.on("loadedmetadata", disableNativeSubtitles);
+    vjs.on("canplay", disableNativeSubtitles);
 
     // 拦截video.js的全屏API，使用伪全屏
     // const originalRequestFullscreen = vjs.requestFullscreen?.bind(vjs);
     // const originalExitFullscreen = vjs.exitFullscreen?.bind(vjs);
     // const originalIsFullscreen = vjs.isFullscreen?.bind(vjs);
-    
+
     if (vjs.requestFullscreen) {
-      vjs.requestFullscreen = function() {
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      (vjs.requestFullscreen as any) = function () {
         togglePseudoFullscreen(vjs);
         return Promise.resolve();
       };
     }
-    
+
     if (vjs.exitFullscreen) {
-      vjs.exitFullscreen = function() {
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      (vjs.exitFullscreen as any) = function () {
         togglePseudoFullscreen(vjs);
         return Promise.resolve();
       };
     }
-    
+
     if (vjs.isFullscreen) {
-      vjs.isFullscreen = function() {
+      vjs.isFullscreen = function () {
         return isPseudoFullscreen();
       };
     }
 
     // 拦截全屏按钮的点击事件（延迟执行，确保控制栏已初始化）
     const interceptFullscreenButton = () => {
-      const controlBar = vjs.getChild('ControlBar');
+      const controlBar = vjs.getChild("ControlBar");
       if (controlBar) {
-        const fullscreenToggle = controlBar.getChild('FullscreenToggle');
+        const fullscreenToggle = controlBar.getChild("FullscreenToggle");
         if (fullscreenToggle) {
-          const originalHandleClick = fullscreenToggle.handleClick?.bind(fullscreenToggle);
+          const originalHandleClick =
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (fullscreenToggle as any).handleClick?.bind(fullscreenToggle);
           if (originalHandleClick) {
-            fullscreenToggle.handleClick = function() {
+            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+            (fullscreenToggle as any).handleClick = function () {
               togglePseudoFullscreen(vjs);
             };
           }
@@ -265,17 +282,23 @@ export function usePlayerSetup({
   useEffect(() => {
     const player = getPlayer();
     if (!player) return;
-    
-    const button = player.getChild("ControlBar")?.getChild("EnhancedSubtitleButton") as EnhancedSubtitleButton | undefined;
-    if (button && typeof button.setEnabled === 'function') {
+
+    const button = player
+      .getChild("ControlBar")
+      ?.getChild("EnhancedSubtitleButton") as
+      | EnhancedSubtitleButton
+      | undefined;
+    if (button && typeof button.setEnabled === "function") {
       button.setEnabled(showEnhancedSubtitles);
     }
   }, [getPlayer, showEnhancedSubtitles]);
 
   // 根据字幕可用性更新增强字幕按钮的禁用状态
   useEffect(() => {
-    const button = enhancedSubtitleButtonRef.current as EnhancedSubtitleButton | undefined;
-    if (button && typeof button.setSubtitlesAvailable === 'function') {
+    const button = enhancedSubtitleButtonRef.current as
+      | EnhancedSubtitleButton
+      | undefined;
+    if (button && typeof button.setSubtitlesAvailable === "function") {
       const hasSubtitles = currentSubtitleTrack !== null;
       button.setSubtitlesAvailable(hasSubtitles);
     }
@@ -287,4 +310,3 @@ export function usePlayerSetup({
     sceneId,
   };
 }
-

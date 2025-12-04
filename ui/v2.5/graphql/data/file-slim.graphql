@@ -10,4 +10,3 @@ fragment SlimImageFileData on ImageFile {
   width
   height
 }
-

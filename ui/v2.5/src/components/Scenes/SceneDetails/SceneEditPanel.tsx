@@ -164,10 +164,8 @@ export const SceneEditPanel: React.FC<IProps> = ({
     onSubmit: (values) => onSave(schema.cast(values)),
   });
 
-  const { tags, onSetTags, updateTagsStateFromScraper, tagsControl } = useTagsEdit(
-    scene.tags,
-    (ids) => formik.setFieldValue("tag_ids", ids)
-  );
+  const { tags, onSetTags, updateTagsStateFromScraper, tagsControl } =
+    useTagsEdit(scene.tags, (ids) => formik.setFieldValue("tag_ids", ids));
 
   const coverImagePreview = useMemo(() => {
     const sceneImage = scene.paths?.screenshot;
@@ -228,17 +226,15 @@ export const SceneEditPanel: React.FC<IProps> = ({
     formik.setFieldValue("groups", []);
     formik.setFieldValue("stash_ids", []);
     formik.setFieldValue("cover_image", null);
-    
+
     // 清空对应的状态
     setGalleries([]);
     setStudio(null);
     setPerformers([]);
-    onSetTags([]);  // 清空标签状态和formik值
+    onSetTags([]); // 清空标签状态和formik值
     setGroups([]);
-    
-    Toast.success(
-      intl.formatMessage({ id: "toast.cleared_scraped_info" })
-    );
+
+    Toast.success(intl.formatMessage({ id: "toast.cleared_scraped_info" }));
   }
 
   useEffect(() => {

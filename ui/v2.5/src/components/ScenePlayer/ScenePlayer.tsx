@@ -103,11 +103,16 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const [fullscreen, setFullscreen] = useState(false);
     const [showScrubber, setShowScrubber] = useState(false);
     const [showEnhancedSubtitles, setShowEnhancedSubtitles] = useState(false);
-    const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<string | null>(null);
-    const [subtitleLanguage, setSubtitleLanguage] = useState<string>('en');
+    const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<
+      string | null
+    >(null);
+    const [subtitleLanguage, setSubtitleLanguage] = useState<string>("en");
     const [resetFontSizeTrigger, setResetFontSizeTrigger] = useState(0);
-    const [subtitleCues, setSubtitleCues] = useState<Array<{ startTime: number; endTime: number; text: string }>>([]);
-    const [currentSubtitleIndex, setCurrentSubtitleIndex] = useState<number>(-1);
+    const [subtitleCues, setSubtitleCues] = useState<
+      Array<{ startTime: number; endTime: number; text: string }>
+    >([]);
+    const [currentSubtitleIndex, setCurrentSubtitleIndex] =
+      useState<number>(-1);
 
     const started = useRef(false);
     const enhancedSubtitleButtonRef = useRef<HTMLButtonElement>(null);
@@ -123,7 +128,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     useEffect(() => {
       showEnhancedSubtitlesRef.current = showEnhancedSubtitles;
     }, [showEnhancedSubtitles]);
-    
+
     // Callback to receive navigation ref from EnhancedSubtitleOverlay
     const handleNavigationRef = useCallback((navRef: unknown) => {
       enhancedSubtitleNavigationRef.current = navRef;
@@ -155,10 +160,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const hideControlBarRef = useRef<(() => void) | null>(null);
 
     // Use player setup hook
-    const {
-      getPlayer,
-      sceneId,
-    } = usePlayerSetup({
+    const { getPlayer, sceneId } = usePlayerSetup({
       videoRef,
       uiConfig,
       currentSubtitleTrack,
@@ -173,19 +175,17 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     });
 
     // Use control bar management hook
-    const {
-      temporarilyUnlockControlBar,
-      hideControlBar,
-    } = useControlBarManagement({
-      getPlayer,
-      showEnhancedSubtitles,
-      showEnhancedSubtitlesRef,
-      subtitleCues,
-      currentSubtitleIndex,
-      controlBarVisibleRef,
-      temporarilyUnlockControlBarRef,
-      hideControlBarRef,
-    });
+    const { temporarilyUnlockControlBar, hideControlBar } =
+      useControlBarManagement({
+        getPlayer,
+        showEnhancedSubtitles,
+        showEnhancedSubtitlesRef,
+        subtitleCues,
+        currentSubtitleIndex,
+        controlBarVisibleRef,
+        temporarilyUnlockControlBarRef,
+        hideControlBarRef,
+      });
 
     // Sync control bar management refs
     useEffect(() => {
@@ -383,8 +383,14 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     }, [getPlayer, scene, ready, interactiveClient, currentScript]);
 
     // ✅ 将 useCallback 移到组件顶层
-    const handleSubtitlesLoaded = useCallback((cues) => setSubtitleCues(cues), []);
-    const handleCurrentCueChange = useCallback((index) => setCurrentSubtitleIndex(index), []);
+    const handleSubtitlesLoaded = useCallback(
+      (cues) => setSubtitleCues(cues),
+      []
+    );
+    const handleCurrentCueChange = useCallback(
+      (index) => setCurrentSubtitleIndex(index),
+      []
+    );
 
     // set up mediaSession plugin
     useEffect(() => {
@@ -407,7 +413,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       if (started.current) {
         getPlayer()?.pause();
       }
-      
+
       // 当拖动进度条时，如果增强字幕已开启，显示控制栏
       if (showEnhancedSubtitles) {
         temporarilyUnlockControlBar();
@@ -432,20 +438,23 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
               temporarilyUnlockControlBar();
             }
           }
-          
+
           // 拖拽过程中，使用优化的视频帧更新
           player.currentTime(seconds);
-          
+
           // 简化的视频帧更新 - 只使用必要的操作
           try {
-            const videoElement = player.el().querySelector('video') as HTMLVideoElement;
+            const videoElement = player
+              .el()
+              .querySelector("video") as HTMLVideoElement;
             if (videoElement && videoElement.readyState >= 2) {
               // 只触发timeupdate事件即可，避免过多的DOM操作
-              videoElement.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+              videoElement.dispatchEvent(
+                new Event("timeupdate", { bubbles: true })
+              );
             }
-          } catch (error) {
-          }
-          
+          } catch (error) {}
+
           // 更新本地时间状态以确保UI同步
           setTime(seconds);
         } else {
@@ -453,7 +462,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           if (draggingState.current.isDragging) {
             draggingState.current.isDragging = false;
             player.currentTime(seconds);
-            
+
             // 恢复原始播放状态
             if (draggingState.current.wasPlaying) {
               player.play()?.catch(() => {});
@@ -518,7 +527,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             isVisible={showEnhancedSubtitles}
             isFullscreen={fullscreen}
             language={subtitleLanguage}
-            onToggleVisibility={() => setShowEnhancedSubtitles(!showEnhancedSubtitles)}
+            onToggleVisibility={() =>
+              setShowEnhancedSubtitles(!showEnhancedSubtitles)
+            }
             onPausePlayer={() => getPlayer()?.pause()}
             getPlayerPaused={() => getPlayer()?.paused() ?? true}
             resetFontSizeTrigger={resetFontSizeTrigger}

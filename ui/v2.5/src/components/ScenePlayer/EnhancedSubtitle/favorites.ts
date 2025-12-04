@@ -1,6 +1,6 @@
 // Favorites API service
 
-const API_BASE = '';  // Use relative URL since we're on same domain
+const API_BASE = ""; // Use relative URL since we're on same domain
 
 export interface IFavoriteWord {
   word: string;
@@ -26,11 +26,15 @@ function getCacheKey(word: string, language: string): string {
 }
 
 function isCacheValid(): boolean {
-  return favoritesCache !== null && (Date.now() - cacheTimestamp) < CACHE_DURATION;
+  return (
+    favoritesCache !== null && Date.now() - cacheTimestamp < CACHE_DURATION
+  );
 }
 
 function updateCache(favorites: IFavoriteWord[]): void {
-  favoritesCache = new Set(favorites.map(f => getCacheKey(f.word, f.language)));
+  favoritesCache = new Set(
+    favorites.map((f) => getCacheKey(f.word, f.language))
+  );
   cacheTimestamp = Date.now();
 }
 
@@ -48,72 +52,85 @@ export async function getFavorites(): Promise<IFavoriteWord[]> {
   }
 }
 
-export async function addFavorite(word: string, language: string): Promise<boolean> {
+export async function addFavorite(
+  word: string,
+  language: string
+): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE}/favorites/add`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ word, language }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to add favorite: ${response.statusText}`);
     }
-    
+
     const result: IFavoriteResponse = await response.json();
-    
+
     // Update cache
     if (favoritesCache) {
       favoritesCache.add(getCacheKey(word, language));
     }
-    
+
     return result.success;
   } catch (error) {
     return false;
   }
 }
 
-export async function removeFavorite(word: string, language: string): Promise<boolean> {
+export async function removeFavorite(
+  word: string,
+  language: string
+): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE}/favorites/remove`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({ word, language }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to remove favorite: ${response.statusText}`);
     }
-    
+
     const result: IFavoriteResponse = await response.json();
-    
+
     // Update cache
     if (favoritesCache) {
       favoritesCache.delete(getCacheKey(word, language));
     }
-    
+
     return result.success;
   } catch (error) {
     return false;
   }
 }
 
-export async function checkFavorite(word: string, language: string): Promise<boolean> {
+export async function checkFavorite(
+  word: string,
+  language: string
+): Promise<boolean> {
   // Check cache first
   if (isCacheValid() && favoritesCache) {
     return favoritesCache.has(getCacheKey(word, language));
   }
-  
+
   try {
-    const response = await fetch(`${API_BASE}/favorites/check?word=${encodeURIComponent(word)}&lang=${encodeURIComponent(language)}`);
+    const response = await fetch(
+      `${API_BASE}/favorites/check?word=${encodeURIComponent(
+        word
+      )}&lang=${encodeURIComponent(language)}`
+    );
     if (!response.ok) {
       throw new Error(`Failed to check favorite: ${response.statusText}`);
     }
-    
+
     const result: ICheckFavoriteResponse = await response.json();
     return result.isFavorite;
   } catch (error) {
@@ -123,4 +140,3 @@ export async function checkFavorite(word: string, language: string): Promise<boo
 
 // Load favorites into cache on module load
 getFavorites().catch(() => {});
-

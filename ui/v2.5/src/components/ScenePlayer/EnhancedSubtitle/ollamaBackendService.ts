@@ -108,9 +108,9 @@ export class OllamaBackendService {
     try {
       const result = await this.client.query({
         query: OLLAMA_STATUS_QUERY,
-        fetchPolicy: 'network-only' // Always fetch fresh data
+        fetchPolicy: "network-only", // Always fetch fresh data
       });
-      
+
       return result.data.ollamaStatus;
     } catch (error) {
       throw error;
@@ -144,13 +144,15 @@ export class OllamaBackendService {
   /**
    * Update Ollama configuration through backend
    */
-  async updateConfig(config: IBackendOllamaConfig): Promise<IBackendOllamaConfig> {
+  async updateConfig(
+    config: IBackendOllamaConfig
+  ): Promise<IBackendOllamaConfig> {
     try {
       const result = await this.client.mutate({
         mutation: CONFIGURE_OLLAMA_MUTATION,
         variables: {
-          input: config
-        }
+          input: config,
+        },
       });
 
       return result.data.configureOllama;
@@ -162,16 +164,19 @@ export class OllamaBackendService {
   /**
    * Generate text using Ollama through backend
    */
-  async generate(prompt: string, model?: string): Promise<IOllamaGenerateResult> {
+  async generate(
+    prompt: string,
+    model?: string
+  ): Promise<IOllamaGenerateResult> {
     try {
       const result = await this.client.mutate({
         mutation: OLLAMA_GENERATE_MUTATION,
         variables: {
           input: {
             prompt,
-            model: model || undefined
-          }
-        }
+            model: model || undefined,
+          },
+        },
       });
 
       return result.data.ollamaGenerate;
@@ -183,7 +188,12 @@ export class OllamaBackendService {
   /**
    * Explain a word in context using Ollama through backend
    */
-  async explainWord(word: string, context: string, language: string = 'en', model?: string): Promise<IBackendDictionaryEntry> {
+  async explainWord(
+    word: string,
+    context: string,
+    language: string = "en",
+    model?: string
+  ): Promise<IBackendDictionaryEntry> {
     try {
       const result = await this.client.mutate({
         mutation: OLLAMA_EXPLAIN_WORD_MUTATION,
@@ -192,9 +202,9 @@ export class OllamaBackendService {
             word,
             context,
             language,
-            model: model || undefined
-          }
-        }
+            model: model || undefined,
+          },
+        },
       });
 
       return result.data.ollamaExplainWord;

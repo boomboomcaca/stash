@@ -3,7 +3,7 @@
  * 在生产环境中自动禁用非错误日志
  */
 
-const isDevelopment = import.meta.env.MODE === 'development';
+const isDevelopment = import.meta.env.MODE === "development";
 
 export const logger = {
   log: isDevelopment ? console.log.bind(console) : () => {},

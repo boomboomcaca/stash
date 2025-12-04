@@ -91,4 +91,3 @@ fragment UltraSlimSceneData on Scene {
     updated_at
   }
 }
-

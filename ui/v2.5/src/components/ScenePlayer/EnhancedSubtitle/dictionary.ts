@@ -1,5 +1,5 @@
-import { IDictionaryEntry } from './types';
-import { ollamaBackendService } from './ollamaBackendService';
+import { IDictionaryEntry } from "./types";
+import { ollamaBackendService } from "./ollamaBackendService";
 
 // Dictionary service for word lookups
 export class DictionaryService {
@@ -26,16 +26,23 @@ export class DictionaryService {
   }
 
   // Look up a word in the dictionary (without context)
-  async lookup(word: string, language: string = 'en'): Promise<IDictionaryEntry | null> {
-    return this.lookupWithContext(word, '', language);
+  async lookup(
+    word: string,
+    language: string = "en"
+  ): Promise<IDictionaryEntry | null> {
+    return this.lookupWithContext(word, "", language);
   }
 
   // Look up a word with context using Ollama if available, fallback to traditional APIs
-  async lookupWithContext(word: string, context: string = '', language: string = 'en'): Promise<IDictionaryEntry | null> {
-    const cacheKey = context 
+  async lookupWithContext(
+    word: string,
+    context: string = "",
+    language: string = "en"
+  ): Promise<IDictionaryEntry | null> {
+    const cacheKey = context
       ? `${word.toLowerCase()}_${language}_${context.slice(0, 50)}` // Include context in cache key
       : `${word.toLowerCase()}_${language}`;
-    
+
     // Check cache first
     if (this.cache.has(cacheKey)) {
       return this.cache.get(cacheKey)!;
@@ -47,26 +54,29 @@ export class DictionaryService {
       // Only use Ollama for word lookup - no fallback to traditional APIs
       if (this.ollamaAvailable) {
         try {
-          const backendEntry = await ollamaBackendService.explainWord(word, context, language);
-          
+          const backendEntry = await ollamaBackendService.explainWord(
+            word,
+            context,
+            language
+          );
+
           // Convert backend format to local format
           entry = {
             word: backendEntry.word,
             pronunciation: backendEntry.pronunciation,
-            definitions: backendEntry.definitions.map(def => ({
+            definitions: backendEntry.definitions.map((def) => ({
               partOfSpeech: def.partOfSpeech,
               meaning: def.meaning,
-              examples: def.examples
+              examples: def.examples,
             })),
-            etymology: backendEntry.etymology
+            etymology: backendEntry.etymology,
           };
-          
         } catch (error) {
           // console.warn('Ollama backend lookup failed:', error);
-          entry = this.createBasicEntry(word, language, 'Ollama服务暂时不可用');
+          entry = this.createBasicEntry(word, language, "Ollama服务暂时不可用");
         }
       } else {
-        entry = this.createBasicEntry(word, language, 'Ollama服务未启用');
+        entry = this.createBasicEntry(word, language, "Ollama服务未启用");
       }
 
       // ✅ Cache the result with size limit
@@ -76,7 +86,11 @@ export class DictionaryService {
           // 找到第一个非常用词的条目并删除
           for (const key of this.cache.keys()) {
             // 保留常用词（the, is, and 等）
-            if (!key.startsWith('the_') && !key.startsWith('is_') && !key.startsWith('and_')) {
+            if (
+              !key.startsWith("the_") &&
+              !key.startsWith("is_") &&
+              !key.startsWith("and_")
+            ) {
               this.cache.delete(key);
               break;
             }
@@ -87,21 +101,27 @@ export class DictionaryService {
 
       return entry;
     } catch (error) {
-      return this.createBasicEntry(word, language, '查词失败');
+      return this.createBasicEntry(word, language, "查词失败");
     }
   }
 
   // Traditional APIs removed - only using Ollama backend service
 
   // Create basic entry when API fails
-  private createBasicEntry(word: string, language: string, reason: string = 'Definition not available'): IDictionaryEntry {
+  private createBasicEntry(
+    word: string,
+    language: string,
+    reason: string = "Definition not available"
+  ): IDictionaryEntry {
     return {
       word,
-      definitions: [{
-        partOfSpeech: 'unknown',
-        meaning: `${word} (${language}) - ${reason}`,
-        examples: []
-      }]
+      definitions: [
+        {
+          partOfSpeech: "unknown",
+          meaning: `${word} (${language}) - ${reason}`,
+          examples: [],
+        },
+      ],
     };
   }
 
@@ -109,33 +129,39 @@ export class DictionaryService {
   private initializeCommonWords() {
     const commonWords = [
       {
-        word: 'the',
-        definitions: [{
-          partOfSpeech: 'article',
-          meaning: 'Used to refer to a specific thing or person',
-          examples: ['The cat is sleeping']
-        }]
+        word: "the",
+        definitions: [
+          {
+            partOfSpeech: "article",
+            meaning: "Used to refer to a specific thing or person",
+            examples: ["The cat is sleeping"],
+          },
+        ],
       },
       {
-        word: 'is',
-        definitions: [{
-          partOfSpeech: 'verb',
-          meaning: 'Third person singular present of "be"',
-          examples: ['She is happy']
-        }]
+        word: "is",
+        definitions: [
+          {
+            partOfSpeech: "verb",
+            meaning: 'Third person singular present of "be"',
+            examples: ["She is happy"],
+          },
+        ],
       },
       {
-        word: 'and',
-        definitions: [{
-          partOfSpeech: 'conjunction',
-          meaning: 'Used to connect words or phrases',
-          examples: ['Bread and butter']
-        }]
+        word: "and",
+        definitions: [
+          {
+            partOfSpeech: "conjunction",
+            meaning: "Used to connect words or phrases",
+            examples: ["Bread and butter"],
+          },
+        ],
       },
       // Add more common words as needed
     ];
 
-    commonWords.forEach(word => {
+    commonWords.forEach((word) => {
       this.cache.set(`${word.word}_en`, word);
     });
   }
@@ -150,7 +176,7 @@ export class DictionaryService {
   getCacheStats() {
     return {
       size: this.cache.size,
-      keys: Array.from(this.cache.keys())
+      keys: Array.from(this.cache.keys()),
     };
   }
 
@@ -175,15 +201,18 @@ export class DictionaryService {
 export const dictionaryService = new DictionaryService();
 
 // Helper function for quick lookup (without context)
-export async function lookupWord(word: string, language: string = 'en'): Promise<IDictionaryEntry | null> {
+export async function lookupWord(
+  word: string,
+  language: string = "en"
+): Promise<IDictionaryEntry | null> {
   return dictionaryService.lookup(word, language);
 }
 
 // Helper function for contextual lookup using Ollama
 export async function lookupWordWithContext(
-  word: string, 
-  context: string, 
-  language: string = 'en'
+  word: string,
+  context: string,
+  language: string = "en"
 ): Promise<IDictionaryEntry | null> {
   return dictionaryService.lookupWithContext(word, context, language);
 }
