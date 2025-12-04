@@ -2,17 +2,17 @@
 
 const API_BASE = '';  // Use relative URL since we're on same domain
 
-export interface FavoriteWord {
+export interface IFavoriteWord {
   word: string;
   language: string;
 }
 
-export interface FavoriteResponse {
+export interface IFavoriteResponse {
   success: boolean;
   exists?: boolean;
 }
 
-export interface CheckFavoriteResponse {
+export interface ICheckFavoriteResponse {
   isFavorite: boolean;
 }
 
@@ -29,12 +29,12 @@ function isCacheValid(): boolean {
   return favoritesCache !== null && (Date.now() - cacheTimestamp) < CACHE_DURATION;
 }
 
-function updateCache(favorites: FavoriteWord[]): void {
+function updateCache(favorites: IFavoriteWord[]): void {
   favoritesCache = new Set(favorites.map(f => getCacheKey(f.word, f.language)));
   cacheTimestamp = Date.now();
 }
 
-export async function getFavorites(): Promise<FavoriteWord[]> {
+export async function getFavorites(): Promise<IFavoriteWord[]> {
   try {
     const response = await fetch(`${API_BASE}/favorites/`);
     if (!response.ok) {
@@ -62,7 +62,7 @@ export async function addFavorite(word: string, language: string): Promise<boole
       throw new Error(`Failed to add favorite: ${response.statusText}`);
     }
     
-    const result: FavoriteResponse = await response.json();
+    const result: IFavoriteResponse = await response.json();
     
     // Update cache
     if (favoritesCache) {
@@ -89,7 +89,7 @@ export async function removeFavorite(word: string, language: string): Promise<bo
       throw new Error(`Failed to remove favorite: ${response.statusText}`);
     }
     
-    const result: FavoriteResponse = await response.json();
+    const result: IFavoriteResponse = await response.json();
     
     // Update cache
     if (favoritesCache) {
@@ -114,7 +114,7 @@ export async function checkFavorite(word: string, language: string): Promise<boo
       throw new Error(`Failed to check favorite: ${response.statusText}`);
     }
     
-    const result: CheckFavoriteResponse = await response.json();
+    const result: ICheckFavoriteResponse = await response.json();
     return result.isFavorite;
   } catch (error) {
     return false;

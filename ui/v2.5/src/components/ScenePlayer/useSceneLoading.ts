@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useCallback } from "react";
 import { VideoJsPlayer } from "video.js";
 import { UAParser } from "ua-parser-js";
 import * as GQL from "src/core/generated-graphql";
@@ -7,14 +7,22 @@ import { type IMarker } from "./markers";
 import { getMarkerTitle, type MarkerFragment } from "./types";
 import ScreenUtils from "src/utils/screen";
 
-interface UseSceneLoadingProps {
+interface IUseSceneLoadingProps {
   getPlayer: () => VideoJsPlayer | null;
   scene: GQL.SceneDataFragment;
   file: GQL.VideoFileDataFragment | undefined;
   sceneId: React.MutableRefObject<string | undefined>;
-  interactiveClient: any;
-  uiConfig: any;
-  interfaceConfig: any;
+  interactiveClient: { pause: () => void };
+  uiConfig: {
+    disableMobileMediaAutoRotateEnabled?: boolean;
+    alwaysStartFromBeginning?: boolean;
+    showRangeMarkers?: boolean;
+    [key: string]: unknown;
+  };
+  interfaceConfig: {
+    autostartVideo?: boolean;
+    [key: string]: unknown;
+  };
   autoplay: boolean | undefined;
   initialTimestamp: number;
   setReady: (value: boolean) => void;
@@ -41,7 +49,7 @@ export function useSceneLoading({
   setSubtitleLanguage,
   auto,
   started,
-}: UseSceneLoadingProps) {
+}: IUseSceneLoadingProps) {
   useEffect(() => {
     const player = getPlayer();
     if (!player) return;
@@ -216,7 +224,7 @@ export function useSceneLoading({
     sceneId,
   ]);
 
-  const loadMarkers = (player: VideoJsPlayer) => {
+  const loadMarkers = useCallback((player: VideoJsPlayer) => {
     const markerData = scene.scene_markers.map((marker) => ({
       title: getMarkerTitle(marker as MarkerFragment),
       seconds: marker.seconds,
@@ -256,7 +264,7 @@ export function useSceneLoading({
       markers.addDotMarkers(timestampMarkers);
       markers.addRangeMarkers(rangeMarkers);
     });
-  };
+  }, [scene, uiConfig]);
 
   useEffect(() => {
     const player = getPlayer();
@@ -285,6 +293,6 @@ export function useSceneLoading({
       const markers = player.markers();
       markers.clearMarkers();
     };
-  }, [getPlayer, scene, uiConfig]);
+  }, [getPlayer, scene, uiConfig, loadMarkers]);
 }
 

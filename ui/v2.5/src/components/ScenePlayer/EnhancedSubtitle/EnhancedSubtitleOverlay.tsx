@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Modal } from 'react-bootstrap';
-import { WordSegment, DictionaryEntry, SubtitleCue, SegmentationOptions } from './types';
+import { IWordSegment, IDictionaryEntry, ISubtitleCue } from './types';
 import { createSegmenter, detectLanguage } from './segmentation';
 import { lookupWord, lookupWordWithContext } from './dictionary';
 import { playWordPronunciation } from './pronunciation';
-import { getFavorites, addFavorite, removeFavorite, checkFavorite, FavoriteWord } from './favorites';
+import { getFavorites, addFavorite, removeFavorite } from './favorites';
 import './styles.scss';
 
 const AUTO_PAUSE_THRESHOLD = 0.1;
 
-const getCueSignature = (cue: SubtitleCue) => `${cue.startTime}-${cue.endTime}-${cue.text}`;
+const getCueSignature = (cue: ISubtitleCue) => `${cue.startTime}-${cue.endTime}-${cue.text}`;
 
-interface EnhancedSubtitleOverlayProps {
+interface IEnhancedSubtitleOverlayProps {
   currentTime: number;
   subtitleTrack: string | null;
   isVisible: boolean;
@@ -22,26 +22,28 @@ interface EnhancedSubtitleOverlayProps {
   onPausePlayer?: () => void;
   getPlayerPaused?: () => boolean; // Get player paused state
   resetFontSizeTrigger?: number; // Increment this to trigger font size reset
-  onSubtitlesLoaded?: (cues: SubtitleCue[]) => void; // 字幕加载完成回调
+  onSubtitlesLoaded?: (cues: ISubtitleCue[]) => void; // 字幕加载完成回调
   onCurrentCueChange?: (index: number) => void; // 当前字幕索引变化回调
   onAPDoubleClick?: () => void; // AP图标双击回调
   onPlay?: () => void; // Resume playback
   onSeekToCue?: (cueIndex: number) => void; // Seek to specific cue
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onGetPlayer?: () => any; // Get video player instance
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onNavigationRef?: (ref: any) => void; // Callback to expose navigation functions
 }
 
-interface ParsedSubtitle {
-  cues: SubtitleCue[];
+interface IParsedSubtitle {
+  cues: ISubtitleCue[];
 }
 
-export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = ({
+export const EnhancedSubtitleOverlay: React.FC<IEnhancedSubtitleOverlayProps> = ({
   currentTime,
   subtitleTrack,
   isVisible,
   language = 'en',
   isFullscreen = false,
-  onToggleVisibility,
+  // onToggleVisibility,
   onPausePlayer,
   getPlayerPaused,
   resetFontSizeTrigger,
@@ -49,15 +51,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   onCurrentCueChange,
   onAPDoubleClick,
   onPlay,
-  onSeekToCue,
+  // onSeekToCue,
   onGetPlayer,
   onNavigationRef,
 }) => {
-  const [parsedSubtitles, setParsedSubtitles] = useState<ParsedSubtitle | null>(null);
-  const [currentCue, setCurrentCue] = useState<SubtitleCue | null>(null);
-  const [wordSegments, setWordSegments] = useState<WordSegment[]>([]);
+  const [parsedSubtitles, setParsedSubtitles] = useState<IParsedSubtitle | null>(null);
+  const [currentCue, setCurrentCue] = useState<ISubtitleCue | null>(null);
+  const [wordSegments, setWordSegments] = useState<IWordSegment[]>([]);
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
-  const [dictionary, setDictionary] = useState<DictionaryEntry | null>(null);
+  const [dictionary, setDictionary] = useState<IDictionaryEntry | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showDictionary, setShowDictionary] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
@@ -84,23 +86,21 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   const [isInWordNavigationMode, setIsInWordNavigationMode] = useState(false);
   
   const subtitleRef = useRef<HTMLDivElement>(null);
-  const subtitleCacheRef = useRef<Map<string, SubtitleCue[]>>(new Map()); // 字幕缓存
+  const subtitleCacheRef = useRef<Map<string, ISubtitleCue[]>>(new Map()); // 字幕缓存
   const dragStartRef = useRef({ y: 0, startY: 0, x: 0, startX: 0, startFontSize: 1.0, hasDeterminedMode: false, initialX: 0, initialY: 0 });
-  const prevCueRef = useRef<SubtitleCue | null>(null); // Track previous cue to detect actual changes
-  const lastCueRef = useRef<SubtitleCue | null>(null);
+  const prevCueRef = useRef<ISubtitleCue | null>(null); // Track previous cue to detect actual changes
+  const lastCueRef = useRef<ISubtitleCue | null>(null);
   const autoPauseTriggeredRef = useRef(false);
   const lastPausedStateRef = useRef<boolean | null>(null);
   const userResumedPlaybackRef = useRef(false);
   const lastCurrentTimeRef = useRef<number>(0); // Track last currentTime to detect replays
   const autoPauseTimeoutRef = useRef<number | null>(null);
   const scheduledCueSignatureRef = useRef<string | null>(null);
-  const currentCueRef = useRef<SubtitleCue | null>(null);
+  const currentCueRef = useRef<ISubtitleCue | null>(null);
   const autoPauseEnabledRef = useRef<boolean>(autoPauseEnabled);
   const getPlayerPausedRef = useRef<typeof getPlayerPaused>(getPlayerPaused);
   const onPausePlayerRef = useRef<typeof onPausePlayer>(onPausePlayer);
   const onGetPlayerRef = useRef<typeof onGetPlayer>(onGetPlayer);
-  const lastUpArrowPressRef = useRef<number>(0);
-  const lastDownArrowPressRef = useRef<number>(0);
   
   // AP图标双击检测
   const lastAPClickTimeRef = useRef<number>(0);
@@ -221,11 +221,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           if (pronunciationService && typeof pronunciationService.clearCache === 'function') {
             pronunciationService.clearCache();
           }
-        }).catch((error) => {
-          console.warn('Failed to clear pronunciation cache:', error);
+        }).catch(() => {
+    // console.warn('Failed to clear pronunciation cache:', error);
         });
       } catch (error) {
-        console.warn('Failed to clear pronunciation cache:', error);
+        // console.warn('Failed to clear pronunciation cache:', error);
       }
     };
   }, []);
@@ -276,11 +276,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       const containerHeight = window.innerHeight;
       const containerWidth = window.innerWidth;
       // Detect portrait mode: height > width
-      const isPortrait = containerHeight > containerWidth;
+      const isPortraitMode = containerHeight > containerWidth;
       
       const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
       // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
-      const maxY = isPortrait ? containerHeight * 0.8 : containerHeight * 0.2;
+      const maxY = isPortraitMode ? containerHeight * 0.8 : containerHeight * 0.2;
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
@@ -332,11 +332,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       const containerHeight = window.innerHeight;
       const containerWidth = window.innerWidth;
       // Detect portrait mode: height > width
-      const isPortrait = containerHeight > containerWidth;
+      const isPortraitMode = containerHeight > containerWidth;
       
       const minY = -containerHeight * 0.85; // Can move up to 85% of screen height (near top)
       // In portrait mode, allow dragging down to 80% of screen height; in landscape, keep 20% limit
-      const maxY = isPortrait ? containerHeight * 0.8 : containerHeight * 0.2;
+      const maxY = isPortraitMode ? containerHeight * 0.8 : containerHeight * 0.2;
       
       setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
     } else if (dragMode === 'size') {
@@ -424,9 +424,15 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     };
   }, [isFullscreen]);
 
+  // Parse VTT timestamp to seconds
+  const parseVTTTime = (timeStr: string): number => {
+    const [hours, minutes, seconds] = timeStr.split(':');
+    return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
+  };
+
   // Parse VTT subtitles
-  const parseVTT = useCallback((vttContent: string): SubtitleCue[] => {
-    const cues: SubtitleCue[] = [];
+  const parseVTT = useCallback((vttContent: string): ISubtitleCue[] => {
+    const cues: ISubtitleCue[] = [];
     const lines = vttContent.split('\n');
     
     let i = 0;
@@ -466,12 +472,6 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     
     return cues;
   }, []);
-
-  // Parse VTT timestamp to seconds
-  const parseVTTTime = (timeStr: string): number => {
-    const [hours, minutes, seconds] = timeStr.split(':');
-    return parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds);
-  };
 
   // Load and parse subtitle file
   useEffect(() => {
@@ -522,7 +522,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Subtitle loading cancelled');
+      // console.log('Subtitle loading cancelled');
           return;
         }
         console.error('Failed to load subtitles:', error);
@@ -583,7 +583,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   }, [currentCue]);
 
   const attemptAutoPause = useCallback(
-    (reason: 'timer' | 'threshold') => {
+    () => {
       if (!autoPauseEnabledRef.current) {
         return;
       }
@@ -603,11 +603,11 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         return;
       }
 
-      console.log(
-        reason === 'timer'
-          ? '🎬 Auto-pausing before subtitle ends (scheduled)'
-          : '🎬 Auto-pausing before subtitle ends'
-      );
+      // console.log(
+      //   reason === 'timer'
+      //     ? '🎬 Auto-pausing before subtitle ends (scheduled)'
+      //     : '🎬 Auto-pausing before subtitle ends'
+      // );
       pausePlayer();
       autoPauseTriggeredRef.current = true;
       setIsAutoPaused(true);
@@ -617,7 +617,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
   );
 
   const scheduleAutoPause = useCallback(
-    (cue: SubtitleCue, timeUntilEnd: number) => {
+    (cue: ISubtitleCue, timeUntilEnd: number) => {
       // Get playback rate to adjust delay for speed playback
       let playbackRate = 1;
       const getPlayer = onGetPlayerRef.current;
@@ -628,7 +628,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
             playbackRate = player.playbackRate() || 1;
           }
         } catch (error) {
-          console.warn('[EnhancedSubtitle] Failed to get playback rate:', error);
+          // console.warn('[EnhancedSubtitle] Failed to get playback rate:', error);
         }
       }
 
@@ -655,7 +655,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           return;
         }
 
-        attemptAutoPause('timer');
+        attemptAutoPause();
       }, delayMs);
     },
     [attemptAutoPause, clearAutoPauseTimeout]
@@ -668,9 +668,9 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       return { cue: null, cueIndex: -1 };
     }
 
-    // 使用二分查找优化查找性能（假设字幕按时间排序）
-    const cues = parsedSubtitles.cues;
-    let cue: SubtitleCue | null = null;
+    // const cues = parsedSubtitles.cues;
+    const { cues } = parsedSubtitles;
+    let cue: ISubtitleCue | null = null;
     let cueIndex = -1;
 
     // 简单的线性查找，但只在必要时执行
@@ -725,12 +725,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         
         // 如果时间倒退了（或跳转），且当前时间接近字幕开始位置，说明是重播
         if (timeDiff < -0.5 && isNearStart) {
-          console.log('🔄 Detected replay of current subtitle (double-tap), resetting auto-pause flags', {
-            currentTime,
-            cueStartTime: cue.startTime,
-            timeDiff,
-            lastTime: lastCurrentTimeRef.current
-          });
+          // console.log('🔄 Detected replay of current subtitle (double-tap), resetting auto-pause flags', {
+          //   currentTime,
+          //   cueStartTime: cue.startTime,
+          //   timeDiff,
+          //   lastTime: lastCurrentTimeRef.current
+          // });
           autoPauseTriggeredRef.current = false;
           userResumedPlaybackRef.current = false;
           setIsAutoPaused(false);
@@ -739,10 +739,10 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       }
       
       if (cue && !isSameCue) {
-        console.log('🎬 New subtitle detected, resetting auto-pause flags', {
-          newCue: { start: cue.startTime, end: cue.endTime, text: cue.text.substring(0, 20) },
-          oldCue: lastCueRef.current ? { start: lastCueRef.current.startTime, end: lastCueRef.current.endTime } : null
-        });
+        // console.log('🎬 New subtitle detected, resetting auto-pause flags', {
+        //   newCue: { start: cue.startTime, end: cue.endTime, text: cue.text.substring(0, 20) },
+        //   oldCue: lastCueRef.current ? { start: lastCueRef.current.startTime, end: lastCueRef.current.endTime } : null
+        // });
         autoPauseTriggeredRef.current = false;
         userResumedPlaybackRef.current = false;
         setIsAutoPaused(false); // Clear auto-paused state for new subtitle
@@ -757,7 +757,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         // If this is not auto-paused, but user manually paused
         if (!isAutoPaused) {
           // User manually paused, reset flags to allow auto-pause logic to work again
-          console.log('🎬 User manually paused playback, resetting auto-pause flags');
+          // console.log('🎬 User manually paused playback, resetting auto-pause flags');
           userResumedPlaybackRef.current = false;
           // Don't reset autoPauseTriggeredRef here, as it might be needed to track state
         }
@@ -770,7 +770,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         // This prevents normal playback from being flagged as "user resumed"
         if (autoPauseTriggeredRef.current && isAutoPaused) {
           // Only when it's indeed auto-paused recovery, set the flag
-          console.log('🎬 User manually resumed playback after auto-pause, disabling auto-pause for current subtitle');
+          // console.log('🎬 User manually resumed playback after auto-pause, disabling auto-pause for current subtitle');
           userResumedPlaybackRef.current = true;
           setIsAutoPaused(false); // Clear auto-paused state when user resumes
           lastPausedStateRef.current = isPaused;
@@ -780,7 +780,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         } else if (autoPauseTriggeredRef.current && !isAutoPaused) {
           // If autoPauseTriggeredRef is true but isAutoPaused is false,
           // it means user has manually paused before, reset flags
-          console.log('🎬 User resumed playback after manual pause, resetting auto-pause flags');
+          // console.log('🎬 User resumed playback after manual pause, resetting auto-pause flags');
           autoPauseTriggeredRef.current = false;
           userResumedPlaybackRef.current = false;
           clearAutoPauseTimeout();
@@ -796,7 +796,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
         if (timeUntilEnd <= 0) {
           clearAutoPauseTimeout();
         } else if (timeUntilEnd <= AUTO_PAUSE_THRESHOLD) {
-          attemptAutoPause('threshold');
+          attemptAutoPause();
         } else {
           scheduleAutoPause(cue, timeUntilEnd);
         }
@@ -831,7 +831,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     
     // 更新上一次的时间，用于检测时间跳转（重播）
     lastCurrentTimeRef.current = currentTime;
-  }, [currentCueData, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange, currentCue, currentTime]);
+  }, [currentCueData, autoPauseEnabled, onPausePlayer, getPlayerPaused, onCurrentCueChange, currentCue, currentTime, attemptAutoPause, clearAutoPauseTimeout, isAutoPaused, parsedSubtitles, scheduleAutoPause]);
 
   // Segment current cue text
   useEffect(() => {
@@ -877,7 +877,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     try {
       // Use the current subtitle text as context for better word explanation
       const context = currentCue?.text || '';
-      console.log('🔍 Looking up word with context:', { word, context, language: detectedLanguage });
+      // console.log('🔍 Looking up word with context:', { word, context, language: detectedLanguage });
       
       // Use contextual lookup if we have context, otherwise fallback to regular lookup
       const entry = context 
@@ -914,7 +914,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       if (onPausePlayer) {
         onPausePlayer();
       }
-      console.log('🎯 Entered word navigation mode', selectLastWord ? '(last word)' : '(first word)');
+      // console.log('🎯 Entered word navigation mode', selectLastWord ? '(last word)' : '(first word)');
     }
   }, [wordSegments, onPausePlayer, currentCue]);
 
@@ -927,7 +927,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
     if (onPlay && !isAutoPaused) {
       onPlay();
     }
-    console.log('🚪 Exited word navigation mode');
+    // console.log('🚪 Exited word navigation mode');
   }, [onPlay, isAutoPaused]);
 
   // Navigate to next word (with circular navigation)
@@ -1081,7 +1081,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       // 检测双击（300ms内的第二次点击）
       if (timeSinceLastClick < 300 && timeSinceLastClick > 0) {
         // 双击AP图标
-        console.log('🎬 AP图标双击 - 临时显示控制栏');
+        // console.log('🎬 AP图标双击 - 临时显示控制栏');
         if (onAPDoubleClick) {
           onAPDoubleClick();
         }
@@ -1115,12 +1115,12 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           setAutoPauseEnabled(false);
           setIsAutoPaused(false); // 清除自动暂停状态
           localStorage.setItem('enhancedSubtitleAutoPause', 'false');
-          console.log('🎬 Auto-pause disabled (turned to gray)');
+          // console.log('🎬 Auto-pause disabled (turned to gray)');
         } else {
           // 从灰色启用 AP
           setAutoPauseEnabled(true);
           localStorage.setItem('enhancedSubtitleAutoPause', 'true');
-          console.log('🎬 Auto-pause enabled (turned to green/red)');
+          // console.log('🎬 Auto-pause enabled (turned to green/red)');
         }
         
         APDoubleClickTimeoutRef.current = null;
@@ -1141,7 +1141,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
       if (success) {
         setFavoriteWords(prev => new Set(prev).add(key));
         setIsFavorite(true);
-        console.log('⭐ Added to favorites:', selectedWord);
+        // console.log('⭐ Added to favorites:', selectedWord);
       }
     } else {
       // Remove from favorites
@@ -1153,7 +1153,7 @@ export const EnhancedSubtitleOverlay: React.FC<EnhancedSubtitleOverlayProps> = (
           return newSet;
         });
         setIsFavorite(false);
-        console.log('☆ Removed from favorites:', selectedWord);
+        // console.log('☆ Removed from favorites:', selectedWord);
       }
     }
   }, [selectedWord, detectedLanguage, isFavorite]);

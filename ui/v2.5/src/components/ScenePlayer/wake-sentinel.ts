@@ -44,9 +44,9 @@ class WakeSentinelPlugin extends videojs.getPlugin("plugin") {
       }
     } else {
       if (log) {
-        console.warn(
-          "Screen Wake Lock API not supported. Secure context (https or localhost) and modern browser required."
-        );
+    //     console.warn(
+    //       "Screen Wake Lock API not supported. Secure context (https or localhost) and modern browser required."
+    //     );
       }
       this.wakeLockFail = true;
     }

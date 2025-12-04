@@ -32,7 +32,7 @@ export interface IScenePlayerProps {
 }
 
 // Enhanced Subtitle Navigation Interface
-export interface EnhancedSubtitleNavigation {
+export interface IEnhancedSubtitleNavigation {
   isInWordNavigationMode: boolean;
   isAutoPaused: boolean;
   resumePlayback?: () => void;
@@ -49,7 +49,7 @@ export interface EnhancedSubtitleNavigation {
 }
 
 // Mobile Touch Controls Plugin Interface
-export interface MobileTouchControlsPlugin {
+export interface IMobileTouchControlsPlugin {
   setEnhancedSubtitlesEnabled(enabled: boolean): void;
   setSubtitleCues(cues: Array<{ startTime: number; endTime: number; text: string }>): void;
   setGetCurrentSubtitleIndex(fn: () => number): void;
@@ -58,6 +58,7 @@ export interface MobileTouchControlsPlugin {
 
 // Extend VideoJsPlayer type with custom properties and methods
 declare module "video.js" {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   interface VideoJsPlayer {
     // Custom properties for state management
     _lastUpArrowPress?: number;
@@ -68,10 +69,11 @@ declare module "video.js" {
     // Internal methods that are not in official type definitions
     // Note: VideoJS has this as a method, we're extending the interface
     // Must match the exact signature from VideoJS to avoid conflicts
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
     reportUserActivity: (event: any) => void;
     
     // Custom plugins
-    _mobileTouchControlsPlugin?: MobileTouchControlsPlugin;
+    _mobileTouchControlsPlugin?: IMobileTouchControlsPlugin;
   }
 }
 

@@ -1,15 +1,15 @@
-import { WordSegment, SegmentationOptions } from './types';
+import { IWordSegment, ISegmentationOptions } from './types';
 
 // Simple word segmentation for different languages
 export class WordSegmenter {
-  private options: SegmentationOptions;
+  private options: ISegmentationOptions;
 
-  constructor(options: SegmentationOptions) {
+  constructor(options: ISegmentationOptions) {
     this.options = options;
   }
 
   // Segment text into words based on language
-  segmentText(text: string): WordSegment[] {
+  segmentText(text: string): IWordSegment[] {
     switch (this.options.language) {
       case 'zh':
       case 'zh-CN':
@@ -25,8 +25,8 @@ export class WordSegmenter {
   }
 
   // Latin-based languages (English, Spanish, French, etc.)
-  private segmentLatin(text: string): WordSegment[] {
-    const segments: WordSegment[] = [];
+  private segmentLatin(text: string): IWordSegment[] {
+    const segments: IWordSegment[] = [];
     const wordRegex = /\b\w+\b/g;
     let match;
 
@@ -58,8 +58,8 @@ export class WordSegmenter {
   }
 
   // Chinese segmentation (simplified approach)
-  private segmentChinese(text: string): WordSegment[] {
-    const segments: WordSegment[] = [];
+  private segmentChinese(text: string): IWordSegment[] {
+    const segments: IWordSegment[] = [];
     
     // For now, treat each character as a word
     // In a real implementation, you'd use a library like jieba or nodejieba
@@ -86,8 +86,8 @@ export class WordSegmenter {
   }
 
   // Japanese segmentation (simplified approach)
-  private segmentJapanese(text: string): WordSegment[] {
-    const segments: WordSegment[] = [];
+  private segmentJapanese(text: string): IWordSegment[] {
+    const segments: IWordSegment[] = [];
     
     // This is a very simplified approach
     // In a real implementation, you'd use MeCab or similar
@@ -113,8 +113,8 @@ export class WordSegmenter {
   }
 
   // Korean segmentation (simplified approach)
-  private segmentKorean(text: string): WordSegment[] {
-    const segments: WordSegment[] = [];
+  private segmentKorean(text: string): IWordSegment[] {
+    const segments: IWordSegment[] = [];
     
     // Space-based segmentation for Korean
     const words = text.split(/(\s+)/);
@@ -139,8 +139,8 @@ export class WordSegmenter {
 }
 
 // Factory function to create segmenter
-export function createSegmenter(options: Partial<SegmentationOptions> = {}): WordSegmenter {
-  const defaultOptions: SegmentationOptions = {
+export function createSegmenter(options: Partial<ISegmentationOptions> = {}): WordSegmenter {
+  const defaultOptions: ISegmentationOptions = {
     language: 'en',
     enablePunctuation: false,
     minWordLength: 1,

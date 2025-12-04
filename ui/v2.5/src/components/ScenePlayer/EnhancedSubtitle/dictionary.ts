@@ -1,9 +1,9 @@
-import { DictionaryEntry } from './types';
+import { IDictionaryEntry } from './types';
 import { ollamaBackendService } from './ollamaBackendService';
 
 // Dictionary service for word lookups
 export class DictionaryService {
-  private cache = new Map<string, DictionaryEntry>();
+  private cache = new Map<string, IDictionaryEntry>();
   private ollamaAvailable = false;
   // ✅ 添加最大缓存大小限制
   private readonly MAX_CACHE_SIZE = 100; // 最多缓存100个词条
@@ -20,18 +20,18 @@ export class DictionaryService {
     try {
       this.ollamaAvailable = await ollamaBackendService.isAvailable();
     } catch (error) {
-      console.warn('Failed to check Ollama availability:', error);
+      // console.warn('Failed to check Ollama availability:', error);
       this.ollamaAvailable = false;
     }
   }
 
   // Look up a word in the dictionary (without context)
-  async lookup(word: string, language: string = 'en'): Promise<DictionaryEntry | null> {
+  async lookup(word: string, language: string = 'en'): Promise<IDictionaryEntry | null> {
     return this.lookupWithContext(word, '', language);
   }
 
   // Look up a word with context using Ollama if available, fallback to traditional APIs
-  async lookupWithContext(word: string, context: string = '', language: string = 'en'): Promise<DictionaryEntry | null> {
+  async lookupWithContext(word: string, context: string = '', language: string = 'en'): Promise<IDictionaryEntry | null> {
     const cacheKey = context 
       ? `${word.toLowerCase()}_${language}_${context.slice(0, 50)}` // Include context in cache key
       : `${word.toLowerCase()}_${language}`;
@@ -42,7 +42,7 @@ export class DictionaryService {
     }
 
     try {
-      let entry: DictionaryEntry | null = null;
+      let entry: IDictionaryEntry | null = null;
 
       // Only use Ollama for word lookup - no fallback to traditional APIs
       if (this.ollamaAvailable) {
@@ -62,7 +62,7 @@ export class DictionaryService {
           };
           
         } catch (error) {
-          console.warn('Ollama backend lookup failed:', error);
+          // console.warn('Ollama backend lookup failed:', error);
           entry = this.createBasicEntry(word, language, 'Ollama服务暂时不可用');
         }
       } else {
@@ -94,7 +94,7 @@ export class DictionaryService {
   // Traditional APIs removed - only using Ollama backend service
 
   // Create basic entry when API fails
-  private createBasicEntry(word: string, language: string, reason: string = 'Definition not available'): DictionaryEntry {
+  private createBasicEntry(word: string, language: string, reason: string = 'Definition not available'): IDictionaryEntry {
     return {
       word,
       definitions: [{
@@ -167,7 +167,7 @@ export class DictionaryService {
 
   // Get Ollama service status
   async getOllamaStatus() {
-    return await ollamaBackendService.getStatus();
+    return ollamaBackendService.getStatus();
   }
 }
 
@@ -175,7 +175,7 @@ export class DictionaryService {
 export const dictionaryService = new DictionaryService();
 
 // Helper function for quick lookup (without context)
-export async function lookupWord(word: string, language: string = 'en'): Promise<DictionaryEntry | null> {
+export async function lookupWord(word: string, language: string = 'en'): Promise<IDictionaryEntry | null> {
   return dictionaryService.lookup(word, language);
 }
 
@@ -184,6 +184,6 @@ export async function lookupWordWithContext(
   word: string, 
   context: string, 
   language: string = 'en'
-): Promise<DictionaryEntry | null> {
+): Promise<IDictionaryEntry | null> {
   return dictionaryService.lookupWithContext(word, context, language);
 }

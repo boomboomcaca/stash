@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { VideoJsPlayer } from "video.js";
 
-interface UseControlBarManagementProps {
+interface IUseControlBarManagementProps {
   getPlayer: () => VideoJsPlayer | null;
   showEnhancedSubtitles: boolean;
   showEnhancedSubtitlesRef: React.MutableRefObject<boolean>;
@@ -21,7 +21,7 @@ export function useControlBarManagement({
   controlBarVisibleRef,
   temporarilyUnlockControlBarRef,
   hideControlBarRef,
-}: UseControlBarManagementProps) {
+}: IUseControlBarManagementProps) {
   const unlockTimerRef = useRef<number | null>(null);
   const originalReportUserActivityRef = useRef<((event?: Event) => void) | null>(null);
 
@@ -59,7 +59,7 @@ export function useControlBarManagement({
       }
       unlockTimerRef.current = null;
     }, 3000);
-  }, [getPlayer, showEnhancedSubtitlesRef]);
+  }, [getPlayer, showEnhancedSubtitlesRef, controlBarVisibleRef]);
 
   const hideControlBar = useCallback(() => {
     const player = getPlayer();
@@ -73,12 +73,12 @@ export function useControlBarManagement({
     if (showEnhancedSubtitlesRef.current) {
       setControlBarLock(playerEl, true);
     }
-  }, [getPlayer, showEnhancedSubtitlesRef]);
+  }, [getPlayer, showEnhancedSubtitlesRef, controlBarVisibleRef]);
 
   useEffect(() => {
     temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
     hideControlBarRef.current = hideControlBar;
-  }, [temporarilyUnlockControlBar, hideControlBar]);
+  }, [temporarilyUnlockControlBar, hideControlBar, temporarilyUnlockControlBarRef, hideControlBarRef]);
 
   // 控制栏锁定逻辑：当增强字幕开启时，锁定隐藏控制栏
   useEffect(() => {
@@ -101,8 +101,9 @@ export function useControlBarManagement({
         return;
       }
       
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       player.reportUserActivity = function(this: typeof player, event?: any) {
-        const playerEl = player.el();
+        const el = player.el();
         
         // 如果是键盘事件，允许报告用户活跃（这样Video.js可以处理键盘事件）
         if (event && event.type === 'keydown') {
@@ -111,29 +112,29 @@ export function useControlBarManagement({
         
         // 对于其他事件（如鼠标移动、点击等），在锁定期间不报告用户活跃
         // 除非是临时解锁状态
-        if (playerEl && !playerEl.classList.contains('vjs-controls-unlocked-once')) {
+        if (el && !el.classList.contains('vjs-controls-unlocked-once')) {
           return;
         }
         
         return originalReportUserActivity.call(this, event);
       };
       
-      const playerEl = player.el();
+      const playerEl = player.el() as HTMLElement & { _focusLossHandler?: () => void };
       if (playerEl) {
         playerEl.classList.add('vjs-controls-locked-hidden');
         playerEl.setAttribute('tabindex', '0');
-        (playerEl as HTMLElement).focus();
+        playerEl.focus();
         
         const handleFocusLoss = () => {
           setTimeout(() => {
             if (playerEl?.classList.contains('vjs-controls-locked-hidden')) {
-              (playerEl as HTMLElement).focus();
+              playerEl.focus();
             }
           }, 100);
         };
         
         playerEl.addEventListener('blur', handleFocusLoss);
-        (playerEl as any)._focusLossHandler = handleFocusLoss;
+        playerEl._focusLossHandler = handleFocusLoss;
       }
       
       // 清理函数：恢复原始方法
@@ -143,10 +144,10 @@ export function useControlBarManagement({
         }
         
         // 清理焦点管理
-        const playerEl = player.el();
-        if (playerEl && (playerEl as any)._focusLossHandler) {
-          playerEl.removeEventListener('blur', (playerEl as any)._focusLossHandler);
-          delete (playerEl as any)._focusLossHandler;
+        const el = player.el() as HTMLElement & { _focusLossHandler?: () => void };
+        if (el && el._focusLossHandler) {
+          el.removeEventListener('blur', el._focusLossHandler);
+          delete el._focusLossHandler;
         }
       };
     } else {
@@ -157,13 +158,13 @@ export function useControlBarManagement({
       
       clearUnlockTimer();
       
-      const playerEl = player.el();
+      const playerEl = player.el() as HTMLElement & { _focusLossHandler?: () => void };
       if (playerEl) {
         playerEl.classList.remove('vjs-controls-locked-hidden', 'vjs-controls-unlocked-once');
         
-        if ((playerEl as any)._focusLossHandler) {
-          playerEl.removeEventListener('blur', (playerEl as any)._focusLossHandler);
-          delete (playerEl as any)._focusLossHandler;
+        if (playerEl._focusLossHandler) {
+          playerEl.removeEventListener('blur', playerEl._focusLossHandler);
+          delete playerEl._focusLossHandler;
         }
       }
     }

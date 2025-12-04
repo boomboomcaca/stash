@@ -1,15 +1,15 @@
 import { useEffect, useRef } from "react";
 import { VideoJsPlayer } from "video.js";
 import * as GQL from "src/core/generated-graphql";
-import { ConnectionState } from "src/hooks/Interactive/context";
+// import { ConnectionState } from "src/hooks/Interactive/context";
 import { isPseudoFullscreen } from "./util";
 
-interface UsePlayerEventsProps {
+interface IUsePlayerEventsProps {
   getPlayer: () => VideoJsPlayer | null;
   scene: GQL.SceneDataFragment;
   file: GQL.VideoFileDataFragment | undefined;
   sceneId: React.MutableRefObject<string | undefined>;
-  interactiveClient: any;
+  interactiveClient: { play: (time: number) => void; pause: () => void };
   interactiveReady: React.MutableRefObject<boolean>;
   started: React.MutableRefObject<boolean>;
   setReady: (value: boolean) => void;
@@ -21,8 +21,8 @@ interface UsePlayerEventsProps {
 export function usePlayerEvents({
   getPlayer,
   scene,
-  file,
-  sceneId,
+  // file,
+  // sceneId,
   interactiveClient,
   interactiveReady,
   started,
@@ -30,7 +30,7 @@ export function usePlayerEvents({
   setTime,
   setFullscreen,
   onComplete,
-}: UsePlayerEventsProps) {
+}: IUsePlayerEventsProps) {
   // Player event handlers
   useEffect(() => {
     const player = getPlayer();

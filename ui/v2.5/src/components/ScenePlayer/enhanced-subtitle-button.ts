@@ -3,7 +3,7 @@ import "./enhanced-subtitle-button.scss";
 
 const Button = videojs.getComponent("Button");
 
-interface EnhancedSubtitleButtonOptions {
+interface IEnhancedSubtitleButtonOptions {
   onToggle?: (enabled: boolean) => void;
 }
 
@@ -12,8 +12,8 @@ class EnhancedSubtitleButton extends Button {
   private toggleCallback?: (enabled: boolean) => void;
   private subtitlesAvailable: boolean = true;
 
-  constructor(player: videojs.Player, options: EnhancedSubtitleButtonOptions = {}) {
-    super(player, options);
+  constructor(player: videojs.Player, options: IEnhancedSubtitleButtonOptions = {}) {
+    super(player, options as videojs.ComponentOptions);
     this.toggleCallback = options.onToggle;
     this.controlText("增强字幕");
     this.addClass("vjs-enhanced-subtitles-button");
@@ -93,7 +93,7 @@ class EnhancedSubtitleButton extends Button {
 videojs.registerComponent("EnhancedSubtitleButton", EnhancedSubtitleButton);
 
 // 定义插件
-function enhancedSubtitleButton(this: videojs.Player, options: EnhancedSubtitleButtonOptions = {}) {
+function enhancedSubtitleButton(this: videojs.Player, options: IEnhancedSubtitleButtonOptions = {}) {
   const player = this;
   
   // 创建按钮
@@ -119,8 +119,10 @@ videojs.registerPlugin("enhancedSubtitleButton", enhancedSubtitleButton);
 
 // 扩展类型定义
 declare module "video.js" {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   export interface VideoJsPlayer {
-    enhancedSubtitleButton: (options?: EnhancedSubtitleButtonOptions) => EnhancedSubtitleButton;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    enhancedSubtitleButton: (options?: IEnhancedSubtitleButtonOptions) => EnhancedSubtitleButton;
   }
 }
 

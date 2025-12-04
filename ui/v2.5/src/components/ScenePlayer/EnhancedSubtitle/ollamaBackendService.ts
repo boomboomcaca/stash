@@ -59,7 +59,7 @@ const OLLAMA_GENERATE_MUTATION = gql`
   }
 `;
 
-export interface BackendOllamaConfig {
+export interface IBackendOllamaConfig {
   baseUrl: string;
   model: string;
   timeout: number;
@@ -68,27 +68,27 @@ export interface BackendOllamaConfig {
   promptTemplate: string;
 }
 
-export interface BackendOllamaStatus {
+export interface IBackendOllamaStatus {
   available: boolean;
-  config: BackendOllamaConfig;
+  config: IBackendOllamaConfig;
   models: string[];
   version?: string;
 }
 
-export interface BackendDictionaryEntry {
+export interface IBackendDictionaryEntry {
   word: string;
   pronunciation?: string;
-  definitions: BackendDictionaryDefinition[];
+  definitions: IBackendDictionaryDefinition[];
   etymology: string;
 }
 
-export interface BackendDictionaryDefinition {
+export interface IBackendDictionaryDefinition {
   partOfSpeech: string;
   meaning: string;
   examples: string[];
 }
 
-export interface OllamaGenerateResult {
+export interface IOllamaGenerateResult {
   response: string;
   model: string;
   totalDuration?: number;
@@ -101,14 +101,10 @@ export interface OllamaGenerateResult {
 export class OllamaBackendService {
   private client = getClient();
 
-  constructor() {
-    // Using Apollo client directly for GraphQL operations
-  }
-
   /**
    * Get current Ollama status and configuration from backend
    */
-  async getStatus(): Promise<BackendOllamaStatus> {
+  async getStatus(): Promise<IBackendOllamaStatus> {
     try {
       const result = await this.client.query({
         query: OLLAMA_STATUS_QUERY,
@@ -148,7 +144,7 @@ export class OllamaBackendService {
   /**
    * Update Ollama configuration through backend
    */
-  async updateConfig(config: BackendOllamaConfig): Promise<BackendOllamaConfig> {
+  async updateConfig(config: IBackendOllamaConfig): Promise<IBackendOllamaConfig> {
     try {
       const result = await this.client.mutate({
         mutation: CONFIGURE_OLLAMA_MUTATION,
@@ -166,7 +162,7 @@ export class OllamaBackendService {
   /**
    * Generate text using Ollama through backend
    */
-  async generate(prompt: string, model?: string): Promise<OllamaGenerateResult> {
+  async generate(prompt: string, model?: string): Promise<IOllamaGenerateResult> {
     try {
       const result = await this.client.mutate({
         mutation: OLLAMA_GENERATE_MUTATION,
@@ -187,7 +183,7 @@ export class OllamaBackendService {
   /**
    * Explain a word in context using Ollama through backend
    */
-  async explainWord(word: string, context: string, language: string = 'en', model?: string): Promise<BackendDictionaryEntry> {
+  async explainWord(word: string, context: string, language: string = 'en', model?: string): Promise<IBackendDictionaryEntry> {
     try {
       const result = await this.client.mutate({
         mutation: OLLAMA_EXPLAIN_WORD_MUTATION,

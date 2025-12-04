@@ -1,17 +1,17 @@
-export interface SubtitleCue {
+export interface ISubtitleCue {
   startTime: number;
   endTime: number;
   text: string;
 }
 
-export interface WordSegment {
+export interface IWordSegment {
   word: string;
   startIndex: number;
   endIndex: number;
   isSelected?: boolean;
 }
 
-export interface DictionaryEntry {
+export interface IDictionaryEntry {
   word: string;
   pronunciation?: string;
   definitions: Array<{
@@ -23,13 +23,13 @@ export interface DictionaryEntry {
   frequency?: number;
 }
 
-export interface SegmentationOptions {
+export interface ISegmentationOptions {
   language: string;
   enablePunctuation: boolean;
   minWordLength: number;
 }
 
-export interface SubtitleTrackInfo {
+export interface ISubtitleTrackInfo {
   language: string;
   label: string;
   src: string;

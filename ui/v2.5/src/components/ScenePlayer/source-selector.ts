@@ -192,7 +192,7 @@ class SourceSelectorPlugin extends videojs.getPlugin("plugin") {
       ) {
         this.selectedIndex += 1;
         const newSource = this.sources[this.selectedIndex];
-        console.log(`Trying next source in playlist: '${newSource.label}'`);
+// console.log(`Trying next source in playlist: '${newSource.label}'`);
         this.menu.setSelectedSource(newSource);
 
         const currentTime = player.currentTime();
@@ -203,7 +203,7 @@ class SourceSelectorPlugin extends videojs.getPlugin("plugin") {
         });
         player.play();
       } else {
-        console.log("No more sources in playlist");
+// console.log("No more sources in playlist");
       }
     });
   }

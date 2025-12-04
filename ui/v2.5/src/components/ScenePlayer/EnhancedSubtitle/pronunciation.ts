@@ -1,13 +1,13 @@
 // Text-to-Speech service for word pronunciation
 // Uses backend proxy to avoid CORS issues and support mobile browsers
 
-export interface TTSProvider {
+export interface ITTSProvider {
   name: string;
   getAudioUrl(word: string, language: string): string;
 }
 
 // Backend TTS Provider (proxies Google TTS through our server)
-class BackendTTSProvider implements TTSProvider {
+class BackendTTSProvider implements ITTSProvider {
   name = 'Backend TTS Proxy';
 
   getAudioUrl(word: string, language: string): string {
@@ -20,7 +20,7 @@ class BackendTTSProvider implements TTSProvider {
 }
 
 // Browser Speech Synthesis Provider (fallback for when backend is unavailable)
-class BrowserTTSProvider implements TTSProvider {
+class BrowserTTSProvider implements ITTSProvider {
   name = 'Browser Speech Synthesis';
   private synth: SpeechSynthesis | null = null;
 
@@ -30,7 +30,7 @@ class BrowserTTSProvider implements TTSProvider {
     }
   }
 
-  getAudioUrl(word: string, language: string): string {
+  getAudioUrl(): string {
     // Browser TTS doesn't use URLs, handled separately in playPronunciation
     return '';
   }
@@ -76,7 +76,7 @@ class BrowserTTSProvider implements TTSProvider {
 
 // Pronunciation Service
 export class PronunciationService {
-  private provider: TTSProvider;
+  private provider: ITTSProvider;
   private browserProvider: BrowserTTSProvider;
   private audioCache = new Map<string, HTMLAudioElement>();
   private useBackend = true; // Prefer backend by default
@@ -128,7 +128,7 @@ export class PronunciationService {
         throw new Error('No TTS provider available');
       }
     } catch (error) {
-      console.error('Backend TTS failed, trying browser fallback:', error);
+      console.error('Backend TTS failed, trying browser fallback:');
       // Fallback to browser TTS if backend fails
       if (this.browserProvider.canUse()) {
         this.useBackend = false;
@@ -156,8 +156,7 @@ export class PronunciationService {
       audio = new Audio(url);
       
       // Add error handler
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
+      audio.onerror = () => {
         this.audioCache.delete(cacheKey); // Remove from cache on error
       };
       

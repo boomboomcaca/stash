@@ -58,7 +58,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   const [scrubWidth, setScrubWidth] = useState(0);
   const position = useRef(0);
   const setPosition = useCallback(
-    (value: number, seek: boolean, isDragging?: boolean) => {
+    (value: number, seek: boolean, isDraggingArg?: boolean) => {
       if (!scrubWidth) return;
 
       const slider = sliderEl.current!;
@@ -85,7 +85,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
       position.current = newPosition;
 
       if (seek) {
-        onSeek(percentage * (file.duration || 0), isDragging);
+        onSeek(percentage * (file.duration || 0), isDraggingArg);
       }
     },
     [onSeek, file.duration, scrubWidth]

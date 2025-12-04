@@ -3,18 +3,21 @@ import videojs, { VideoJsPlayer, VideoJsPlayerOptions } from "video.js";
 import { VIDEO_PLAYER_ID, togglePseudoFullscreen, isPseudoFullscreen } from "./util";
 import { handleHotkeys } from "./handleHotkeys";
 
-interface UsePlayerSetupProps {
+interface IUsePlayerSetupProps {
   videoRef: React.RefObject<HTMLDivElement>;
-  uiConfig: any;
+  uiConfig: {
+    showAbLoopControls?: boolean;
+    [key: string]: unknown;
+  };
   currentSubtitleTrack: string | null;
   showEnhancedSubtitles: boolean;
   setShowEnhancedSubtitles: (value: boolean) => void;
   setResetFontSizeTrigger: React.Dispatch<React.SetStateAction<number>>;
   temporarilyUnlockControlBarRef: React.MutableRefObject<(() => void) | null>;
-  enhancedSubtitleNavigationRef: React.MutableRefObject<any>;
+  enhancedSubtitleNavigationRef: React.MutableRefObject<unknown>;
   controlBarVisibleRef: React.MutableRefObject<boolean>;
   hideControlBarRef: React.MutableRefObject<(() => void) | null>;
-  enhancedSubtitleButtonRef: React.MutableRefObject<any>;
+  enhancedSubtitleButtonRef: React.MutableRefObject<unknown>;
 }
 
 export function usePlayerSetup({
@@ -29,15 +32,15 @@ export function usePlayerSetup({
   controlBarVisibleRef,
   hideControlBarRef,
   enhancedSubtitleButtonRef,
-}: UsePlayerSetupProps) {
+}: IUsePlayerSetupProps) {
   const [_player, setPlayer] = useState<VideoJsPlayer>();
   const sceneId = useRef<string>();
 
-  const getPlayer = () => {
+  const getPlayer = useCallback(() => {
     if (!_player) return null;
     if (_player.isDisposed()) return null;
     return _player;
-  };
+  }, [_player]);
 
   // Initialize VideoJS player
   useEffect(() => {
@@ -196,9 +199,9 @@ export function usePlayerSetup({
     vjs.on('canplay', disableNativeSubtitles);
 
     // 拦截video.js的全屏API，使用伪全屏
-    const originalRequestFullscreen = vjs.requestFullscreen?.bind(vjs);
-    const originalExitFullscreen = vjs.exitFullscreen?.bind(vjs);
-    const originalIsFullscreen = vjs.isFullscreen?.bind(vjs);
+    // const originalRequestFullscreen = vjs.requestFullscreen?.bind(vjs);
+    // const originalExitFullscreen = vjs.exitFullscreen?.bind(vjs);
+    // const originalIsFullscreen = vjs.isFullscreen?.bind(vjs);
     
     if (vjs.requestFullscreen) {
       vjs.requestFullscreen = function() {
@@ -263,15 +266,15 @@ export function usePlayerSetup({
     const player = getPlayer();
     if (!player) return;
     
-    const button = player.getChild("ControlBar")?.getChild("EnhancedSubtitleButton");
-    if (button && typeof (button as any).setEnabled === 'function') {
-      (button as any).setEnabled(showEnhancedSubtitles);
+    const button = player.getChild("ControlBar")?.getChild("EnhancedSubtitleButton") as EnhancedSubtitleButton | undefined;
+    if (button && typeof button.setEnabled === 'function') {
+      button.setEnabled(showEnhancedSubtitles);
     }
   }, [getPlayer, showEnhancedSubtitles]);
 
   // 根据字幕可用性更新增强字幕按钮的禁用状态
   useEffect(() => {
-    const button = enhancedSubtitleButtonRef.current;
+    const button = enhancedSubtitleButtonRef.current as EnhancedSubtitleButton | undefined;
     if (button && typeof button.setSubtitlesAvailable === 'function') {
       const hasSubtitles = currentSubtitleTrack !== null;
       button.setSubtitlesAvailable(hasSubtitles);
