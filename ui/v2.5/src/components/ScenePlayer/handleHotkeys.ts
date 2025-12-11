@@ -275,95 +275,7 @@ export function handleHotkeys(
         }
 
         if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
-          // Double up arrow - go to previous subtitle
-          const currentCueIndex =
-            enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
-          const videoTime =
-            enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
-          const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
-
-          if (cues && cues.length > 0) {
-            const nearestIndex = findNearestCueIndex(
-              videoTime,
-              cues,
-              currentCueIndex
-            );
-            if (nearestIndex > 0) {
-              const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
-              if (navPlayer) {
-                const prevCue = cues[nearestIndex - 1];
-                if (prevCue) {
-                  navPlayer.currentTime(prevCue.startTime);
-                  // Resume playback if paused
-                  if (navPlayer.paused()) {
-                    navPlayer.play();
-                  }
-                }
-              }
-            }
-          }
-          player._lastUpArrowPress = 0;
-        } else {
-          // Single up arrow - repeat current subtitle (will trigger after timeout)
-          player._lastUpArrowPress = now;
-
-          player._upArrowTimer = setTimeout(() => {
-            // Only execute if this is still a single press (not a double press)
-            const checkTime = Date.now();
-            const timeSincePress = checkTime - (player._lastUpArrowPress || 0);
-
-            if (timeSincePress >= 400 && player._lastUpArrowPress !== 0) {
-              // This was a single press, not a double press
-              const currentCueIndex =
-                enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
-              const videoTime =
-                enhancedSubtitleNavigation?.onGetPlayer?.().currentTime() ?? 0;
-              const cues = enhancedSubtitleNavigation?.parsedSubtitles?.cues;
-
-              if (cues && cues.length > 0) {
-                const nearestIndex = findNearestCueIndex(
-                  videoTime,
-                  cues,
-                  currentCueIndex
-                );
-                const targetCue = cues[nearestIndex];
-                if (targetCue) {
-                  const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
-                  if (navPlayer) {
-                    navPlayer.currentTime(targetCue.startTime);
-                    // Resume playback if paused
-                    if (navPlayer.paused()) {
-                      navPlayer.play();
-                    }
-                  }
-                }
-              }
-            }
-            player._lastUpArrowPress = 0;
-            player._upArrowTimer = null;
-          }, 400);
-        }
-        return;
-      }
-      player.volume(player.volume() + 0.1);
-      break;
-    case 40: // down arrow
-      if (enhancedSubtitleNavigation) {
-        // Down arrow: single press to show control bar, double press to go to next subtitle
-        event.preventDefault();
-        event.stopPropagation();
-        const now = Date.now();
-        const lastPress = player._lastDownArrowPress || 0;
-        const timeSinceLastPress = now - lastPress;
-
-        // Clear any pending single-click timer
-        if (player._downArrowTimer) {
-          clearTimeout(player._downArrowTimer);
-          player._downArrowTimer = null;
-        }
-
-        if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
-          // Double down arrow - go to next subtitle
+          // Double up arrow - go to next subtitle
           const currentCueIndex =
             enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
           const videoTime =
@@ -390,9 +302,78 @@ export function handleHotkeys(
               }
             }
           }
+          player._lastUpArrowPress = 0;
+        } else {
+          // Single up arrow - toggle play/pause (will trigger after timeout)
+          player._lastUpArrowPress = now;
+
+          player._upArrowTimer = setTimeout(() => {
+            // Only execute if this is still a single press (not a double press)
+            const checkTime = Date.now();
+            const timeSincePress = checkTime - (player._lastUpArrowPress || 0);
+
+            if (timeSincePress >= 400 && player._lastUpArrowPress !== 0) {
+              // This was a single press, not a double press
+              if (player.paused()) {
+                player.play();
+              } else {
+                player.pause();
+              }
+            }
+            player._lastUpArrowPress = 0;
+            player._upArrowTimer = null;
+          }, 400);
+        }
+        return;
+      }
+      player.volume(player.volume() + 0.1);
+      break;
+    case 40: // down arrow
+      if (enhancedSubtitleNavigation) {
+        // Down arrow: single press to repeat current subtitle, double press to go to previous subtitle
+        event.preventDefault();
+        event.stopPropagation();
+        const now = Date.now();
+        const lastPress = player._lastDownArrowPress || 0;
+        const timeSinceLastPress = now - lastPress;
+
+        // Clear any pending single-click timer
+        if (player._downArrowTimer) {
+          clearTimeout(player._downArrowTimer);
+          player._downArrowTimer = null;
+        }
+
+        if (timeSinceLastPress < 400 && timeSinceLastPress > 0) {
+          // Double down arrow - go to previous subtitle
+          const currentCueIndex =
+            enhancedSubtitleNavigation.getCurrentCueIndex?.() ?? -1;
+          const videoTime =
+            enhancedSubtitleNavigation.onGetPlayer?.().currentTime() ?? 0;
+          const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
+
+          if (cues && cues.length > 0) {
+            const nearestIndex = findNearestCueIndex(
+              videoTime,
+              cues,
+              currentCueIndex
+            );
+            if (nearestIndex > 0) {
+              const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
+              if (navPlayer) {
+                const prevCue = cues[nearestIndex - 1];
+                if (prevCue) {
+                  navPlayer.currentTime(prevCue.startTime);
+                  // Resume playback if paused
+                  if (navPlayer.paused()) {
+                    navPlayer.play();
+                  }
+                }
+              }
+            }
+          }
           player._lastDownArrowPress = 0;
         } else {
-          // Single down arrow - show control bar
+          // Single down arrow - repeat current subtitle
           player._lastDownArrowPress = now;
 
           player._downArrowTimer = setTimeout(() => {
@@ -402,9 +383,30 @@ export function handleHotkeys(
               checkTime - (player._lastDownArrowPress || 0);
 
             if (timeSincePress >= 400 && player._lastDownArrowPress !== 0) {
-              // This was a single press, not a double press - show control bar
-              if (showControlBar) {
-                showControlBar();
+              // This was a single press, not a double press
+              const currentCueIndex =
+                enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
+              const videoTime =
+                enhancedSubtitleNavigation?.onGetPlayer?.().currentTime() ?? 0;
+              const cues = enhancedSubtitleNavigation?.parsedSubtitles?.cues;
+
+              if (cues && cues.length > 0) {
+                const nearestIndex = findNearestCueIndex(
+                  videoTime,
+                  cues,
+                  currentCueIndex
+                );
+                const targetCue = cues[nearestIndex];
+                if (targetCue) {
+                  const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
+                  if (navPlayer) {
+                    navPlayer.currentTime(targetCue.startTime);
+                    // Resume playback if paused
+                    if (navPlayer.paused()) {
+                      navPlayer.play();
+                    }
+                  }
+                }
               }
             }
             player._lastDownArrowPress = 0;

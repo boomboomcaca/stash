@@ -646,6 +646,29 @@ export const EnhancedSubtitleOverlay: React.FC<
     onGetPlayerRef.current = onGetPlayer;
   }, [onGetPlayer]);
 
+  // Hide dictionary when player starts playing
+  useEffect(() => {
+    if (!onGetPlayer) return;
+
+    const player = onGetPlayer();
+    if (!player) return;
+
+    const handlePlay = () => {
+      setShowDictionary(false);
+    };
+
+    // Check if player.on is available (it should be for video.js)
+    if (typeof player.on === "function") {
+      player.on("play", handlePlay);
+    }
+
+    return () => {
+      if (typeof player.off === "function") {
+        player.off("play", handlePlay);
+      }
+    };
+  }, [onGetPlayer]);
+
   useEffect(() => {
     currentCueRef.current = currentCue;
   }, [currentCue]);
