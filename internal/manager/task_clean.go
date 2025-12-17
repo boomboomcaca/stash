@@ -51,6 +51,7 @@ func (j *cleanJob) Execute(ctx context.Context, progress *job.Progress) error {
 	}
 
 	j.cleanEmptyGalleries(ctx)
+	j.cleanEmptyScenes(ctx)
 
 	j.scanSubs.notify()
 	elapsed := time.Since(start)
@@ -105,6 +106,98 @@ func (j *cleanJob) cleanEmptyGalleries(ctx context.Context) {
 		for _, id := range toClean {
 			j.deleteGallery(ctx, id)
 		}
+	}
+}
+
+func (j *cleanJob) cleanEmptyScenes(ctx context.Context) {
+	const batchSize = 1000
+	var toClean []int
+	findFilter := models.BatchFindFilter(batchSize)
+	r := j.repository
+	if err := r.WithTxn(ctx, func(ctx context.Context) error {
+		found := true
+		for found {
+			emptyScenes, err := r.Scene.Query(ctx, models.SceneQueryOptions{
+				QueryOptions: models.QueryOptions{
+					FindFilter: findFilter,
+					Count:      false,
+				},
+				SceneFilter: &models.SceneFilterType{
+					FileCount: &models.IntCriterionInput{
+						Value:    0,
+						Modifier: models.CriterionModifierEquals,
+					},
+				},
+			})
+
+			if err != nil {
+				return err
+			}
+
+			scenes, err := emptyScenes.Resolve(ctx)
+			if err != nil {
+				return err
+			}
+
+			found = len(scenes) > 0
+
+			for _, s := range scenes {
+				logger.Infof("Scene has 0 files. Marking to clean: %s", s.DisplayName())
+				toClean = append(toClean, s.ID)
+			}
+
+			*findFilter.Page++
+		}
+
+		return nil
+	}); err != nil {
+		logger.Errorf("Error finding empty scenes: %v", err)
+		return
+	}
+
+	if !j.input.DryRun {
+		for _, id := range toClean {
+			j.deleteScene(ctx, id)
+		}
+	}
+}
+
+func (j *cleanJob) deleteScene(ctx context.Context, id int) {
+	pluginCache := GetInstance().PluginCache
+	mgr := GetInstance()
+
+	r := j.repository
+	if err := r.WithTxn(ctx, func(ctx context.Context) error {
+		qb := r.Scene
+		s, err := qb.Find(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		if s == nil {
+			return fmt.Errorf("scene with id %d not found", id)
+		}
+
+		fileNamingAlgo := mgr.Config.GetVideoFileNamingAlgorithm()
+		sceneFileDeleter := &scene.FileDeleter{
+			Deleter:        file.NewDeleter(),
+			FileNamingAlgo: fileNamingAlgo,
+			Paths:          mgr.Paths,
+		}
+
+		if err := mgr.SceneService.Destroy(ctx, s, sceneFileDeleter, true, false, false); err != nil {
+			return err
+		}
+
+		pluginCache.RegisterPostHooks(ctx, id, hook.SceneDestroyPost, plugin.SceneDestroyInput{
+			Checksum: s.Checksum,
+			OSHash:   s.OSHash,
+			Path:     s.Path,
+		}, nil)
+
+		return nil
+	}); err != nil {
+		logger.Errorf("Error deleting scene from database: %s", err.Error())
 	}
 }
 

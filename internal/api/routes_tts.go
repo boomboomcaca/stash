@@ -32,9 +32,9 @@ func (rs ttsRoutes) Pronounce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Default language to English if not specified
-	if lang == "" {
-		lang = "en"
+	// Default language to English (US) if not specified
+	if lang == "" || lang == "en" {
+		lang = "en-US"
 	}
 
 	// Convert language codes
