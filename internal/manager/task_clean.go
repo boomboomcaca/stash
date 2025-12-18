@@ -185,7 +185,7 @@ func (j *cleanJob) deleteScene(ctx context.Context, id int) {
 			Paths:          mgr.Paths,
 		}
 
-		if err := mgr.SceneService.Destroy(ctx, s, sceneFileDeleter, true, false, false); err != nil {
+		if err := mgr.SceneService.Destroy(ctx, s, sceneFileDeleter, true, true, false); err != nil {
 			return err
 		}
 
