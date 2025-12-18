@@ -100,6 +100,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     navigateToNextWord,
     navigateToPreviousWord,
     handleWordSelection,
+    setOnWordSelect,
   } = useWordNavigation({
     currentCue,
     language,
@@ -127,6 +128,11 @@ export const EnhancedSubtitleOverlay: React.FC<
     currentCue,
     onPausePlayer,
   });
+
+  // Bind handleWordClick to word navigation for keyboard selection
+  useEffect(() => {
+    setOnWordSelect(handleWordClick);
+  }, [setOnWordSelect, handleWordClick]);
 
   // Drag hook
   const {

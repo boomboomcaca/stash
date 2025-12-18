@@ -8,6 +8,7 @@ interface IUseWordNavigationProps {
   onPausePlayer?: () => void;
   onPlay?: () => void;
   isAutoPaused: boolean;
+  onWordSelect?: (word: string) => Promise<void>;
 }
 
 interface IUseWordNavigationResult {
@@ -21,6 +22,7 @@ interface IUseWordNavigationResult {
   navigateToNextWord: () => void;
   navigateToPreviousWord: () => void;
   handleWordSelection: () => Promise<void>;
+  setOnWordSelect: (callback: ((word: string) => Promise<void>) | null) => void;
 }
 
 export function useWordNavigation({
@@ -29,6 +31,7 @@ export function useWordNavigation({
   onPausePlayer,
   onPlay,
   isAutoPaused,
+  onWordSelect,
 }: IUseWordNavigationProps): IUseWordNavigationResult {
   const [wordSegments, setWordSegments] = useState<IWordSegment[]>([]);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
@@ -47,6 +50,19 @@ export function useWordNavigation({
   // Store handleWordClick callback for word selection
   const handleWordClickRef = useRef<((word: string) => Promise<void>) | null>(
     null
+  );
+
+  // Update ref when onWordSelect changes
+  useEffect(() => {
+    handleWordClickRef.current = onWordSelect || null;
+  }, [onWordSelect]);
+
+  // Allow external setting of word select callback
+  const setOnWordSelect = useCallback(
+    (callback: ((word: string) => Promise<void>) | null) => {
+      handleWordClickRef.current = callback;
+    },
+    []
   );
 
   // Segment current cue text
@@ -153,5 +169,6 @@ export function useWordNavigation({
     navigateToNextWord,
     navigateToPreviousWord,
     handleWordSelection,
+    setOnWordSelect,
   };
 }
