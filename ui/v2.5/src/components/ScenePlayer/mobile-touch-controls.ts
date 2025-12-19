@@ -17,6 +17,7 @@ interface ITouchControlState {
   dragStartTime: number;
   dragCurrentProgress: number;
   wasPlayingBeforeDrag: boolean; // 拖拽前的播放状态
+  wasMutedBeforeDrag: boolean; // 拖拽前的静音状态
 
   // 长按倍速控制相关状态
   isLongPressSpeedControl: boolean;
@@ -48,6 +49,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     dragStartTime: 0,
     dragCurrentProgress: 0,
     wasPlayingBeforeDrag: false,
+    wasMutedBeforeDrag: false,
 
     // 长按倍速控制相关状态初始化
     isLongPressSpeedControl: false,
@@ -718,8 +720,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         this.state.isDragging = true;
         this.isDraggingMode = true; // 标记正在拖动
 
-        // 记录拖拽前的播放状态并暂停播放
+        // 记录拖拽前的播放状态和静音状态并暂停播放
         this.state.wasPlayingBeforeDrag = !this.player.paused();
+        this.state.wasMutedBeforeDrag = this.player.muted() ?? false;
         if (this.state.wasPlayingBeforeDrag) {
           this.player.pause();
         }
@@ -1031,8 +1034,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       this.originalReportUserActivity = null;
     }
 
-    // 恢复原始播放状态
+    // 恢复原始播放状态和静音状态
     if (this.state.wasPlayingBeforeDrag) {
+      // 先确保静音状态正确，再播放
+      this.player.muted(this.state.wasMutedBeforeDrag);
       this.player.play()?.catch(() => {
         // 忽略播放失败
       });
