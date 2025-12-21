@@ -542,8 +542,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         this.saveSpeedRate(this.state.savedSpeedRate);
       }
 
-      // 释放手指后恢复到1x正常速度
-      this.player.playbackRate(1);
+      // 根据保存的倍速决定松手后的播放速度
+      if (this.state.savedSpeedRate < 1) {
+        // 慢放模式：松手后恢复到保存的慢放倍速
+        this.player.playbackRate(this.state.savedSpeedRate);
+      } else {
+        // 快进模式：松手后恢复到 1x 正常速度
+        this.player.playbackRate(1);
+      }
 
       // 立即隐藏倍速反馈
       if (this.speedFeedbackElement) {
@@ -945,7 +951,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private handleLongPress(): void {
-    // 长按：启动倍速控制模式，使用保存的默认倍速
+    // 长按：启动倍速控制模式
+    // 如果保存的倍速 < 1x（慢放模式），长按时恢复到 1x
+    // 如果保存的倍速 >= 1x（快进模式），长按时使用保存的倍速
     try {
       this.state.originalPlaybackRate = this.player.playbackRate() || 1;
       this.state.isLongPress = true;
@@ -954,8 +962,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 保存长按开始的Y坐标，用于后续的垂直滑动检测
       this.state.longPressStartY = this.state.dragStartY;
 
-      // 设置初始倍速为保存的默认倍速（按住不放的默认倍速）
-      this.state.currentSpeedRate = this.state.savedSpeedRate;
+      // 根据保存的倍速决定长按时的初始倍速
+      if (this.state.savedSpeedRate < 1) {
+        // 慢放模式：长按时恢复到 1x 正常速度
+        this.state.currentSpeedRate = 1;
+      } else {
+        // 快进模式：长按时使用保存的默认倍速
+        this.state.currentSpeedRate = this.state.savedSpeedRate;
+      }
       this.player.playbackRate(this.state.currentSpeedRate);
 
       // 长按时立即显示当前倍速，且阻止自动隐藏
