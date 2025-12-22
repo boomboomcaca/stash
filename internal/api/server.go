@@ -10,6 +10,7 @@ import (
 	"io/fs"
 	"net/http"
 	"net/http/pprof"
+	"net/url"
 	"os"
 	"path"
 	"runtime/debug"
@@ -695,9 +696,23 @@ func BaseURLMiddleware(next http.Handler) http.Handler {
 
 		baseURL := scheme + "://" + r.Host + prefix
 
+		// Only use externalHost if the request is coming through the external domain
+		// This allows both domain and IP access to work correctly
 		externalHost := config.GetInstance().GetExternalHost()
 		if externalHost != "" {
-			baseURL = externalHost + prefix
+			// Parse the external host to extract the hostname
+			if extURL, err := url.Parse(externalHost); err == nil {
+				// Check if request host matches external host (domain access)
+				reqHost := r.Host
+				if colonIdx := strings.LastIndex(reqHost, ":"); colonIdx != -1 {
+					reqHost = reqHost[:colonIdx]
+				}
+				extHost := extURL.Hostname()
+				// Only use externalHost if accessing via the external domain
+				if reqHost == extHost {
+					baseURL = externalHost + prefix
+				}
+			}
 		}
 
 		r = r.WithContext(context.WithValue(ctx, BaseURLCtxKey, baseURL))
