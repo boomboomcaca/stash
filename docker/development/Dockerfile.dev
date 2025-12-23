@@ -1,0 +1,36 @@
+# Stash 开发/调试用 Dockerfile
+FROM golang:1.24.3
+
+# 安装基础依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    make \
+    gcc \
+    ffmpeg \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Node.js 24.x
+RUN mkdir -p /etc/apt/keyrings
+ADD https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key /tmp/nodesource.gpg.key
+RUN cat /tmp/nodesource.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && rm /tmp/nodesource.gpg.key
+RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+RUN apt-get update && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+
+# 安装 pnpm
+RUN npm install -g pnpm
+
+# 安装 Go 调试器 delve
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+# 设置工作目录
+WORKDIR /stash
+
+# 暴露端口
+# 9999 - Stash 主服务
+# 3000 - UI 开发服务器
+# 2345 - Delve 调试器
+EXPOSE 9999 3000 2345
+
+# 默认启动 bash
+CMD ["/bin/bash"]
