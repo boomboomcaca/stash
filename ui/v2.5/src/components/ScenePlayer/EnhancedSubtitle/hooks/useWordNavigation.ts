@@ -152,14 +152,15 @@ export function useWordNavigation({
     }
   }, [selectedWordIndex, wordSegments]);
 
-  // Update word navigation when cue changes
+  // Exit word navigation mode when cue changes
   useEffect(() => {
     if (
       isInWordNavigationMode &&
       currentCue &&
       prevCueRef.current !== currentCue
     ) {
-      setSelectedWordIndex(0);
+      setIsInWordNavigationMode(false);
+      setSelectedWordIndex(-1);
     }
     prevCueRef.current = currentCue;
   }, [currentCue, isInWordNavigationMode]);

@@ -4,16 +4,7 @@ description: 构建并部署 stash 到服务器
 
 ## 构建命令（带缓存加速）
 
-使用以下命令在 Docker 中构建，挂载缓存目录加速后续构建：
-
-```powershell
-docker run --rm `
-  -v "${PWD}:/stash" `
-  -v "stash-go-cache:/go/pkg" `
-  -v "stash-go-build-cache:/root/.cache/go-build" `
-  -w /stash -e CI=true `
-  stashapp/compiler:12 /bin/bash -c "export STASH_VERSION=v0.29.3 && make release"
-```
+使用make release命令在wsl中构建程序
 
 ## 部署步骤
 
