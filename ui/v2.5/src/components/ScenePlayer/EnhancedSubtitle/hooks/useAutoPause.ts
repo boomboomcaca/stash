@@ -110,7 +110,7 @@ export function useAutoPause({
     autoPauseTriggeredRef.current = true;
     setIsAutoPaused(true);
     clearAutoPauseTimeout();
-  }, [clearAutoPauseTimeout]);
+  }, [clearAutoPauseTimeout, isInWordNavigationModeRef]);
 
   const scheduleAutoPause = useCallback(
     (cue: ISubtitleCue, timeUntilEnd: number) => {
@@ -310,6 +310,7 @@ export function useAutoPause({
     isAutoPaused,
     parsedSubtitles,
     scheduleAutoPause,
+    isInWordNavigationModeRef,
   ]);
 
   return {
