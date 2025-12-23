@@ -2,9 +2,9 @@
 description: 构建并部署 stash 到服务器
 ---
 
-## 构建命令（带缓存加速）
+## 构建命令
 
-使用make release命令在wsl中构建程序
+使用make release命令构建程序
 
 ## 部署步骤
 
