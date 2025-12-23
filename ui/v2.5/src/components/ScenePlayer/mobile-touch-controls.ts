@@ -167,7 +167,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   // 辅助函数：获取下一个字幕的索引
-  private getNextSubtitleIndex(currentIndex: number, currentTime: number): number {
+  private getNextSubtitleIndex(
+    currentIndex: number,
+    currentTime: number
+  ): number {
     const cues = this.subtitleCues;
     if (!cues || cues.length === 0) return -1;
 
@@ -187,7 +190,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   // 辅助函数：获取上一个字幕的索引
-  private getPreviousSubtitleIndex(currentIndex: number, currentTime: number): number {
+  private getPreviousSubtitleIndex(
+    currentIndex: number,
+    currentTime: number
+  ): number {
     const cues = this.subtitleCues;
     if (!cues || cues.length === 0) return -1;
 
@@ -907,7 +913,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     if (isLeftSide) {
       // 左侧三连击：播放上一个字幕
-      const targetIndex = this.getPreviousSubtitleIndex(currentIndex, currentTime);
+      const targetIndex = this.getPreviousSubtitleIndex(
+        currentIndex,
+        currentTime
+      );
       if (targetIndex >= 0) {
         this.jumpToSubtitle(this.subtitleCues[targetIndex]);
       }
