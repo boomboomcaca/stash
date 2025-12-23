@@ -166,6 +166,46 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     return cues.length - 1;
   }
 
+  // 辅助函数：获取下一个字幕的索引
+  private getNextSubtitleIndex(currentIndex: number, currentTime: number): number {
+    const cues = this.subtitleCues;
+    if (!cues || cues.length === 0) return -1;
+
+    if (currentIndex >= 0) {
+      // 当前有字幕显示，跳到下一条
+      return currentIndex + 1;
+    } else {
+      // 当前没有字幕显示，找到下一个即将开始的字幕
+      for (let i = 0; i < cues.length; i++) {
+        if (currentTime < cues[i].startTime) {
+          return i;
+        }
+      }
+      // 如果已经过了所有字幕开始时间，没有下一条
+      return cues.length;
+    }
+  }
+
+  // 辅助函数：获取上一个字幕的索引
+  private getPreviousSubtitleIndex(currentIndex: number, currentTime: number): number {
+    const cues = this.subtitleCues;
+    if (!cues || cues.length === 0) return -1;
+
+    if (currentIndex >= 0) {
+      // 当前有字幕显示，跳到上一条
+      return currentIndex - 1;
+    } else {
+      // 当前没有字幕显示，找到最后一个已经结束的字幕
+      for (let i = cues.length - 1; i >= 0; i--) {
+        if (currentTime > cues[i].endTime) {
+          return i;
+        }
+      }
+      // 如果在所有字幕之前，没有上一条
+      return -1;
+    }
+  }
+
   // 加载保存的倍速设置
   private loadSavedSpeedRate(): number {
     try {
@@ -860,22 +900,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
     const currentTime = this.player.currentTime() || 0;
-    const nearestIndex = this.findNearestCueIndex(
-      currentTime,
-      this.subtitleCues,
-      currentIndex
-    );
 
     const playerEl = this.player.el() as HTMLElement;
     const videoWidth = playerEl?.offsetWidth || 0;
     const isLeftSide = x < videoWidth / 2;
 
-    if (isLeftSide && nearestIndex > 0) {
+    if (isLeftSide) {
       // 左侧三连击：播放上一个字幕
-      this.jumpToSubtitle(this.subtitleCues[nearestIndex - 1]);
-    } else if (!isLeftSide && nearestIndex < this.subtitleCues.length - 1) {
+      const targetIndex = this.getPreviousSubtitleIndex(currentIndex, currentTime);
+      if (targetIndex >= 0) {
+        this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+      }
+    } else {
       // 右侧三连击：播放下一个字幕
-      this.jumpToSubtitle(this.subtitleCues[nearestIndex + 1]);
+      const targetIndex = this.getNextSubtitleIndex(currentIndex, currentTime);
+      if (targetIndex >= 0 && targetIndex < this.subtitleCues.length) {
+        this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+      }
     }
   }
 

@@ -283,15 +283,30 @@ export function handleHotkeys(
           const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
 
           if (cues && cues.length > 0) {
-            const nearestIndex = findNearestCueIndex(
-              videoTime,
-              cues,
-              currentCueIndex
-            );
-            if (nearestIndex < cues.length - 1) {
+            let targetIndex: number;
+
+            if (currentCueIndex >= 0) {
+              // Currently showing a subtitle, go to next one
+              targetIndex = currentCueIndex + 1;
+            } else {
+              // Not showing any subtitle, find the next upcoming subtitle
+              targetIndex = -1;
+              for (let i = 0; i < cues.length; i++) {
+                if (videoTime < cues[i].startTime) {
+                  targetIndex = i;
+                  break;
+                }
+              }
+              // If no upcoming subtitle found, stay at current position
+              if (targetIndex === -1) {
+                targetIndex = cues.length; // This will skip the jump
+              }
+            }
+
+            if (targetIndex >= 0 && targetIndex < cues.length) {
               const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
               if (navPlayer) {
-                const nextCue = cues[nearestIndex + 1];
+                const nextCue = cues[targetIndex];
                 if (nextCue) {
                   navPlayer.currentTime(nextCue.startTime);
                   // Resume playback if paused
@@ -352,15 +367,27 @@ export function handleHotkeys(
           const cues = enhancedSubtitleNavigation.parsedSubtitles?.cues;
 
           if (cues && cues.length > 0) {
-            const nearestIndex = findNearestCueIndex(
-              videoTime,
-              cues,
-              currentCueIndex
-            );
-            if (nearestIndex > 0) {
+            let targetIndex: number;
+
+            if (currentCueIndex >= 0) {
+              // Currently showing a subtitle, go to previous one
+              targetIndex = currentCueIndex - 1;
+            } else {
+              // Not showing any subtitle, find the last subtitle that has ended
+              targetIndex = -1;
+              for (let i = cues.length - 1; i >= 0; i--) {
+                if (videoTime > cues[i].endTime) {
+                  targetIndex = i;
+                  break;
+                }
+              }
+              // If we're before all subtitles, no previous to go to
+            }
+
+            if (targetIndex >= 0 && targetIndex < cues.length) {
               const navPlayer = enhancedSubtitleNavigation.onGetPlayer?.();
               if (navPlayer) {
-                const prevCue = cues[nearestIndex - 1];
+                const prevCue = cues[targetIndex];
                 if (prevCue) {
                   navPlayer.currentTime(prevCue.startTime);
                   // Resume playback if paused
