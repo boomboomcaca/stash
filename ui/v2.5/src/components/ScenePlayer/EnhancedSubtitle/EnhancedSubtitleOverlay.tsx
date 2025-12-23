@@ -54,6 +54,7 @@ export const EnhancedSubtitleOverlay: React.FC<
   const [fullscreenContainer, setFullscreenContainer] =
     useState<HTMLElement | null>(null);
   const subtitleRef = useRef<HTMLDivElement>(null);
+  const isInWordNavigationModeRef = useRef<boolean>(false);
 
   // Settings hook
   const {
@@ -87,6 +88,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     getPlayerPaused,
     onCurrentCueChange,
     onGetPlayer,
+    isInWordNavigationModeRef,
   });
 
   // Word navigation hook
@@ -104,9 +106,9 @@ export const EnhancedSubtitleOverlay: React.FC<
   } = useWordNavigation({
     currentCue,
     language,
-    onPausePlayer,
     onPlay,
     isAutoPaused,
+    isInWordNavigationModeRef,
   });
 
   // Dictionary hook

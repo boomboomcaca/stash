@@ -5,10 +5,11 @@ import { createSegmenter, detectLanguage } from "../segmentation";
 interface IUseWordNavigationProps {
   currentCue: ISubtitleCue | null;
   language: string;
-  onPausePlayer?: () => void;
   onPlay?: () => void;
   isAutoPaused: boolean;
   onWordSelect?: (word: string) => Promise<void>;
+  // Ref to update when entering/exiting word navigation mode
+  isInWordNavigationModeRef?: React.MutableRefObject<boolean>;
 }
 
 interface IUseWordNavigationResult {
@@ -28,15 +29,22 @@ interface IUseWordNavigationResult {
 export function useWordNavigation({
   currentCue,
   language,
-  onPausePlayer,
   onPlay,
   isAutoPaused,
   onWordSelect,
+  isInWordNavigationModeRef,
 }: IUseWordNavigationProps): IUseWordNavigationResult {
   const [wordSegments, setWordSegments] = useState<IWordSegment[]>([]);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number>(-1);
   const [isInWordNavigationMode, setIsInWordNavigationMode] = useState(false);
+
+  // Sync word navigation mode state to ref for useAutoPause
+  useEffect(() => {
+    if (isInWordNavigationModeRef) {
+      isInWordNavigationModeRef.current = isInWordNavigationMode;
+    }
+  }, [isInWordNavigationMode, isInWordNavigationModeRef]);
 
   const prevCueRef = useRef<ISubtitleCue | null>(null);
   const segmenterRef = useRef(
@@ -93,12 +101,10 @@ export function useWordNavigation({
         const initialIndex = selectLastWord ? wordSegments.length - 1 : 0;
         setSelectedWordIndex(initialIndex);
         prevCueRef.current = currentCue;
-        if (onPausePlayer) {
-          onPausePlayer();
-        }
+        // Don't pause immediately - auto-pause will trigger when current subtitle ends
       }
     },
-    [wordSegments, onPausePlayer, currentCue]
+    [wordSegments, currentCue]
   );
 
   const exitWordNavigationMode = useCallback(() => {

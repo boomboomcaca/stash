@@ -19,6 +19,8 @@ interface IUseAutoPauseProps {
   onCurrentCueChange?: (index: number) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onGetPlayer?: () => any;
+  // Ref to check if in word navigation mode (for auto-pause when subtitle ends)
+  isInWordNavigationModeRef?: React.MutableRefObject<boolean>;
 }
 
 interface IUseAutoPauseResult {
@@ -37,6 +39,7 @@ export function useAutoPause({
   getPlayerPaused,
   onCurrentCueChange,
   onGetPlayer,
+  isInWordNavigationModeRef,
 }: IUseAutoPauseProps): IUseAutoPauseResult {
   const [currentCue, setCurrentCue] = useState<ISubtitleCue | null>(null);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
@@ -91,7 +94,10 @@ export function useAutoPause({
   }, [currentCue]);
 
   const attemptAutoPause = useCallback(() => {
-    if (!autoPauseEnabledRef.current) return;
+    // Auto-pause if: manual auto-pause enabled OR in word navigation mode
+    const isInWordMode = isInWordNavigationModeRef?.current ?? false;
+    const shouldAutoPause = autoPauseEnabledRef.current || isInWordMode;
+    if (!shouldAutoPause) return;
 
     const pausePlayer = onPausePlayerRef.current;
     const getPaused = getPlayerPausedRef.current;
@@ -189,7 +195,12 @@ export function useAutoPause({
 
     const { cue, cueIndex } = currentCueData;
 
-    if (autoPauseEnabled && onPausePlayer && getPlayerPaused) {
+    // Run auto-pause logic if: manual auto-pause enabled OR in word navigation mode
+    const isInWordMode = isInWordNavigationModeRef?.current ?? false;
+    const shouldRunAutoPauseLogic =
+      (autoPauseEnabled || isInWordMode) && onPausePlayer && getPlayerPaused;
+
+    if (shouldRunAutoPauseLogic) {
       const isPaused = getPlayerPaused();
 
       const isSameCue =
