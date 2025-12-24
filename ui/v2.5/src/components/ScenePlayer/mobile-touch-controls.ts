@@ -29,6 +29,10 @@ interface ITouchControlState {
   continuousSeekTimer: number | null;
   continuousSeekTotal: number;
   seekFeedbackTimer: number | null;
+
+  // 垂直滑动切换字幕相关状态
+  isVerticalSwipe: boolean;
+  verticalSwipeTriggered: boolean;
 }
 
 class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
@@ -61,6 +65,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     continuousSeekTimer: null,
     continuousSeekTotal: 0,
     seekFeedbackTimer: null,
+
+    // 垂直滑动切换字幕相关状态初始化
+    isVerticalSwipe: false,
+    verticalSwipeTriggered: false,
   };
 
   // 绑定的事件处理函数引用，用于正确移除事件监听器
@@ -105,6 +113,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   // 拖拽进度相关常量
   private readonly DRAG_THRESHOLD = 15; // 开始拖拽的最小距离（像素）
   private readonly MAX_VERTICAL_DRAG = 100; // 拖拽时允许的最大垂直偏移（像素）
+  private readonly VERTICAL_SWIPE_THRESHOLD = 30; // 垂直滑动切换字幕的阈值（像素）
 
   // 长按倍速控制相关常量
   private readonly SPEED_CONTROL_SENSITIVITY = 20; // 倍速控制灵敏度（像素）- 提高灵敏度
@@ -580,6 +589,14 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       return;
     }
 
+    // 如果是垂直滑动结束，重置状态
+    if (this.state.isVerticalSwipe) {
+      this.state.isVerticalSwipe = false;
+      this.state.verticalSwipeTriggered = false;
+      event.preventDefault();
+      return;
+    }
+
     // 如果是长按结束，处理倍速控制结束
     if (this.state.isLongPress) {
       // 保存最后调整的倍速作为新的默认倍速（如果与当前保存的不同）
@@ -755,17 +772,33 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       return;
     }
 
-    // 检测是否开始拖拽
+    // 检测是否开始拖拽或垂直滑动
     if (
       !this.state.isDragging &&
       !this.state.isLongPress &&
+      !this.state.isVerticalSwipe &&
       distance > this.DRAG_THRESHOLD
     ) {
       const horizontalDistance = Math.abs(deltaX);
       const verticalDistance = Math.abs(deltaY);
 
-      // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大，则进入拖拽模式
+      // 如果垂直移动距离大于水平移动距离，且增强字幕启用，则进入垂直滑动模式（切换字幕）
       if (
+        verticalDistance > horizontalDistance &&
+        this.enhancedSubtitlesEnabled &&
+        this.subtitleCues.length > 0
+      ) {
+        this.state.isVerticalSwipe = true;
+        this.state.verticalSwipeTriggered = false;
+
+        // 取消长按计时器
+        if (this.state.longPressTimer) {
+          clearTimeout(this.state.longPressTimer);
+          this.state.longPressTimer = null;
+        }
+      }
+      // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大，则进入拖拽模式
+      else if (
         horizontalDistance > verticalDistance &&
         verticalDistance < this.MAX_VERTICAL_DRAG
       ) {
@@ -828,6 +861,31 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 如果已经在拖拽模式，更新进度
     if (this.state.isDragging) {
       this.updateDragProgress(deltaX);
+      event.preventDefault();
+      return;
+    }
+
+    // 如果已经在垂直滑动模式，检测是否触发字幕切换
+    if (this.state.isVerticalSwipe && !this.state.verticalSwipeTriggered) {
+      if (Math.abs(deltaY) > this.VERTICAL_SWIPE_THRESHOLD) {
+        this.state.verticalSwipeTriggered = true;
+        const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
+        const currentTime = this.player.currentTime() || 0;
+
+        if (deltaY < 0) {
+          // 上滑：下一个字幕
+          const targetIndex = this.getNextSubtitleIndex(currentIndex, currentTime);
+          if (targetIndex >= 0 && targetIndex < this.subtitleCues.length) {
+            this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+          }
+        } else {
+          // 下滑：上一个字幕
+          const targetIndex = this.getPreviousSubtitleIndex(currentIndex, currentTime);
+          if (targetIndex >= 0) {
+            this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+          }
+        }
+      }
       event.preventDefault();
       return;
     }

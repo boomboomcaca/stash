@@ -161,16 +161,25 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         <Modal.Title
           style={{
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
             gap: "10px",
             width: "100%",
-            justifyContent: "space-between",
           }}
         >
-          <span className="word-text">{selectedWord}</span>
+          <div
+            style={{
+              display: "flex",
+              width: "100%",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span className="word-text">{selectedWord}</span>
+          </div>
           <div
             className="dictionary-actions"
-            style={{ display: "flex", alignItems: "center", gap: "8px" }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}
           >
             <button
               className={`dict-action-btn ${
