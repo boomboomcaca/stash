@@ -1,10 +1,11 @@
 ---
 description: 构建并部署 stash 到服务器
+auto_execution_mode: 1
 ---
 
 ## 构建命令
 
-使用make release命令构建程序
+使用 `make release STASH_VERSION=v0.30.1` 命令构建程序
 
 ## 部署步骤
 
