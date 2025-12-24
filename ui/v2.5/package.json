@@ -19,7 +19,7 @@
     "format-check": "prettier --check . ../../graphql",
     "gqlgen": "gql-gen --config codegen.ts",
     "extract": "NODE_ENV=development extract-messages -l=en,de -o src/locale -d en --flat false 'src/**/!(*.test).tsx'",
-    "prepare": "husky"
+    "prepare": "cd ../.. && husky ui/v2.5/.husky || true"
   },
   "dependencies": {
     "@ant-design/react-slick": "^1.0.0",
