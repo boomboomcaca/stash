@@ -18,7 +18,8 @@
     "format": "prettier --write . ../../graphql",
     "format-check": "prettier --check . ../../graphql",
     "gqlgen": "gql-gen --config codegen.ts",
-    "extract": "NODE_ENV=development extract-messages -l=en,de -o src/locale -d en --flat false 'src/**/!(*.test).tsx'"
+    "extract": "NODE_ENV=development extract-messages -l=en,de -o src/locale -d en --flat false 'src/**/!(*.test).tsx'",
+    "prepare": "husky"
   },
   "dependencies": {
     "@ant-design/react-slick": "^1.0.0",
@@ -120,6 +121,8 @@
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "extract-react-intl-messages": "^4.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "postcss": "^8.4.31",
     "postcss-scss": "^4.0.6",
     "prettier": "^2.8.4",
@@ -132,5 +135,10 @@
     "vite": "^5.4.21",
     "vite-plugin-compression": "^0.5.1",
     "vite-tsconfig-paths": "^4.0.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,css,scss,md}": "prettier --write",
+    "*.{ts,tsx}": "eslint --fix",
+    "*.scss": "stylelint --fix"
   }
 }
