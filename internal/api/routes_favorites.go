@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/go-chi/chi/v5"
@@ -81,9 +82,9 @@ func (rs favoritesRoutes) AddFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if already exists
+	// Check if already exists (case-insensitive)
 	for _, f := range favorites {
-		if f.Word == favorite.Word && f.Language == favorite.Language {
+		if strings.EqualFold(f.Word, favorite.Word) && f.Language == favorite.Language {
 			// Already exists, return success
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -132,11 +133,11 @@ func (rs favoritesRoutes) RemoveFavorite(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Remove the word
+	// Remove the word (case-insensitive)
 	newFavorites := make([]FavoriteWord, 0)
 	found := false
 	for _, f := range favorites {
-		if f.Word == favorite.Word && f.Language == favorite.Language {
+		if strings.EqualFold(f.Word, favorite.Word) && f.Language == favorite.Language {
 			found = true
 			continue
 		}
@@ -187,7 +188,7 @@ func (rs favoritesRoutes) CheckFavorite(w http.ResponseWriter, r *http.Request) 
 
 	isFavorite := false
 	for _, f := range favorites {
-		if f.Word == word && f.Language == lang {
+		if strings.EqualFold(f.Word, word) && f.Language == lang {
 			isFavorite = true
 			break
 		}

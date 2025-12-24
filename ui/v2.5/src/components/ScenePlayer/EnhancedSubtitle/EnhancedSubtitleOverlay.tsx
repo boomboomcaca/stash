@@ -307,7 +307,7 @@ export const EnhancedSubtitleOverlay: React.FC<
         elements.push(...renderTextWithBreaks(betweenText, `between-${index}`));
       }
 
-      const wordKey = `${segment.word}:${detectedLanguage}`;
+      const wordKey = `${segment.word.toLowerCase()}:${detectedLanguage}`;
       const isFavorited = favoriteWords.has(wordKey);
       const isSelectedInNav =
         isInWordNavigationMode && index === selectedWordIndex;

@@ -43,7 +43,9 @@ export function useDictionary({
   useEffect(() => {
     const loadFavorites = async () => {
       const favorites = await getFavorites();
-      const favSet = new Set(favorites.map((f) => `${f.word}:${f.language}`));
+      const favSet = new Set(
+        favorites.map((f) => `${f.word.toLowerCase()}:${f.language}`)
+      );
       setFavoriteWords(favSet);
     };
     loadFavorites();
@@ -72,7 +74,7 @@ export function useDictionary({
   // Check if selected word is favorite
   useEffect(() => {
     if (selectedWord) {
-      const key = `${selectedWord}:${detectedLanguage}`;
+      const key = `${selectedWord.toLowerCase()}:${detectedLanguage}`;
       setIsFavorite(favoriteWords.has(key));
     } else {
       setIsFavorite(false);
@@ -120,7 +122,7 @@ export function useDictionary({
   const toggleFavorite = useCallback(async () => {
     if (!selectedWord) return;
 
-    const key = `${selectedWord}:${detectedLanguage}`;
+    const key = `${selectedWord.toLowerCase()}:${detectedLanguage}`;
     const newIsFavorite = !isFavorite;
 
     if (newIsFavorite) {

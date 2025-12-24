@@ -22,7 +22,7 @@ let cacheTimestamp = 0;
 const CACHE_DURATION = 5000; // 5 seconds
 
 function getCacheKey(word: string, language: string): string {
-  return `${word}:${language}`;
+  return `${word.toLowerCase()}:${language}`;
 }
 
 function isCacheValid(): boolean {
