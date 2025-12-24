@@ -874,13 +874,19 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
         if (deltaY < 0) {
           // 上滑：下一个字幕
-          const targetIndex = this.getNextSubtitleIndex(currentIndex, currentTime);
+          const targetIndex = this.getNextSubtitleIndex(
+            currentIndex,
+            currentTime
+          );
           if (targetIndex >= 0 && targetIndex < this.subtitleCues.length) {
             this.jumpToSubtitle(this.subtitleCues[targetIndex]);
           }
         } else {
           // 下滑：上一个字幕
-          const targetIndex = this.getPreviousSubtitleIndex(currentIndex, currentTime);
+          const targetIndex = this.getPreviousSubtitleIndex(
+            currentIndex,
+            currentTime
+          );
           if (targetIndex >= 0) {
             this.jumpToSubtitle(this.subtitleCues[targetIndex]);
           }

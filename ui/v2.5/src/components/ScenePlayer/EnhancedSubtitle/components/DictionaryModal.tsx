@@ -179,7 +179,12 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
           </div>
           <div
             className="dictionary-actions"
-            style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              justifyContent: "center",
+            }}
           >
             <button
               className={`dict-action-btn ${
