@@ -12,17 +12,18 @@ Docker 构建（带缓存优化）：
 docker run --rm -e CI=true \
   -v "${PWD}:/stash" \
   -v stash-cache:/cache \
+  -v stash-node-modules:/stash/ui/v2.5/node_modules \
   -e HOME=/cache/home \
   -e GOPATH=/cache/go \
   -w /stash \
   stashapp/compiler:latest \
-  bash -c "mkdir -p /cache/home /cache/go /cache/node_modules && \
-    ln -sfn /cache/node_modules /stash/ui/v2.5/node_modules && \
+  bash -c "mkdir -p /cache/home /cache/go && \
     git config --global --add safe.directory /stash && \
-    make release STASH_VERSION=v0.30.1"
+    make pre-ui ui build-release STASH_VERSION=v0.30.1"
 ```
 
-- `stash-cache`: 统一缓存（包含 home、Go 模块、node_modules）
+- `stash-cache`: Go 模块和 home 缓存
+- `stash-node-modules`: 独立的 Docker node_modules 卷（不影响本地）
 
 ## 部署步骤
 
