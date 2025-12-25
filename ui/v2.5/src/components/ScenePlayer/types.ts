@@ -46,6 +46,7 @@ export interface IEnhancedSubtitleNavigation {
   navigateToNextWord?: () => void;
   navigateToPreviousWord?: () => void;
   handleWordSelection?: () => void;
+  markUserResumedPlayback?: () => void;
 }
 
 // Mobile Touch Controls Plugin Interface

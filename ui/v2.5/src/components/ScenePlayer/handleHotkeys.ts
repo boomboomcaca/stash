@@ -229,6 +229,12 @@ export function handleHotkeys(
         // Handle single/double press for up arrow
         event.preventDefault();
         event.stopPropagation();
+        // Exit word navigation mode if active
+        if (enhancedSubtitleNavigation.isInWordNavigationMode) {
+          enhancedSubtitleNavigation.exitWordNavigationMode?.();
+          // Mark user resumed playback to prevent auto-pause
+          enhancedSubtitleNavigation.markUserResumedPlayback?.();
+        }
         const now = Date.now();
         const lastPress = player._lastUpArrowPress || 0;
         const timeSinceLastPress = now - lastPress;

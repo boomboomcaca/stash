@@ -237,6 +237,9 @@ export const EnhancedSubtitleOverlay: React.FC<
             userResumedPlaybackRef.current = true;
           }
         },
+        markUserResumedPlayback: () => {
+          userResumedPlaybackRef.current = true;
+        },
         parsedSubtitles,
         getCurrentCueIndex: () => {
           if (currentCue && parsedSubtitles) {
