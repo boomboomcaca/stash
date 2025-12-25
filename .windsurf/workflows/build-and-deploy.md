@@ -5,7 +5,24 @@ auto_execution_mode: 1
 
 ## 构建命令
 
-使用 `make release STASH_VERSION=v0.30.1` 命令构建程序
+Docker 构建（带缓存优化）：
+
+
+```bash
+docker run --rm -e CI=true \
+  -v "${PWD}:/stash" \
+  -v stash-cache:/cache \
+  -e HOME=/cache/home \
+  -e GOPATH=/cache/go \
+  -w /stash \
+  stashapp/compiler:latest \
+  bash -c "mkdir -p /cache/home /cache/go /cache/node_modules && \
+    ln -sfn /cache/node_modules /stash/ui/v2.5/node_modules && \
+    git config --global --add safe.directory /stash && \
+    make release STASH_VERSION=v0.30.1"
+```
+
+- `stash-cache`: 统一缓存（包含 home、Go 模块、node_modules）
 
 ## 部署步骤
 

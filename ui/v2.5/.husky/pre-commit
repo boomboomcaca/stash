@@ -1,1 +1,2 @@
-cd ui/v2.5 && npx lint-staged
+cd ui/v2.5
+node ./node_modules/lint-staged/bin/lint-staged.js
