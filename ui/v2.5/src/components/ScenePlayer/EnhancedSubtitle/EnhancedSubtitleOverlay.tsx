@@ -107,7 +107,6 @@ export const EnhancedSubtitleOverlay: React.FC<
   } = useWordNavigation({
     currentCue,
     language,
-    onPlay,
     isInWordNavigationModeRef,
     autoPauseEnabled,
     clearAutoPauseTimeout,

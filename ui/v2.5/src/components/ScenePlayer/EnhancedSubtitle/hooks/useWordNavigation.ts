@@ -5,7 +5,6 @@ import { createSegmenter, detectLanguage } from "../segmentation";
 interface IUseWordNavigationProps {
   currentCue: ISubtitleCue | null;
   language: string;
-  onPlay?: () => void;
   onWordSelect?: (word: string) => Promise<void>;
   // Ref to update when entering/exiting word navigation mode
   isInWordNavigationModeRef?: React.MutableRefObject<boolean>;
@@ -34,7 +33,6 @@ interface IUseWordNavigationResult {
 export function useWordNavigation({
   currentCue,
   language,
-  onPlay,
   onWordSelect,
   isInWordNavigationModeRef,
   autoPauseEnabled,
@@ -137,23 +135,16 @@ export function useWordNavigation({
       // Don't resume playback, let auto-pause continue
     } else {
       // Auto-pause was triggered by word navigation mode
-      // Clear the timer, reset auto-pause state, and resume playback
+      // Clear the timer and reset auto-pause state
+      // Note: Don't resume playback here - let the caller decide (handleHotkeys toggles play/pause)
       if (clearAutoPauseTimeout) {
         clearAutoPauseTimeout();
       }
       if (setIsAutoPaused) {
         setIsAutoPaused(false);
       }
-      if (onPlay) {
-        onPlay();
-      }
     }
-  }, [
-    onPlay,
-    clearAutoPauseTimeout,
-    isInWordNavigationModeRef,
-    setIsAutoPaused,
-  ]);
+  }, [clearAutoPauseTimeout, isInWordNavigationModeRef, setIsAutoPaused]);
 
   const navigateToNextWord = useCallback(() => {
     if (wordSegments.length === 0) return;
