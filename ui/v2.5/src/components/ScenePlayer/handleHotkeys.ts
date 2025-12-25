@@ -136,7 +136,13 @@ export function handleHotkeys(
             enhancedSubtitleNavigation.handleWordSelection();
           }
           return;
-        case 38: // up arrow - handle in code below
+        case 38: // up arrow - exit word navigation mode and handle below
+          event.preventDefault();
+          event.stopPropagation();
+          if (enhancedSubtitleNavigation.exitWordNavigationMode) {
+            enhancedSubtitleNavigation.exitWordNavigationMode();
+          }
+          return;
         case 40: // down arrow - handle in code below
           // Will be handled below
           break;

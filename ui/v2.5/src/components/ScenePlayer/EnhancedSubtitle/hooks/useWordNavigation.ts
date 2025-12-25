@@ -6,10 +6,15 @@ interface IUseWordNavigationProps {
   currentCue: ISubtitleCue | null;
   language: string;
   onPlay?: () => void;
-  isAutoPaused: boolean;
   onWordSelect?: (word: string) => Promise<void>;
   // Ref to update when entering/exiting word navigation mode
   isInWordNavigationModeRef?: React.MutableRefObject<boolean>;
+  // Whether manual auto-pause is enabled (for determining behavior on exit)
+  autoPauseEnabled?: boolean;
+  // Callback to clear auto-pause timer
+  clearAutoPauseTimeout?: () => void;
+  // Callback to reset auto-pause state
+  setIsAutoPaused?: (paused: boolean) => void;
 }
 
 interface IUseWordNavigationResult {
@@ -30,9 +35,11 @@ export function useWordNavigation({
   currentCue,
   language,
   onPlay,
-  isAutoPaused,
   onWordSelect,
   isInWordNavigationModeRef,
+  autoPauseEnabled,
+  clearAutoPauseTimeout,
+  setIsAutoPaused,
 }: IUseWordNavigationProps): IUseWordNavigationResult {
   const [wordSegments, setWordSegments] = useState<IWordSegment[]>([]);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
@@ -47,6 +54,8 @@ export function useWordNavigation({
   }, [isInWordNavigationMode, isInWordNavigationModeRef]);
 
   const prevCueRef = useRef<ISubtitleCue | null>(null);
+  // Track whether auto-pause was manually enabled when entering word navigation mode
+  const autoPauseWasEnabledOnEnterRef = useRef<boolean>(false);
   const segmenterRef = useRef(
     createSegmenter({
       language: detectedLanguage,
@@ -97,6 +106,8 @@ export function useWordNavigation({
   const enterWordNavigationMode = useCallback(
     (selectLastWord: boolean = false) => {
       if (wordSegments.length > 0) {
+        // Record whether manual auto-pause was enabled when entering word navigation mode
+        autoPauseWasEnabledOnEnterRef.current = autoPauseEnabled ?? false;
         setIsInWordNavigationMode(true);
         const initialIndex = selectLastWord ? wordSegments.length - 1 : 0;
         setSelectedWordIndex(initialIndex);
@@ -104,16 +115,45 @@ export function useWordNavigation({
         // Don't pause immediately - auto-pause will trigger when current subtitle ends
       }
     },
-    [wordSegments, currentCue]
+    [wordSegments, currentCue, autoPauseEnabled]
   );
 
   const exitWordNavigationMode = useCallback(() => {
     setIsInWordNavigationMode(false);
     setSelectedWordIndex(-1);
-    if (onPlay && !isAutoPaused) {
-      onPlay();
+
+    // Synchronously update the ref BEFORE clearing timeout or resuming playback
+    // This prevents useAutoPause from re-scheduling auto-pause when video resumes
+    if (isInWordNavigationModeRef) {
+      isInWordNavigationModeRef.current = false;
     }
-  }, [onPlay, isAutoPaused]);
+
+    // If auto-pause was manually enabled before entering word navigation mode:
+    // → Keep auto-pause behavior (don't resume, keep timer)
+    // If auto-pause was triggered by entering word navigation mode:
+    // → Clear auto-pause timer and resume playback
+    if (autoPauseWasEnabledOnEnterRef.current) {
+      // Manual auto-pause was on - keep auto-pause behavior
+      // Don't resume playback, let auto-pause continue
+    } else {
+      // Auto-pause was triggered by word navigation mode
+      // Clear the timer, reset auto-pause state, and resume playback
+      if (clearAutoPauseTimeout) {
+        clearAutoPauseTimeout();
+      }
+      if (setIsAutoPaused) {
+        setIsAutoPaused(false);
+      }
+      if (onPlay) {
+        onPlay();
+      }
+    }
+  }, [
+    onPlay,
+    clearAutoPauseTimeout,
+    isInWordNavigationModeRef,
+    setIsAutoPaused,
+  ]);
 
   const navigateToNextWord = useCallback(() => {
     if (wordSegments.length === 0) return;
