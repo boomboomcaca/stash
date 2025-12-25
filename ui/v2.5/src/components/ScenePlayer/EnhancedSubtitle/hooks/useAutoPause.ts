@@ -29,6 +29,7 @@ interface IUseAutoPauseResult {
   setIsAutoPaused: (paused: boolean) => void;
   isPlayerPaused: boolean;
   userResumedPlaybackRef: React.MutableRefObject<boolean>;
+  clearAutoPauseTimeout: () => void;
 }
 
 export function useAutoPause({
@@ -319,5 +320,6 @@ export function useAutoPause({
     setIsAutoPaused,
     isPlayerPaused,
     userResumedPlaybackRef,
+    clearAutoPauseTimeout,
   };
 }

@@ -232,8 +232,9 @@ export function handleHotkeys(
         // Exit word navigation mode if active
         if (enhancedSubtitleNavigation.isInWordNavigationMode) {
           enhancedSubtitleNavigation.exitWordNavigationMode?.();
-          // Mark user resumed playback to prevent auto-pause
+          // Mark user resumed playback and clear scheduled auto-pause to prevent auto-pause
           enhancedSubtitleNavigation.markUserResumedPlayback?.();
+          enhancedSubtitleNavigation.clearScheduledAutoPause?.();
         }
         const now = Date.now();
         const lastPress = player._lastUpArrowPress || 0;

@@ -80,6 +80,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     setIsAutoPaused,
     isPlayerPaused,
     userResumedPlaybackRef,
+    clearAutoPauseTimeout,
   } = useAutoPause({
     currentTime,
     parsedSubtitles,
@@ -240,6 +241,7 @@ export const EnhancedSubtitleOverlay: React.FC<
         markUserResumedPlayback: () => {
           userResumedPlaybackRef.current = true;
         },
+        clearScheduledAutoPause: clearAutoPauseTimeout,
         parsedSubtitles,
         getCurrentCueIndex: () => {
           if (currentCue && parsedSubtitles) {
@@ -270,6 +272,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     onGetPlayer,
     setIsAutoPaused,
     userResumedPlaybackRef,
+    clearAutoPauseTimeout,
   ]);
 
   // Render segmented text with clickable words

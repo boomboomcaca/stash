@@ -47,6 +47,7 @@ export interface IEnhancedSubtitleNavigation {
   navigateToPreviousWord?: () => void;
   handleWordSelection?: () => void;
   markUserResumedPlayback?: () => void;
+  clearScheduledAutoPause?: () => void;
 }
 
 // Mobile Touch Controls Plugin Interface
