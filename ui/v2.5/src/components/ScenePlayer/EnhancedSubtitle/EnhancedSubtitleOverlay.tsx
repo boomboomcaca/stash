@@ -107,9 +107,10 @@ export const EnhancedSubtitleOverlay: React.FC<
   } = useWordNavigation({
     currentCue,
     language,
-    onPlay,
-    isAutoPaused,
     isInWordNavigationModeRef,
+    autoPauseEnabled,
+    clearAutoPauseTimeout,
+    setIsAutoPaused,
   });
 
   // Dictionary hook

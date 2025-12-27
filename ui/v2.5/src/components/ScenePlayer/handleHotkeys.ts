@@ -136,7 +136,19 @@ export function handleHotkeys(
             enhancedSubtitleNavigation.handleWordSelection();
           }
           return;
-        case 38: // up arrow - handle in code below
+        case 38: // up arrow - exit word navigation mode and toggle play/pause
+          event.preventDefault();
+          event.stopPropagation();
+          if (enhancedSubtitleNavigation.exitWordNavigationMode) {
+            enhancedSubtitleNavigation.exitWordNavigationMode();
+          }
+          // Toggle play/pause after exiting word navigation mode
+          if (player.paused()) {
+            player.play();
+          } else {
+            player.pause();
+          }
+          return;
         case 40: // down arrow - handle in code below
           // Will be handled below
           break;
