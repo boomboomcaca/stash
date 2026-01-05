@@ -15,7 +15,8 @@ import "./live";
 import "./PlaylistButtons";
 import "./source-selector";
 import "./persist-volume";
-import MarkersPlugin from "./markers";
+import "./autostart-button";
+import MarkersPlugin, { type IMarker } from "./markers";
 void MarkersPlugin;
 import "./vtt-thumbnails";
 import "./big-buttons";
@@ -30,6 +31,7 @@ import cx from "classnames";
 import {
   useSceneSaveActivity,
   useSceneIncrementPlayCount,
+  useConfigureInterface,
 } from "src/core/StashService";
 
 import { ScenePlayerScrubber } from "./ScenePlayerScrubber";
@@ -88,6 +90,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const videoRef = useRef<HTMLDivElement>(null);
     const [sceneSaveActivity] = useSceneSaveActivity();
     const [sceneIncrementPlayCount] = useSceneIncrementPlayCount();
+    const [updateInterfaceConfig] = useConfigureInterface();
 
     const [time, setTime] = useState(0);
     const [ready, setReady] = useState(false);
@@ -354,6 +357,30 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       sceneIncrementPlayCount,
       sceneSaveActivity,
     ]);
+
+    // Sync autostart button with config changes
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+
+      async function updateAutoStart(enabled: boolean) {
+        await updateInterfaceConfig({
+          variables: {
+            input: {
+              autostartVideo: enabled,
+            },
+          },
+        });
+      }
+
+      const autostartButton = player.autostartButton();
+      if (autostartButton) {
+        autostartButton.syncWithConfig(
+          interfaceConfig?.autostartVideo ?? false
+        );
+        autostartButton.updateAutoStart = updateAutoStart;
+      }
+    }, [getPlayer, updateInterfaceConfig, interfaceConfig?.autostartVideo]);
 
     useEffect(() => {
       const player = getPlayer();

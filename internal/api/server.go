@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -277,6 +278,9 @@ func Initialize() (*Server, error) {
 		staticUI = statigz.FileServer(ui.UIBox.(fs.ReadDirFS))
 	}
 
+	// handle favicon override
+	r.HandleFunc("/favicon.ico", handleFavicon(staticUI))
+
 	// Serve the web app
 	r.HandleFunc("/*", func(w http.ResponseWriter, r *http.Request) {
 		ext := path.Ext(r.URL.Path)
@@ -315,6 +319,31 @@ func Initialize() (*Server, error) {
 	go printLatestVersion(context.TODO())
 
 	return server, nil
+}
+
+func handleFavicon(staticUI *statigz.Server) func(w http.ResponseWriter, r *http.Request) {
+	mgr := manager.GetInstance()
+	cfg := mgr.Config
+
+	// check if favicon.ico exists in the config directory
+	// if so, use that
+	// otherwise, use the embedded one
+	iconPath := filepath.Join(cfg.GetConfigPath(), "favicon.ico")
+	exists, _ := fsutil.FileExists(iconPath)
+
+	if exists {
+		logger.Debugf("Using custom favicon at %s", iconPath)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+
+		if exists {
+			http.ServeFile(w, r, iconPath)
+		} else {
+			staticUI.ServeHTTP(w, r)
+		}
+	}
 }
 
 // Start starts the server. It listens on the configured address and port.

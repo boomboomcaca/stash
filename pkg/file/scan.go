@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/txn"
-	"github.com/stashapp/stash/pkg/utils"
 )
 
 const (
@@ -179,7 +179,16 @@ func (s *scanJob) execute(ctx context.Context) {
 	wg.Add(1)
 
 	go func() {
-		defer wg.Done()
+		defer func() {
+			wg.Done()
+
+			// handle panics in goroutine
+			if p := recover(); p != nil {
+				logger.Errorf("panic while queuing files for scan: %v", p)
+				logger.Errorf(string(debug.Stack()))
+			}
+		}()
+
 		if err := s.queueFiles(ctx, paths); err != nil {
 			if errors.Is(err, context.Canceled) {
 				return
@@ -205,6 +214,15 @@ func (s *scanJob) execute(ctx context.Context) {
 }
 
 func (s *scanJob) queueFiles(ctx context.Context, paths []string) error {
+	defer func() {
+		close(s.fileQueue)
+
+		if s.ProgressReports != nil {
+			s.ProgressReports.AddTotal(s.count)
+			s.ProgressReports.Definite()
+		}
+	}()
+
 	var err error
 	s.ProgressReports.ExecuteTask("Walking directory tree", func() {
 		for _, p := range paths {
@@ -214,13 +232,6 @@ func (s *scanJob) queueFiles(ctx context.Context, paths []string) error {
 			}
 		}
 	})
-
-	close(s.fileQueue)
-
-	if s.ProgressReports != nil {
-		s.ProgressReports.AddTotal(s.count)
-		s.ProgressReports.Definite()
-	}
 
 	return err
 }
@@ -719,7 +730,7 @@ func (s *scanJob) handleFile(ctx context.Context, f scanFile) error {
 		// scan zip files with a different context that is not cancellable
 		// cancelling while scanning zip file contents results in the scan
 		// contents being partially completed
-		zipCtx := utils.ValueOnlyContext{Context: ctx}
+		zipCtx := context.WithoutCancel(ctx)
 
 		if err := s.scanZipFile(zipCtx, f); err != nil {
 			logger.Errorf("Error scanning zip file %q: %v", f.Path, err)
