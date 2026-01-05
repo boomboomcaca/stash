@@ -16,7 +16,7 @@ import "./PlaylistButtons";
 import "./source-selector";
 import "./persist-volume";
 import "./autostart-button";
-import MarkersPlugin, { type IMarker } from "./markers";
+import MarkersPlugin from "./markers";
 void MarkersPlugin;
 import "./vtt-thumbnails";
 import "./big-buttons";
