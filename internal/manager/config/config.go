@@ -116,6 +116,9 @@ const (
 	Port        = "port"
 	portDefault = 9999
 
+	HttpsPort        = "https_port"
+	httpsPortDefault = 0
+
 	ExternalHost = "external_host"
 
 	// http proxy url if required
@@ -944,6 +947,11 @@ func (i *Config) GetPort() int {
 	}
 
 	return ret
+}
+
+// GetHttpsPort returns the HTTPS port. If 0, HTTPS server will use the same port as HTTP.
+func (i *Config) GetHttpsPort() int {
+	return i.getInt(HttpsPort)
 }
 
 func (i *Config) GetThemeColor() string {

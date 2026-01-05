@@ -355,16 +355,22 @@ func (s *Server) Start() error {
 	logger.Infof("stash is running at " + s.displayAddress)
 
 	if s.TLSConfig != nil {
-		// Start HTTPS server on port 11111
+		// Start HTTPS server on configured https_port (or same port as HTTP if not configured)
+		cfg := s.manager.Config
+		httpsPort := cfg.GetHttpsPort()
 		httpsAddr := s.Addr
-		if strings.Contains(httpsAddr, ":") {
-			parts := strings.Split(httpsAddr, ":")
-			if len(parts) == 2 {
-				httpsAddr = parts[0] + ":11111"
+		if httpsPort > 0 {
+			// Use configured HTTPS port
+			if strings.Contains(httpsAddr, ":") {
+				parts := strings.Split(httpsAddr, ":")
+				if len(parts) == 2 {
+					httpsAddr = parts[0] + ":" + strconv.Itoa(httpsPort)
+				}
+			} else {
+				httpsAddr += ":" + strconv.Itoa(httpsPort)
 			}
-		} else {
-			httpsAddr += ":11111"
 		}
+		// If httpsPort is 0, use the same address as HTTP (s.Addr)
 
 		httpsServer := &http.Server{
 			Addr:         httpsAddr,
