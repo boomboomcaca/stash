@@ -36,6 +36,11 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
 
   const { configuration: config } = useConfigurationContext();
 
+  // Check if any selected scenes have captions
+  const hasSubtitles = props.selected.some(scene => 
+    scene.captions && scene.captions.length > 0
+  );
+
   const [deleteFile, setDeleteFile] = useState<boolean>(
     config?.defaults.deleteFile ?? false
   );
@@ -168,14 +173,16 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
           })}
           onChange={() => setDeleteGenerated(!deleteGenerated)}
         />
-        <Form.Check
-          id="delete-subtitles"
-          checked={deleteSubtitles}
-          label={intl.formatMessage({
-            id: "actions.delete_subtitle_files",
-          })}
-          onChange={() => setDeleteSubtitles(!deleteSubtitles)}
-        />
+        {hasSubtitles && (
+          <Form.Check
+            id="delete-subtitles"
+            checked={deleteSubtitles}
+            label={intl.formatMessage({
+              id: "actions.delete_subtitle_files",
+            })}
+            onChange={() => setDeleteSubtitles(!deleteSubtitles)}
+          />
+        )}
       </Form>
     </ModalComponent>
   );
