@@ -37,8 +37,8 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
   const { configuration: config } = useConfigurationContext();
 
   // Check if any selected scenes have captions
-  const hasSubtitles = props.selected.some(scene => 
-    scene.captions && scene.captions.length > 0
+  const hasSubtitles = props.selected.some(
+    (scene) => scene.captions && scene.captions.length > 0
   );
 
   const [deleteFile, setDeleteFile] = useState<boolean>(
