@@ -35,14 +35,6 @@ export function handleHotkeys(
     player.currentTime(time);
   }
 
-  function seekPercentRelative(percent: number) {
-    const duration = player.duration();
-    const currentTime = player.currentTime();
-    const time = currentTime + duration * percent;
-    if (time > duration) return;
-    player.currentTime(time);
-  }
-
   function toggleABLooping() {
     const opts = player.abLoopPlugin.getOptions();
     if (!opts.start) {
@@ -472,12 +464,12 @@ export function handleHotkeys(
     case 57: // 9
       seekPercent(0.9);
       break;
-    case 221: // ]
-      seekPercentRelative(0.1);
-      break;
-    case 219: // [
-      seekPercentRelative(-0.1);
-      break;
+    // case 221: // ]
+    //   seekPercentRelative(0.1);
+    //   break;
+    // case 219: // [
+    //   seekPercentRelative(-0.1);
+    //   break;
     case 67: // c
       // Toggle enhanced subtitles with 'c' key
       if (toggleEnhancedSubtitles) {
