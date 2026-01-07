@@ -296,22 +296,20 @@ func (r *mutationResolver) sceneUpdate(ctx context.Context, input models.SceneUp
 		}
 	}
 
-	var coverImageData []byte
-	if input.CoverImage != nil {
-		var err error
-		coverImageData, err = utils.ProcessImageInput(ctx, *input.CoverImage)
-		if err != nil {
-			return nil, fmt.Errorf("processing cover image: %w", err)
-		}
-	}
-
 	scene, err := qb.UpdatePartial(ctx, sceneID, *updatedScene)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := r.sceneUpdateCoverImage(ctx, scene, coverImageData); err != nil {
-		return nil, err
+	// 只在明确提供了 CoverImage 时才更新封面
+	if input.CoverImage != nil {
+		coverImageData, err := utils.ProcessImageInput(ctx, *input.CoverImage)
+		if err != nil {
+			return nil, fmt.Errorf("processing cover image: %w", err)
+		}
+		if err := r.sceneUpdateCoverImage(ctx, scene, coverImageData); err != nil {
+			return nil, err
+		}
 	}
 
 	return scene, nil
