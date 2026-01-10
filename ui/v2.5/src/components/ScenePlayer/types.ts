@@ -29,6 +29,8 @@ export interface IScenePlayerProps {
   onComplete: () => void;
   onNext: () => void;
   onPrevious: () => void;
+  onDelete?: () => void;
+  onRatingChange?: (value: number | null) => void;
 }
 
 // Enhanced Subtitle Navigation Interface

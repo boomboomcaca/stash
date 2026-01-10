@@ -62,6 +62,7 @@ import { usePlayerEvents } from "./usePlayerEvents";
 import { useSceneLoading } from "./useSceneLoading";
 import { useControlBarManagement } from "./useControlBarManagement";
 import { useMediaSession } from "./useMediaSession";
+import { ScenePlayerActions } from "./ScenePlayerActions";
 
 export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
   "ScenePlayer",
@@ -75,6 +76,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     onComplete,
     onNext,
     onPrevious,
+    onDelete,
+    onRatingChange,
   }) => {
     // 拖拽状态管理
     const draggingState = useRef<{
@@ -105,6 +108,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     const [fullscreen, setFullscreen] = useState(false);
     const [showScrubber, setShowScrubber] = useState(false);
+    const [controlBarVisible, setControlBarVisible] = useState(true);
     const [showEnhancedSubtitles, setShowEnhancedSubtitles] = useState(false);
     const [currentSubtitleTrack, setCurrentSubtitleTrack] = useState<
       string | null
@@ -324,6 +328,23 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       onPrevious,
     });
 
+    // 监听控制栏可见性变化
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player) return;
+
+      const handleUserActive = () => setControlBarVisible(true);
+      const handleUserInactive = () => setControlBarVisible(false);
+
+      player.on("useractive", handleUserActive);
+      player.on("userinactive", handleUserInactive);
+
+      return () => {
+        player.off("useractive", handleUserActive);
+        player.off("userinactive", handleUserInactive);
+      };
+    }, [getPlayer]);
+
     useEffect(() => {
       const player = getPlayer();
       if (!player) return;
@@ -542,6 +563,14 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         onKeyDownCapture={onKeyDown}
       >
         <div className="video-wrapper" ref={videoRef} />
+        {onDelete && onRatingChange && (
+          <ScenePlayerActions
+            rating100={scene.rating100}
+            onSetRating={onRatingChange}
+            onDelete={onDelete}
+            isVisible={controlBarVisible}
+          />
+        )}
         {scene.interactive &&
           (interactiveState !== ConnectionState.Ready ||
             getPlayer()?.paused()) && <SceneInteractiveStatus />}

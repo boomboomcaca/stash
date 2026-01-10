@@ -717,9 +717,11 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
   const { id } = match.params;
   const { configuration } = useConfigurationContext();
   const { data, loading, error } = useFindScene(id);
+  const [updateScene] = useSceneUpdate();
 
   const [scene, setScene] = useState<GQL.SceneDataFragment>();
   const sceneIdRef = useRef<string | undefined>();
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
   // useLayoutEffect to update before paint
   useLayoutEffect(() => {
@@ -970,6 +972,13 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
     loadScene(sceneID, autoPlayOnSelected, getScenePage(sceneID));
   }
 
+  function onDeleteDialogClosed(deleted: boolean) {
+    setIsDeleteAlertOpen(false);
+    if (deleted) {
+      onDelete();
+    }
+  }
+
   if (!scene) {
     if (loading) return <LoadingIndicator />;
     if (error) return <ErrorMessage error={error.message} />;
@@ -977,40 +986,58 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
   }
 
   return (
-    <div className="row">
-      <ScenePage
-        scene={scene}
-        setTimestamp={setTimestamp}
-        queueScenes={queueScenes}
-        queueStart={queueStart}
-        onDelete={onDelete}
-        onQueueNext={() => queueNext(autoPlayOnSelected)}
-        onQueuePrevious={() => queuePrevious(autoPlayOnSelected)}
-        onQueueRandom={() => queueRandom(autoPlayOnSelected)}
-        onQueueSceneClicked={onQueueSceneClicked}
-        continuePlaylist={continuePlaylist}
-        queueHasMoreScenes={queueHasMoreScenes}
-        onQueueLessScenes={onQueueLessScenes}
-        onQueueMoreScenes={onQueueMoreScenes}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
-        setContinuePlaylist={setContinuePlaylist}
-      />
-      <div className={`scene-player-container ${collapsed ? "expanded" : ""}`}>
-        <ScenePlayer
-          key="ScenePlayer"
+    <>
+      {isDeleteAlertOpen && (
+        <DeleteScenesDialog selected={[scene]} onClose={onDeleteDialogClosed} />
+      )}
+      <div className="row">
+        <ScenePage
           scene={scene}
-          hideScrubberOverride={hideScrubber}
-          autoplay={autoplay}
-          permitLoop={!continuePlaylist}
-          initialTimestamp={initialTimestamp}
-          sendSetTimestamp={getSetTimestamp}
-          onComplete={onComplete}
-          onNext={() => queueNext(true)}
-          onPrevious={() => queuePrevious(true)}
+          setTimestamp={setTimestamp}
+          queueScenes={queueScenes}
+          queueStart={queueStart}
+          onDelete={onDelete}
+          onQueueNext={() => queueNext(autoPlayOnSelected)}
+          onQueuePrevious={() => queuePrevious(autoPlayOnSelected)}
+          onQueueRandom={() => queueRandom(autoPlayOnSelected)}
+          onQueueSceneClicked={onQueueSceneClicked}
+          continuePlaylist={continuePlaylist}
+          queueHasMoreScenes={queueHasMoreScenes}
+          onQueueLessScenes={onQueueLessScenes}
+          onQueueMoreScenes={onQueueMoreScenes}
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          setContinuePlaylist={setContinuePlaylist}
         />
+        <div
+          className={`scene-player-container ${collapsed ? "expanded" : ""}`}
+        >
+          <ScenePlayer
+            key="ScenePlayer"
+            scene={scene}
+            hideScrubberOverride={hideScrubber}
+            autoplay={autoplay}
+            permitLoop={!continuePlaylist}
+            initialTimestamp={initialTimestamp}
+            sendSetTimestamp={getSetTimestamp}
+            onComplete={onComplete}
+            onNext={() => queueNext(true)}
+            onPrevious={() => queuePrevious(true)}
+            onDelete={() => setIsDeleteAlertOpen(true)}
+            onRatingChange={(value) => {
+              updateScene({
+                variables: {
+                  input: {
+                    id: scene.id,
+                    rating100: value,
+                  },
+                },
+              });
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

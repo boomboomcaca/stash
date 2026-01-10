@@ -910,6 +910,95 @@ $sceneTabWidth: 450px;
   /* stylelint-enable declaration-no-important */
 }
 
+// 场景播放器操作按钮样式
+.scene-player-actions {
+  left: 0;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: opacity 0.3s ease;
+  z-index: 10;
+
+  &.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .action-button {
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    font-size: 1.2rem;
+    height: 2.5rem;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 0.2s, transform 0.2s;
+    width: 2.5rem;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.8);
+      color: #fff;
+      transform: scale(1.1);
+    }
+
+    &:focus {
+      box-shadow: none;
+      outline: none;
+    }
+  }
+
+  .rating-button.has-rating {
+    color: #ffc107;
+  }
+
+  .delete-button:hover {
+    color: #dc3545;
+  }
+
+  .rating-container {
+    position: relative;
+  }
+
+  .rating-popup {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 4px;
+    left: 3rem;
+    padding: 0.5rem;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+  }
+}
+
+// 在控制栏锁定隐藏时也隐藏操作按钮
+.VideoPlayer:has(.video-js.vjs-controls-locked-hidden) .scene-player-actions {
+  /* stylelint-disable declaration-no-important */
+  opacity: 0 !important;
+  pointer-events: none !important;
+  /* stylelint-enable declaration-no-important */
+}
+
+// 在控制栏临时解锁时显示操作按钮
+.VideoPlayer:has(.video-js.vjs-controls-unlocked-once) .scene-player-actions {
+  /* stylelint-disable declaration-no-important */
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  /* stylelint-enable declaration-no-important */
+}
+
 body.vjs-pseudo-fullscreen {
   /* stylelint-disable-next-line declaration-no-important */
   overflow: hidden !important;
