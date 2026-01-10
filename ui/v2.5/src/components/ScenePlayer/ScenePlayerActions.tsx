@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button, Overlay, Popover } from "react-bootstrap";
 import { useIntl } from "react-intl";
 import { Icon } from "src/components/Shared/Icon";
@@ -23,6 +23,13 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
   const intl = useIntl();
   const [showRating, setShowRating] = useState(false);
   const ratingButtonRef = useRef<HTMLButtonElement>(null);
+
+  // 当控制栏消失时，自动关闭评分弹出框
+  useEffect(() => {
+    if (!isVisible) {
+      setShowRating(false);
+    }
+  }, [isVisible]);
 
   const hasRating = rating100 !== null && rating100 !== undefined;
 
