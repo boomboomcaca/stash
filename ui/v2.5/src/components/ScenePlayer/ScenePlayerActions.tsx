@@ -12,6 +12,8 @@ interface IScenePlayerActionsProps {
   onSetRating: (value: number | null) => void;
   onDelete: () => void;
   isVisible: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
@@ -19,6 +21,8 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
   onSetRating,
   onDelete,
   isVisible,
+  onMouseEnter,
+  onMouseLeave,
 }) => {
   const intl = useIntl();
   const [showRating, setShowRating] = useState(false);
@@ -41,16 +45,21 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
       className={cx("scene-player-actions", {
         visible: isVisible,
       })}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div className="action-buttons">
-        <div className="rating-container">
+        <div
+          className="rating-container"
+          onMouseLeave={() => setShowRating(false)}
+        >
           <Button
             ref={ratingButtonRef}
             variant="link"
             className={cx("action-button rating-button", {
               "has-rating": hasRating,
             })}
-            onClick={() => setShowRating(!showRating)}
+            onMouseEnter={() => setShowRating(true)}
             title={intl.formatMessage({ id: "rating" })}
           >
             <Icon icon={hasRating ? faStar : faStarRegular} />

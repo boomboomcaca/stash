@@ -124,6 +124,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const started = useRef(false);
     const enhancedSubtitleButtonRef = useRef<HTMLButtonElement>(null);
     const auto = useRef(false);
+    const isMouseOverActionsRef = useRef(false);
     const interactiveReady = useRef(false);
     const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
     const enhancedSubtitleNavigationRef = useRef<unknown>(null);
@@ -334,7 +335,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       if (!player) return;
 
       const handleUserActive = () => setControlBarVisible(true);
-      const handleUserInactive = () => setControlBarVisible(false);
+      const handleUserInactive = () => {
+        // 如果鼠标在操作按钮上，不隐藏控制栏
+        if (!isMouseOverActionsRef.current) {
+          setControlBarVisible(false);
+        }
+      };
 
       player.on("useractive", handleUserActive);
       player.on("userinactive", handleUserInactive);
@@ -569,6 +575,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             onSetRating={onRatingChange}
             onDelete={onDelete}
             isVisible={controlBarVisible}
+            onMouseEnter={() => {
+              isMouseOverActionsRef.current = true;
+            }}
+            onMouseLeave={() => {
+              isMouseOverActionsRef.current = false;
+            }}
           />
         )}
         {scene.interactive &&
