@@ -958,8 +958,28 @@ $sceneTabWidth: 450px;
     }
   }
 
-  .rating-button.has-rating {
-    color: #ffc107;
+  .rating-button {
+    position: relative;
+
+    &.has-rating {
+      color: #ffc107;
+    }
+  }
+
+  .rating-badge {
+    align-items: center;
+    background-color: #ffc107;
+    border-radius: 50%;
+    bottom: -2px;
+    color: #000;
+    display: flex;
+    font-size: 0.65rem;
+    font-weight: bold;
+    height: 1rem;
+    justify-content: center;
+    position: absolute;
+    right: -2px;
+    width: 1rem;
   }
 
   .delete-button:hover {
@@ -969,15 +989,19 @@ $sceneTabWidth: 450px;
   .rating-container {
     position: relative;
   }
+}
 
-  .rating-popup {
-    background-color: rgba(0, 0, 0, 0.8);
-    border-radius: 4px;
-    left: 3rem;
+// 评分弹出框样式
+.rating-popover {
+  background-color: rgba(0, 0, 0, 0.9);
+  border: none;
+
+  .arrow::after {
+    border-right-color: rgba(0, 0, 0, 0.9);
+  }
+
+  .popover-body {
     padding: 0.5rem;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
     white-space: nowrap;
   }
 }

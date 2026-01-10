@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Button } from "react-bootstrap";
+import React, { useRef, useState } from "react";
+import { Button, Overlay, Popover } from "react-bootstrap";
 import { useIntl } from "react-intl";
 import { Icon } from "src/components/Shared/Icon";
 import { RatingSystem } from "src/components/Shared/Rating/RatingSystem";
@@ -22,8 +22,12 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
 }) => {
   const intl = useIntl();
   const [showRating, setShowRating] = useState(false);
+  const ratingButtonRef = useRef<HTMLButtonElement>(null);
 
   const hasRating = rating100 !== null && rating100 !== undefined;
+
+  // 将 rating100 (0-100) 转换为星级 (1-5)
+  const starRating = hasRating ? Math.round(rating100 / 20) : 0;
 
   return (
     <div
@@ -34,6 +38,7 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
       <div className="action-buttons">
         <div className="rating-container">
           <Button
+            ref={ratingButtonRef}
             variant="link"
             className={cx("action-button rating-button", {
               "has-rating": hasRating,
@@ -42,17 +47,28 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
             title={intl.formatMessage({ id: "rating" })}
           >
             <Icon icon={hasRating ? faStar : faStarRegular} />
+            {hasRating && starRating > 0 && (
+              <span className="rating-badge">{starRating}</span>
+            )}
           </Button>
-          {showRating && (
-            <div className="rating-popup">
-              <RatingSystem
-                value={rating100}
-                onSetRating={(value) => {
-                  onSetRating(value);
-                }}
-              />
-            </div>
-          )}
+          <Overlay
+            target={ratingButtonRef.current}
+            show={showRating}
+            placement="right"
+            rootClose
+            onHide={() => setShowRating(false)}
+          >
+            <Popover id="rating-popover" className="rating-popover">
+              <Popover.Content>
+                <RatingSystem
+                  value={rating100}
+                  onSetRating={(value) => {
+                    onSetRating(value);
+                  }}
+                />
+              </Popover.Content>
+            </Popover>
+          </Overlay>
         </div>
         <Button
           variant="link"
