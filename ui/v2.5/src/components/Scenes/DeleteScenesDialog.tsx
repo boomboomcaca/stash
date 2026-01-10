@@ -47,7 +47,7 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
   const [deleteGenerated, setDeleteGenerated] = useState<boolean>(
     config?.defaults.deleteGenerated ?? true
   );
-  const [deleteSubtitles, setDeleteSubtitles] = useState<boolean>(false);
+  const [deleteSubtitles, setDeleteSubtitles] = useState<boolean>(true);
 
   const Toast = useToast();
   const [deleteScene] = useScenesDestroy(getScenesDeleteInput());
