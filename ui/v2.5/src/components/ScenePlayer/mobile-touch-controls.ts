@@ -99,6 +99,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }> = [];
   private getCurrentSubtitleIndex: (() => number) | null = null;
   private showControlBar: (() => void) | null = null;
+
+  // 场景切换回调
+  private onNextScene: (() => void) | null = null;
+  private onPreviousScene: (() => void) | null = null;
   private isDraggingMode: boolean = false; // 标记是否正在拖动
   private originalReportUserActivity: ((event?: Event) => void) | null = null; // 保存原始的 reportUserActivity
 
@@ -782,19 +786,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       const horizontalDistance = Math.abs(deltaX);
       const verticalDistance = Math.abs(deltaY);
 
-      // 如果垂直移动距离大于水平移动距离，且增强字幕启用，则进入垂直滑动模式（切换字幕）
-      if (
-        verticalDistance > horizontalDistance &&
-        this.enhancedSubtitlesEnabled &&
-        this.subtitleCues.length > 0
-      ) {
-        this.state.isVerticalSwipe = true;
-        this.state.verticalSwipeTriggered = false;
+      // 如果垂直移动距离大于水平移动距离，则进入垂直滑动模式
+      // 用于切换字幕（增强字幕启用时）或切换场景（无字幕时）
+      if (verticalDistance > horizontalDistance) {
+        // 只有在有字幕可切换或有场景切换回调时才进入垂直滑动模式
+        const hasSubtitles =
+          this.enhancedSubtitlesEnabled && this.subtitleCues.length > 0;
+        const hasSceneCallbacks = this.onNextScene || this.onPreviousScene;
 
-        // 取消长按计时器
-        if (this.state.longPressTimer) {
-          clearTimeout(this.state.longPressTimer);
-          this.state.longPressTimer = null;
+        if (hasSubtitles || hasSceneCallbacks) {
+          this.state.isVerticalSwipe = true;
+          this.state.verticalSwipeTriggered = false;
+
+          // 取消长按计时器
+          if (this.state.longPressTimer) {
+            clearTimeout(this.state.longPressTimer);
+            this.state.longPressTimer = null;
+          }
         }
       }
       // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大，则进入拖拽模式
@@ -865,30 +873,43 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       return;
     }
 
-    // 如果已经在垂直滑动模式，检测是否触发字幕切换
+    // 如果已经在垂直滑动模式，检测是否触发字幕切换或场景切换
     if (this.state.isVerticalSwipe && !this.state.verticalSwipeTriggered) {
       if (Math.abs(deltaY) > this.VERTICAL_SWIPE_THRESHOLD) {
         this.state.verticalSwipeTriggered = true;
-        const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
-        const currentTime = this.player.currentTime() || 0;
 
-        if (deltaY < 0) {
-          // 上滑：下一个字幕
-          const targetIndex = this.getNextSubtitleIndex(
-            currentIndex,
-            currentTime
-          );
-          if (targetIndex >= 0 && targetIndex < this.subtitleCues.length) {
-            this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+        // 如果增强字幕启用，切换字幕
+        if (this.enhancedSubtitlesEnabled && this.subtitleCues.length > 0) {
+          const currentIndex = this.getCurrentSubtitleIndex?.() ?? -1;
+          const currentTime = this.player.currentTime() || 0;
+
+          if (deltaY < 0) {
+            // 上滑：下一个字幕
+            const targetIndex = this.getNextSubtitleIndex(
+              currentIndex,
+              currentTime
+            );
+            if (targetIndex >= 0 && targetIndex < this.subtitleCues.length) {
+              this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+            }
+          } else {
+            // 下滑：上一个字幕
+            const targetIndex = this.getPreviousSubtitleIndex(
+              currentIndex,
+              currentTime
+            );
+            if (targetIndex >= 0) {
+              this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+            }
           }
         } else {
-          // 下滑：上一个字幕
-          const targetIndex = this.getPreviousSubtitleIndex(
-            currentIndex,
-            currentTime
-          );
-          if (targetIndex >= 0) {
-            this.jumpToSubtitle(this.subtitleCues[targetIndex]);
+          // 如果没有字幕，切换场景（上一首/下一首）
+          if (deltaY < 0) {
+            // 上滑：下一个场景
+            this.onNextScene?.();
+          } else {
+            // 下滑：上一个场景
+            this.onPreviousScene?.();
           }
         }
       }
@@ -1412,6 +1433,16 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   // 公共方法：设置显示控制栏的回调函数
   public setShowControlBar(callback: () => void): void {
     this.showControlBar = callback;
+  }
+
+  // 公共方法：设置下一个场景的回调函数
+  public setOnNextScene(callback: () => void): void {
+    this.onNextScene = callback;
+  }
+
+  // 公共方法：设置上一个场景的回调函数
+  public setOnPreviousScene(callback: () => void): void {
+    this.onPreviousScene = callback;
   }
 }
 

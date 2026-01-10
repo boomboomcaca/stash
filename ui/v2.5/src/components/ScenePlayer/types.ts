@@ -58,6 +58,8 @@ export interface IMobileTouchControlsPlugin {
   ): void;
   setGetCurrentSubtitleIndex(fn: () => number): void;
   setShowControlBar(fn: () => void): void;
+  setOnNextScene(fn: () => void): void;
+  setOnPreviousScene(fn: () => void): void;
 }
 
 // Extend VideoJsPlayer type with custom properties and methods

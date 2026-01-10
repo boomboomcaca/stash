@@ -237,6 +237,13 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       const skipButtons = player.skipButtons();
       skipButtons.setForwardHandler(onNext);
       skipButtons.setBackwardHandler(onPrevious);
+
+      // 设置移动触摸控件的场景切换回调
+      const touchPlugin = player._mobileTouchControlsPlugin;
+      if (touchPlugin) {
+        touchPlugin.setOnNextScene?.(onNext);
+        touchPlugin.setOnPreviousScene?.(onPrevious);
+      }
     }, [getPlayer, onNext, onPrevious]);
 
     useEffect(() => {
