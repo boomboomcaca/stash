@@ -111,7 +111,7 @@ func (j *RotateVideoJob) Execute(ctx context.Context, progress *job.Progress) er
 	if err != nil {
 		logger.Errorf("ffmpeg error: %s", string(output))
 		// Clean up temp file if it exists
-		os.Remove(tempOutput)
+		_ = os.Remove(tempOutput)
 		return fmt.Errorf("ffmpeg error: %w - %s", err, string(output))
 	}
 
@@ -121,19 +121,19 @@ func (j *RotateVideoJob) Execute(ctx context.Context, progress *job.Progress) er
 	// First, backup original (rename to .bak)
 	backupPath := inputPath + ".bak"
 	if err := os.Rename(inputPath, backupPath); err != nil {
-		os.Remove(tempOutput)
+		_ = os.Remove(tempOutput)
 		return fmt.Errorf("failed to backup original file: %w", err)
 	}
 
 	// Move temp to original location
 	if err := fsutil.SafeMove(tempOutput, inputPath); err != nil {
 		// Try to restore backup
-		os.Rename(backupPath, inputPath)
+		_ = os.Rename(backupPath, inputPath)
 		return fmt.Errorf("failed to move rotated file: %w", err)
 	}
 
 	// Remove backup
-	os.Remove(backupPath)
+	_ = os.Remove(backupPath)
 
 	progress.SetPercent(90)
 
