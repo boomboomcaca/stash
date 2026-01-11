@@ -5,6 +5,7 @@ package loaders
 import (
 	"sync"
 	"time"
+
 )
 
 // SceneOHistoryLoaderConfig captures the config to create a new SceneOHistoryLoader
