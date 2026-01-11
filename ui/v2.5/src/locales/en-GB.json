@@ -1087,6 +1087,7 @@
     "rotate_left_and_scale": "Rotate Left & Scale",
     "rotate_right_and_scale": "Rotate Right & Scale",
     "saturation": "Saturation",
+    "save_rotation": "Save Rotation ({degrees}°) to File",
     "scale": "Scale",
     "warmth": "Warmth"
   },
@@ -1572,6 +1573,7 @@
     "started_auto_tagging": "Started auto tagging",
     "started_generating": "Started generating",
     "started_importing": "Started importing",
+    "rotation_job_started": "Rotation job started ({degrees}°)",
     "updated_entity": "Updated {entity}"
   },
   "total": "Total",

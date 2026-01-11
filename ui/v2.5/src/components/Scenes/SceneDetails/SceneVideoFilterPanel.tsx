@@ -4,6 +4,7 @@ import { Button, Form } from "react-bootstrap";
 import { TruncatedText } from "src/components/Shared/TruncatedText";
 import { VIDEO_PLAYER_ID } from "src/components/ScenePlayer/util";
 import * as GQL from "src/core/generated-graphql";
+import { useToast } from "src/hooks/Toast";
 
 interface ISceneVideoFilterPanelProps {
   scene: GQL.SceneDataFragment;
@@ -128,6 +129,8 @@ export const SceneVideoFilterPanel: React.FC<ISceneVideoFilterPanelProps> = (
   };
 
   const intl = useIntl();
+  const Toast = useToast();
+  const [rotateVideo] = GQL.useSceneRotateVideoMutation();
 
   const [contrastValue, setContrastValue] = useState(contrastRange.default);
   const [brightnessValue, setBrightnessValue] = useState(
@@ -465,6 +468,27 @@ export const SceneVideoFilterPanel: React.FC<ISceneVideoFilterPanelProps> = (
     setAspectRatioValue(aspectRatioRange.default);
   }
 
+  async function onSaveRotation(rotation: number) {
+    try {
+      await rotateVideo({
+        variables: {
+          id: props.scene.id,
+          rotation: rotation,
+        },
+      });
+      Toast.success(
+        intl.formatMessage(
+          { id: "toast.rotation_job_started" },
+          { degrees: rotation }
+        )
+      );
+      // Reset rotate slider after saving
+      setRotateValue(rotateRange.default);
+    } catch (e) {
+      Toast.error(e);
+    }
+  }
+
   function renderResetButton() {
     return (
       <div className="row form-group">
@@ -486,6 +510,53 @@ export const SceneVideoFilterPanel: React.FC<ISceneVideoFilterPanelProps> = (
             onClick={() => onResetTransforms()}
           >
             <FormattedMessage id="effect_filters.reset_transforms" />
+          </Button>
+        </span>
+      </div>
+    );
+  }
+
+  function renderSaveRotation() {
+    // Calculate rotation from current rotateValue (0=0°, 1=90°, 2=180°, 3=270°, 4=360°=0°)
+    const currentRotation =
+      (rotateValue - rotateRange.default) / rotateRange.divider;
+    const rotationDegrees = Math.round(currentRotation);
+
+    // Only show save button if rotation is 90, 180, or 270
+    if (
+      rotationDegrees !== 90 &&
+      rotationDegrees !== 180 &&
+      rotationDegrees !== 270 &&
+      rotationDegrees !== -90 &&
+      rotationDegrees !== -180 &&
+      rotationDegrees !== -270
+    ) {
+      return null;
+    }
+
+    // Normalize rotation to positive value
+    let normalizedRotation = rotationDegrees;
+    if (normalizedRotation < 0) {
+      normalizedRotation = 360 + normalizedRotation;
+    }
+    if (normalizedRotation === 360) {
+      normalizedRotation = 0;
+    }
+
+    return (
+      <div className="row form-group">
+        <span className="col-12">
+          <Button
+            id="saveRotation"
+            variant="danger"
+            type="button"
+            onClick={() => onSaveRotation(normalizedRotation)}
+          >
+            <FormattedMessage
+              id="effect_filters.save_rotation"
+              defaultMessage="Save Rotation ({degrees}°) to File"
+              values={{ degrees: normalizedRotation }}
+            />
           </Button>
         </span>
       </div>
@@ -635,6 +706,7 @@ export const SceneVideoFilterPanel: React.FC<ISceneVideoFilterPanelProps> = (
         </span>
       </div>
       {renderRotateAndScale()}
+      {renderSaveRotation()}
       {renderResetButton()}
       {renderFilterContainer()}
     </div>

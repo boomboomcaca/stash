@@ -1269,3 +1269,42 @@ func (r *mutationResolver) SceneGenerateScreenshot(ctx context.Context, id strin
 
 	return "todo", nil
 }
+
+func (r *mutationResolver) SceneRotateVideo(ctx context.Context, id string, rotation int) (string, error) {
+	sceneID, err := strconv.Atoi(id)
+	if err != nil {
+		return "", fmt.Errorf("invalid scene id: %w", err)
+	}
+
+	// Validate rotation value
+	if rotation != 90 && rotation != 180 && rotation != 270 {
+		return "", fmt.Errorf("invalid rotation value: %d (must be 90, 180, or 270)", rotation)
+	}
+
+	var s *models.Scene
+	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+		var err error
+		s, err = r.repository.Scene.Find(ctx, sceneID)
+		return err
+	}); err != nil {
+		return "", fmt.Errorf("finding scene: %w", err)
+	}
+
+	if s == nil {
+		return "", fmt.Errorf("scene with id %d not found", sceneID)
+	}
+
+	mgr := manager.GetInstance()
+
+	task := &manager.RotateVideoJob{
+		Scene:       s,
+		Rotation:    rotation,
+		TxnManager:  r.repository.TxnManager,
+		SceneFinder: r.repository.Scene,
+	}
+
+	description := fmt.Sprintf("Rotating video %d by %d degrees", sceneID, rotation)
+	jobID := mgr.JobManager.Add(ctx, description, task)
+
+	return strconv.Itoa(jobID), nil
+}

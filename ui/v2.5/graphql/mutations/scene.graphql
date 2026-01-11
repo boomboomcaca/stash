@@ -127,3 +127,7 @@ mutation SceneMerge($input: SceneMergeInput!) {
     id
   }
 }
+
+mutation SceneRotateVideo($id: ID!, $rotation: Int!) {
+  sceneRotateVideo(id: $id, rotation: $rotation)
+}

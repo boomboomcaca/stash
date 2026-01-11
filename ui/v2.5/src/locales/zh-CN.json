@@ -1066,6 +1066,7 @@
         "rotate_left_and_scale": "向左旋转 90 度加缩放",
         "rotate_right_and_scale": "向右旋转 90 度加缩放",
         "saturation": "饱和",
+        "save_rotation": "保存旋转 ({degrees}°) 到文件",
         "scale": "大小",
         "warmth": "色温"
     },
@@ -1423,6 +1424,7 @@
         "started_auto_tagging": "自动生成标签中",
         "started_generating": "生成资料中",
         "started_importing": "导入中",
+        "rotation_job_started": "旋转任务已开始 ({degrees}°)",
         "updated_entity": "已更新{entity}"
     },
     "total": "总计",
