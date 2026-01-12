@@ -54,9 +54,10 @@ $sceneTabWidth: 450px;
 
 .video-wrapper {
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
   width: 100%;
+  z-index: 1031;
 }
 
 .VideoPlayer.no-file .video-js {
@@ -919,12 +920,15 @@ $sceneTabWidth: 450px;
   opacity: 0;
   pointer-events: none;
   position: absolute;
-  top: 0;
+  top: $menuHeight;
   transition: opacity 0.3s ease;
   z-index: 100;
 
-  @media (max-width: 1199px) {
-    top: $menuHeight;
+  @media (min-width: 1200px) {
+    top: 0;
+  }
+  @media (max-width: 767px) {
+    top: 0;
   }
 
   &.visible {
