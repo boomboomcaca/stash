@@ -13,12 +13,13 @@ $sceneTabWidth: 450px;
   flex-direction: column;
   max-height: calc(100vh - #{$menuHeight});
   padding-bottom: 0.25rem;
+  position: relative;
 
   @media (min-width: 1200px) {
     height: 100vh;
   }
 
-  &.portrait .video-wrapper {
+  &.portrait .video-container {
     // 保持原有的高度计算逻辑，但增加最大高度限制
     // height: 177.78vw;
     max-height: 100vh;
@@ -33,7 +34,7 @@ $sceneTabWidth: 450px;
 
 // 针对移动设备的优化
 @media (max-width: 768px) {
-  .portrait .video-wrapper {
+  .portrait .video-container {
     height: 100vh;
 
     .video-js {
@@ -44,15 +45,21 @@ $sceneTabWidth: 450px;
   }
 }
 
-.video-wrapper {
+.video-container {
   height: 56.25vw;
-  overflow: hidden;
   position: relative;
   width: 100%;
 
   @media (min-width: 1200px) {
     height: 100%;
   }
+}
+
+.video-wrapper {
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
 }
 
 .VideoPlayer.no-file .video-js {
@@ -795,7 +802,7 @@ $sceneTabWidth: 450px;
         max-height: 100vh;
         padding-bottom: 0;
 
-        .video-wrapper {
+        .video-container {
           height: 100vh;
         }
       }
@@ -916,7 +923,7 @@ $sceneTabWidth: 450px;
   opacity: 0;
   pointer-events: none;
   position: absolute;
-  top: 0;
+  top: $menuHeight; // 避开导航栏
   transition: opacity 0.3s ease;
   z-index: 10;
 
@@ -1038,7 +1045,7 @@ body.vjs-pseudo-fullscreen {
     z-index: 9999 !important;
     /* stylelint-enable declaration-no-important */
 
-    .video-wrapper {
+    .video-container {
       /* stylelint-disable declaration-no-important */
       height: 100vh !important;
       width: 100vw !important;

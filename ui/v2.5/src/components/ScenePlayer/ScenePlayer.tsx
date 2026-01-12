@@ -568,21 +568,23 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         })}
         onKeyDownCapture={onKeyDown}
       >
-        <div className="video-wrapper" ref={videoRef} />
-        {onDelete && onRatingChange && (
-          <ScenePlayerActions
-            rating100={scene.rating100}
-            onSetRating={onRatingChange}
-            onDelete={onDelete}
-            isVisible={controlBarVisible}
-            onMouseEnter={() => {
-              isMouseOverActionsRef.current = true;
-            }}
-            onMouseLeave={() => {
-              isMouseOverActionsRef.current = false;
-            }}
-          />
-        )}
+        <div className="video-container">
+          <div className="video-wrapper" ref={videoRef} />
+          {onDelete && onRatingChange && (
+            <ScenePlayerActions
+              rating100={scene.rating100}
+              onSetRating={onRatingChange}
+              onDelete={onDelete}
+              isVisible={controlBarVisible}
+              onMouseEnter={() => {
+                isMouseOverActionsRef.current = true;
+              }}
+              onMouseLeave={() => {
+                isMouseOverActionsRef.current = false;
+              }}
+            />
+          )}
+        </div>
         {scene.interactive &&
           (interactiveState !== ConnectionState.Ready ||
             getPlayer()?.paused()) && <SceneInteractiveStatus />}
