@@ -27,6 +27,7 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
   const intl = useIntl();
   const [showRating, setShowRating] = useState(false);
   const ratingButtonRef = useRef<HTMLButtonElement>(null);
+  const ratingContainerRef = useRef<HTMLDivElement>(null);
   const isTouchDevice = useRef(false);
 
   // 当控制栏消失时，自动关闭评分弹出框
@@ -35,6 +36,30 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
       setShowRating(false);
     }
   }, [isVisible]);
+
+  // 触摸设备：点击弹窗外部关闭弹窗
+  useEffect(() => {
+    if (!showRating || !isTouchDevice.current) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as Node;
+      const container = ratingContainerRef.current;
+      const popover = document.querySelector(".rating-popover");
+
+      // 如果点击的不是容器内部也不是弹窗内部，则关闭
+      if (
+        container &&
+        !container.contains(target) &&
+        popover &&
+        !popover.contains(target)
+      ) {
+        setShowRating(false);
+      }
+    };
+
+    document.addEventListener("touchstart", handleTouchStart);
+    return () => document.removeEventListener("touchstart", handleTouchStart);
+  }, [showRating]);
 
   const hasRating = rating100 !== null && rating100 !== undefined;
 
@@ -51,6 +76,7 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
     >
       <div className="action-buttons">
         <div
+          ref={ratingContainerRef}
           className="rating-container"
           onMouseLeave={() => {
             // 触摸设备不响应 mouseleave
