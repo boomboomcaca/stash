@@ -20,8 +20,6 @@ $sceneTabWidth: 450px;
   }
 
   &.portrait .video-container {
-    // 保持原有的高度计算逻辑，但增加最大高度限制
-    // height: 177.78vw;
     max-height: 100vh;
 
     .video-js {
@@ -32,7 +30,6 @@ $sceneTabWidth: 450px;
   }
 }
 
-// 针对移动设备的优化
 @media (max-width: 768px) {
   .portrait .video-container {
     height: 100vh;
@@ -917,7 +914,6 @@ $sceneTabWidth: 450px;
   /* stylelint-enable declaration-no-important */
 }
 
-// 场景播放器操作按钮样式
 .scene-player-actions {
   left: 0;
   opacity: 0;
@@ -925,7 +921,11 @@ $sceneTabWidth: 450px;
   position: absolute;
   top: 0;
   transition: opacity 0.3s ease;
-  z-index: 10;
+  z-index: 100;
+
+  @media (max-width: 1199px) {
+    top: $menuHeight;
+  }
 
   &.visible {
     opacity: 1;
