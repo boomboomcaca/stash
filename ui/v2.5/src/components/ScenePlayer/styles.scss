@@ -1025,6 +1025,24 @@ $sceneTabWidth: 450px;
   /* stylelint-enable declaration-no-important */
 }
 
+// 用户活动或暂停时显示操作按钮（与控制栏同步）
+.VideoPlayer:has(.video-js.vjs-user-active) .scene-player-actions,
+.VideoPlayer:has(.video-js.vjs-paused) .scene-player-actions {
+  /* stylelint-disable declaration-no-important */
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  /* stylelint-enable declaration-no-important */
+}
+
+// 用户不活动且播放时隐藏操作按钮
+.VideoPlayer:has(.video-js.vjs-user-inactive:not(.vjs-paused))
+  .scene-player-actions {
+  /* stylelint-disable declaration-no-important */
+  opacity: 0 !important;
+  pointer-events: none !important;
+  /* stylelint-enable declaration-no-important */
+}
+
 // 在控制栏临时解锁时显示操作按钮
 .VideoPlayer:has(.video-js.vjs-controls-unlocked-once) .scene-player-actions {
   /* stylelint-disable declaration-no-important */

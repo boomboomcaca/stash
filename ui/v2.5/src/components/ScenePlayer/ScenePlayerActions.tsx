@@ -27,6 +27,7 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
   const intl = useIntl();
   const [showRating, setShowRating] = useState(false);
   const ratingButtonRef = useRef<HTMLButtonElement>(null);
+  const isTouchDevice = useRef(false);
 
   // 当控制栏消失时，自动关闭评分弹出框
   useEffect(() => {
@@ -51,7 +52,12 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
       <div className="action-buttons">
         <div
           className="rating-container"
-          onMouseLeave={() => setShowRating(false)}
+          onMouseLeave={() => {
+            // 触摸设备不响应 mouseleave
+            if (!isTouchDevice.current) {
+              setShowRating(false);
+            }
+          }}
         >
           <Button
             ref={ratingButtonRef}
@@ -59,7 +65,22 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
             className={cx("action-button rating-button", {
               "has-rating": hasRating,
             })}
-            onMouseEnter={() => setShowRating(true)}
+            onMouseEnter={() => {
+              // 触摸设备不响应 mouseenter
+              if (!isTouchDevice.current) {
+                setShowRating(true);
+              }
+            }}
+            onTouchStart={() => {
+              isTouchDevice.current = true;
+            }}
+            onClick={() => {
+              if (isTouchDevice.current) {
+                // 触摸设备：点击切换
+                setShowRating((prev) => !prev);
+              }
+              // 桌面设备：hover 已经打开，点击不做额外操作
+            }}
             title={intl.formatMessage({ id: "rating" })}
           >
             <Icon icon={hasRating ? faStar : faStarRegular} />
@@ -72,7 +93,9 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
             show={showRating}
             placement="right"
             rootClose
-            onHide={() => setShowRating(false)}
+            onHide={() => {
+              setShowRating(false);
+            }}
           >
             <Popover id="rating-popover" className="rating-popover">
               <Popover.Content>
@@ -80,6 +103,7 @@ export const ScenePlayerActions: React.FC<IScenePlayerActionsProps> = ({
                   value={rating100}
                   onSetRating={(value) => {
                     onSetRating(value);
+                    setShowRating(false);
                   }}
                 />
               </Popover.Content>
