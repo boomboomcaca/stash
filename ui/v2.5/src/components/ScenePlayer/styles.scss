@@ -1043,6 +1043,11 @@ $sceneTabWidth: 450px;
   /* stylelint-enable declaration-no-important */
 }
 
+// 评分弹窗内的星号按钮增加间距
+.rating-popover .rating-stars button {
+  margin-right: 8px;
+}
+
 // 在控制栏临时解锁时显示操作按钮
 .VideoPlayer:has(.video-js.vjs-controls-unlocked-once) .scene-player-actions {
   /* stylelint-disable declaration-no-important */
