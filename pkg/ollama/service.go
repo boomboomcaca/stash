@@ -31,7 +31,7 @@ func DefaultConfig() *OllamaConfig {
 
 	return &OllamaConfig{
 		BaseURL:                   baseURL,
-		Model:                     "qwen3:latest",
+		Model:                     "huihui_ai/qwen3-abliterated:8b-v2",
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
