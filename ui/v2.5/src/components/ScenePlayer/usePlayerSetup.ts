@@ -104,9 +104,11 @@ export function usePlayerSetup({
                 temporarilyUnlockControlBarRef.current();
               }
             },
-            enhancedSubtitleNavigationRef.current as
-              | IEnhancedSubtitleNavigation
-              | undefined,
+            showEnhancedSubtitles
+              ? (enhancedSubtitleNavigationRef.current as
+                  | IEnhancedSubtitleNavigation
+                  | undefined)
+              : undefined,
             () => controlBarVisibleRef.current,
             () => {
               // 使用 ref 来调用最新的 hideControlBar 函数

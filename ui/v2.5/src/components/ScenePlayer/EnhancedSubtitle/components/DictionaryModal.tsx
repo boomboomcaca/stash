@@ -118,6 +118,13 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         return;
       }
 
+      if (key === "ArrowUp" || keyCode === 38) {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowDictionary(false);
+        return;
+      }
+
       if (key === "Escape" || keyCode === 27) {
         e.preventDefault();
         e.stopPropagation();
