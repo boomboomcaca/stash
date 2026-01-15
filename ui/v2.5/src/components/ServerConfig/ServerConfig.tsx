@@ -60,7 +60,10 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
 
   const normalizeUrl = (url: string): string => {
     let normalized = url.trim();
-    if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+    if (
+      !normalized.startsWith("http://") &&
+      !normalized.startsWith("https://")
+    ) {
       normalized = "http://" + normalized;
     }
     if (normalized.endsWith("/")) {
@@ -72,7 +75,7 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
   const testConnection = async (url: string, key: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const graphqlUrl = `${normalizeUrl(url)}/graphql`;
       const response = await httpFetch(graphqlUrl, {
@@ -94,7 +97,7 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
           return;
         }
       }
-      
+
       if (response.status === 401 || response.status === 403) {
         setError("API Key 无效或权限不足");
       } else {
@@ -110,9 +113,9 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
   const loginWithCredentials = async () => {
     setLoading(true);
     setError(null);
-    
+
     const normalizedUrl = normalizeUrl(serverUrl);
-    
+
     try {
       // Step 1: 登录获取 session
       const loginResponse = await httpFetch(`${normalizedUrl}/login`, {
@@ -120,7 +123,9 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+        body: `username=${encodeURIComponent(
+          username
+        )}&password=${encodeURIComponent(password)}`,
         credentials: "include",
       });
 
@@ -174,8 +179,8 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
         e instanceof Error
           ? e.message
           : typeof e === "string"
-            ? e
-            : JSON.stringify(e);
+          ? e
+          : JSON.stringify(e);
       setError(`登录失败: ${errorMsg || "未知错误"}`);
     } finally {
       setLoading(false);
@@ -184,7 +189,7 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (useCredentials) {
       await loginWithCredentials();
     } else {

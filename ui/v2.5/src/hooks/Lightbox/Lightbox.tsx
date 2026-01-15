@@ -478,9 +478,11 @@ export const LightboxComponent: React.FC<IProps> = ({
       autoPlay: image.paths.preview != "",
       playsInline: image.paths.preview != "",
       src:
-        withApiKey(image.paths.preview != ""
-          ? image.paths.preview ?? ""
-          : image.paths.thumbnail ?? "") ?? "",
+        withApiKey(
+          image.paths.preview != ""
+            ? image.paths.preview ?? ""
+            : image.paths.thumbnail ?? ""
+        ) ?? "",
       alt: "",
       className: cx(CLASSNAME_NAVIMAGE, {
         [CLASSNAME_NAVSELECTED]: i === index,

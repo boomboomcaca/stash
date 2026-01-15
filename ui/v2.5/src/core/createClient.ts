@@ -33,13 +33,15 @@ export const isServerConfigured = (): boolean => {
 };
 
 // 为 URL 添加 API Key 参数（仅在 Tauri 环境下）
-export const withApiKey = (url: string | undefined | null): string | undefined => {
+export const withApiKey = (
+  url: string | undefined | null
+): string | undefined => {
   if (!url) return undefined;
   if (!isTauriEnv()) return url;
-  
+
   const apiKey = getStoredApiKey();
   if (!apiKey) return url;
-  
+
   try {
     const urlObj = new URL(url);
     urlObj.searchParams.set("apikey", apiKey);

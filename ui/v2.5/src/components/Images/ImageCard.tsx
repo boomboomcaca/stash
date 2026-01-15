@@ -142,11 +142,12 @@ export const ImageCard: React.FC<IImageCardProps> = PatchComponent(
       return height > width;
     }
 
-    const source = withApiKey(
-      props.image.paths.preview != ""
-        ? props.image.paths.preview ?? ""
-        : props.image.paths.thumbnail ?? ""
-    ) ?? "";
+    const source =
+      withApiKey(
+        props.image.paths.preview != ""
+          ? props.image.paths.preview ?? ""
+          : props.image.paths.thumbnail ?? ""
+      ) ?? "";
     const video = source.includes("preview");
     const ImagePreview = video ? "video" : "img";
 

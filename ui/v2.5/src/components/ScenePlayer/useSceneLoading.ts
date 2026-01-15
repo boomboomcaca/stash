@@ -128,7 +128,10 @@ export function useSceneLoading({
           caption.caption_type
         })`;
         const setAsDefault = !hasDefault && languageCode == lang;
-        const trackSrc = withApiKey(`${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`) ?? "";
+        const trackSrc =
+          withApiKey(
+            `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`
+          ) ?? "";
 
         if (setAsDefault) {
           hasDefault = true;
@@ -156,7 +159,9 @@ export function useSceneLoading({
       } else {
         const firstCaption = scene.captions[0];
         setCurrentSubtitleTrack(
-          withApiKey(`${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`) ?? ""
+          withApiKey(
+            `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`
+          ) ?? ""
         );
         setSubtitleLanguage(firstCaption.language_code);
       }
