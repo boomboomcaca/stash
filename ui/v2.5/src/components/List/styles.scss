@@ -1163,14 +1163,3 @@ input[type="range"].zoom-slider {
     top: 0;
   }
 }
-
-// 修复：防止 ScenePlayer 的 column-reverse 媒体查询影响列表页面
-// ScenePlayer/styles.scss 中的 .row { flex-direction: column-reverse } 会影响所有 .row
-// 这里覆盖该规则，确保列表容器中的 .row 保持正常顺序
-@media (max-width: 1199px) {
-  @media (orientation: landscape) and (max-height: 1300px) {
-    .item-list-container .row {
-      flex-direction: row;
-    }
-  }
-}

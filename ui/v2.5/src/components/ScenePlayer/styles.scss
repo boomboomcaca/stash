@@ -778,10 +778,20 @@ $sceneTabWidth: 450px;
   }
 
   // 手机横屏时视频置顶
+  // 只影响包含 .scene-player-container 的页面，避免影响其他页面（如 Settings、列表页面）
   @media (orientation: landscape) and (max-height: 1300px) {
-    .row {
+    .scene-player-container ~ .scene-tabs,
+    .scene-tabs:has(~ .scene-player-container) {
+      order: 1;
+    }
+
+    .scene-player-container {
+      order: 0;
+    }
+
+    .main > .row:has(.scene-player-container) {
       display: flex;
-      flex-direction: column-reverse;
+      flex-direction: column;
     }
 
     .scene-player-container {
