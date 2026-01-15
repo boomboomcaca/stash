@@ -570,7 +570,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       >
         <div className="video-container">
           <div className="video-wrapper" ref={videoRef}>
-            {onDelete && onRatingChange && (
+            {onDelete && onRatingChange && !showEnhancedSubtitles && (
               <ScenePlayerActions
                 rating100={scene.rating100}
                 onSetRating={onRatingChange}
