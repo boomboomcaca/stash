@@ -26,6 +26,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { objectPath, objectTitle } from "src/core/files";
 import { PreviewScrubber } from "./PreviewScrubber";
+import { withApiKey } from "src/core/createClient";
 import { PatchComponent } from "src/patch";
 import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
 import { GroupTag } from "../Groups/GroupTag";
@@ -430,11 +431,11 @@ const SceneCardImage = PatchComponent(
     return (
       <>
         <ScenePreview
-          image={props.scene.paths.screenshot ?? undefined}
-          video={props.scene.paths.preview ?? undefined}
+          image={withApiKey(props.scene.paths.screenshot)}
+          video={withApiKey(props.scene.paths.preview)}
           isPortrait={isPortrait()}
           soundActive={configuration?.interface?.soundOnPreview ?? false}
-          vttPath={props.scene.paths.vtt ?? undefined}
+          vttPath={withApiKey(props.scene.paths.vtt)}
           onScrubberClick={onScrubberClick}
         />
         <RatingBanner rating={props.scene.rating100} />
@@ -492,7 +493,7 @@ export const SceneCard = PatchComponent(
         duration={file?.duration ?? undefined}
         interactiveHeatmap={
           props.scene.interactive_speed
-            ? props.scene.paths.interactive_heatmap ?? undefined
+            ? withApiKey(props.scene.paths.interactive_heatmap)
             : undefined
         }
         image={<SceneCardImage {...props} />}

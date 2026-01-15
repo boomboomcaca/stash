@@ -6,6 +6,7 @@ import viteCompression from "vite-plugin-compression";
 
 const nolegacy = process.env.VITE_APP_NOLEGACY === "true";
 const sourcemap = process.env.VITE_APP_SOURCEMAPS === "true";
+const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
@@ -16,15 +17,22 @@ export default defineConfig(() => {
       },
     }),
     tsconfigPaths(),
-    viteCompression({
-      algorithm: "gzip",
-      deleteOriginFile: true,
-      threshold: 0,
-      filter: /\.(js|json|css|svg|md)$/i,
-    }),
   ];
 
-  if (!nolegacy) {
+  // Tauri 模式下不使用 gzip 压缩（会删除原文件导致 Tauri 无法加载）
+  if (!isTauri) {
+    plugins.push(
+      viteCompression({
+        algorithm: "gzip",
+        deleteOriginFile: true,
+        threshold: 0,
+        filter: /\.(js|json|css|svg|md)$/i,
+      })
+    );
+  }
+
+  // Tauri 模式下不需要 legacy 支持
+  if (!nolegacy && !isTauri) {
     plugins = [...plugins, legacy()];
   }
 

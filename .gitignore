@@ -119,3 +119,10 @@ plugins/cache/
 # Test coverage
 coverage.out
 *.cover
+
+####
+# Tauri
+####
+**/src-tauri/target/
+**/src-tauri/WixTools/
+**/src-tauri/Cargo.lock

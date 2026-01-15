@@ -14,6 +14,48 @@ import createUploadLink from "apollo-upload-client/createUploadLink.mjs";
 import * as GQL from "src/core/generated-graphql";
 import { FieldReadFunction } from "@apollo/client/cache";
 
+// 检测是否在 Tauri 环境中运行
+export const isTauriEnv = () => {
+  return typeof window !== "undefined" && "__TAURI__" in window;
+};
+
+// 获取存储的服务器配置
+export const getStoredServerUrl = (): string | null => {
+  return localStorage.getItem("stash_server_url");
+};
+
+export const getStoredApiKey = (): string | null => {
+  return localStorage.getItem("stash_api_key");
+};
+
+export const isServerConfigured = (): boolean => {
+  return isTauriEnv() ? !!getStoredServerUrl() : true;
+};
+
+// 为 URL 添加 API Key 参数（仅在 Tauri 环境下）
+export const withApiKey = (url: string | undefined | null): string | undefined => {
+  if (!url) return undefined;
+  if (!isTauriEnv()) return url;
+  
+  const apiKey = getStoredApiKey();
+  if (!apiKey) return url;
+  
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set("apikey", apiKey);
+    return urlObj.toString();
+  } catch {
+    // 如果是相对 URL，添加服务器地址
+    const serverUrl = getStoredServerUrl();
+    if (serverUrl) {
+      const fullUrl = new URL(url, serverUrl);
+      fullUrl.searchParams.set("apikey", apiKey);
+      return fullUrl.toString();
+    }
+    return url;
+  }
+};
+
 // A read function that returns a cache reference with the given
 // typename if no valid reference is available.
 // Allows to return a cached object rather than fetching.
@@ -112,18 +154,35 @@ export const baseURL =
   document.querySelector("base")?.getAttribute("href") ?? "/";
 
 export const getPlatformURL = (path?: string) => {
-  let url = new URL(window.location.origin + baseURL);
+  let url: URL;
 
-  if (import.meta.env.DEV) {
-    if (import.meta.env.VITE_APP_PLATFORM_URL) {
-      url = new URL(import.meta.env.VITE_APP_PLATFORM_URL);
+  // Tauri 模式：使用存储的服务器地址
+  if (isTauriEnv()) {
+    const storedUrl = getStoredServerUrl();
+    if (storedUrl) {
+      url = new URL(storedUrl);
     } else {
-      url.port = import.meta.env.VITE_APP_PLATFORM_PORT ?? "9999";
+      // 默认值，将在配置界面中设置
+      url = new URL("http://localhost:9999");
+    }
+  } else {
+    url = new URL(window.location.origin + baseURL);
+
+    if (import.meta.env.DEV) {
+      if (import.meta.env.VITE_APP_PLATFORM_URL) {
+        url = new URL(import.meta.env.VITE_APP_PLATFORM_URL);
+      } else {
+        url.port = import.meta.env.VITE_APP_PLATFORM_PORT ?? "9999";
+      }
     }
   }
 
   if (path) {
-    url.pathname += path;
+    // 确保路径正确拼接
+    const basePath = url.pathname.endsWith("/")
+      ? url.pathname.slice(0, -1)
+      : url.pathname;
+    url.pathname = basePath + "/" + path;
   }
 
   return url;
@@ -139,7 +198,17 @@ export const createClient = () => {
     wsUrl.protocol = "ws:";
   }
 
-  const httpLink = createUploadLink({ uri: url.toString() });
+  // Tauri 模式下添加 API Key 到请求头
+  const apiKey = isTauriEnv() ? getStoredApiKey() : null;
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers.ApiKey = apiKey;
+  }
+
+  const httpLink = createUploadLink({
+    uri: url.toString(),
+    headers,
+  });
 
   const wsClient = createWSClient({
     url: wsUrl.toString(),
@@ -147,6 +216,7 @@ export const createClient = () => {
     shouldRetry() {
       return true;
     },
+    connectionParams: apiKey ? { ApiKey: apiKey } : undefined,
   });
 
   const wsLink = new GraphQLWsLink(wsClient);

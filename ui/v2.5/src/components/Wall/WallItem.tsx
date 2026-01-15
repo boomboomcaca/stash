@@ -15,6 +15,7 @@ import { SceneQueue } from "src/models/sceneQueue";
 import { useConfigurationContext } from "src/hooks/Config";
 import { markerTitle } from "src/core/markers";
 import { objectTitle } from "src/core/files";
+import { withApiKey } from "src/core/createClient";
 
 export type WallItemType = keyof WallItemData;
 
@@ -137,21 +138,21 @@ export const WallItem = <T extends WallItemType>({
       case "scene":
         const scene = data as GQL.SlimSceneDataFragment;
         return {
-          video: scene.paths.preview ?? undefined,
-          animation: scene.paths.webp ?? undefined,
-          image: scene.paths.screenshot ?? undefined,
+          video: withApiKey(scene.paths.preview),
+          animation: withApiKey(scene.paths.webp),
+          image: withApiKey(scene.paths.screenshot),
         };
       case "sceneMarker":
         const sceneMarker = data as GQL.SceneMarkerDataFragment;
         return {
-          video: sceneMarker.stream,
-          animation: sceneMarker.preview,
-          image: sceneMarker.screenshot,
+          video: withApiKey(sceneMarker.stream),
+          animation: withApiKey(sceneMarker.preview),
+          image: withApiKey(sceneMarker.screenshot),
         };
       case "image":
         const image = data as GQL.SlimImageDataFragment;
         return {
-          image: image.paths.thumbnail ?? undefined,
+          image: withApiKey(image.paths.thumbnail),
         };
       default:
         // this is unreachable, inference fails for some reason

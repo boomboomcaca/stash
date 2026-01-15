@@ -51,6 +51,7 @@ import { useDebounce } from "../debounce";
 import { isVideo } from "src/utils/visualFile";
 import { imageTitle } from "src/core/files";
 import { galleryTitle } from "src/core/galleries";
+import { withApiKey } from "src/core/createClient";
 
 const CLASSNAME = "Lightbox";
 const CLASSNAME_HEADER = `${CLASSNAME}-header`;
@@ -477,9 +478,9 @@ export const LightboxComponent: React.FC<IProps> = ({
       autoPlay: image.paths.preview != "",
       playsInline: image.paths.preview != "",
       src:
-        image.paths.preview != ""
+        withApiKey(image.paths.preview != ""
           ? image.paths.preview ?? ""
-          : image.paths.thumbnail ?? "",
+          : image.paths.thumbnail ?? "") ?? "",
       alt: "",
       className: cx(CLASSNAME_NAVIMAGE, {
         [CLASSNAME_NAVSELECTED]: i === index,
@@ -881,7 +882,7 @@ export const LightboxComponent: React.FC<IProps> = ({
               <div className={`${CLASSNAME_IMAGE}`} key={image.paths.image}>
                 {i >= currentIndex - 1 && i <= currentIndex + 1 ? (
                   <LightboxImage
-                    src={image.paths.image ?? ""}
+                    src={withApiKey(image.paths.image) ?? ""}
                     width={image.visual_files?.[0]?.width ?? 0}
                     height={image.visual_files?.[0]?.height ?? 0}
                     displayMode={displayMode}

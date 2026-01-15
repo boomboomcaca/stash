@@ -16,6 +16,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { imageTitle } from "src/core/files";
 import { PatchComponent } from "src/patch";
+import { withApiKey } from "src/core/createClient";
 import { TruncatedText } from "../Shared/TruncatedText";
 import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
 import { OCounterButton } from "../Shared/CountButton";
@@ -141,10 +142,11 @@ export const ImageCard: React.FC<IImageCardProps> = PatchComponent(
       return height > width;
     }
 
-    const source =
+    const source = withApiKey(
       props.image.paths.preview != ""
         ? props.image.paths.preview ?? ""
-        : props.image.paths.thumbnail ?? "";
+        : props.image.paths.thumbnail ?? ""
+    ) ?? "";
     const video = source.includes("preview");
     const ImagePreview = video ? "video" : "img";
 

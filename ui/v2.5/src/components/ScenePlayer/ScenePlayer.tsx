@@ -584,6 +584,33 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                 }}
               />
             )}
+            {currentSubtitleTrack && showEnhancedSubtitles && (
+              <EnhancedSubtitleOverlay
+                currentTime={time}
+                subtitleTrack={currentSubtitleTrack}
+                isVisible={showEnhancedSubtitles}
+                isFullscreen={fullscreen}
+                language={subtitleLanguage}
+                onToggleVisibility={() =>
+                  setShowEnhancedSubtitles(!showEnhancedSubtitles)
+                }
+                onPausePlayer={() => getPlayer()?.pause()}
+                getPlayerPaused={() => getPlayer()?.paused() ?? true}
+                resetFontSizeTrigger={resetFontSizeTrigger}
+                onSubtitlesLoaded={handleSubtitlesLoaded}
+                onCurrentCueChange={handleCurrentCueChange}
+                onAPDoubleClick={temporarilyUnlockControlBar}
+                onPlay={() => getPlayer()?.play()}
+                onSeekToCue={(cueIndex) => {
+                  const player = getPlayer();
+                  if (player && subtitleCues[cueIndex]) {
+                    player.currentTime(subtitleCues[cueIndex].startTime);
+                  }
+                }}
+                onGetPlayer={getPlayer}
+                onNavigationRef={handleNavigationRef}
+              />
+            )}
           </div>
         </div>
         {scene.interactive &&
@@ -596,33 +623,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             time={time}
             onSeek={onScrubberSeek}
             onScroll={onScrubberScroll}
-          />
-        )}
-        {currentSubtitleTrack && showEnhancedSubtitles && (
-          <EnhancedSubtitleOverlay
-            currentTime={time}
-            subtitleTrack={currentSubtitleTrack}
-            isVisible={showEnhancedSubtitles}
-            isFullscreen={fullscreen}
-            language={subtitleLanguage}
-            onToggleVisibility={() =>
-              setShowEnhancedSubtitles(!showEnhancedSubtitles)
-            }
-            onPausePlayer={() => getPlayer()?.pause()}
-            getPlayerPaused={() => getPlayer()?.paused() ?? true}
-            resetFontSizeTrigger={resetFontSizeTrigger}
-            onSubtitlesLoaded={handleSubtitlesLoaded}
-            onCurrentCueChange={handleCurrentCueChange}
-            onAPDoubleClick={temporarilyUnlockControlBar}
-            onPlay={() => getPlayer()?.play()}
-            onSeekToCue={(cueIndex) => {
-              const player = getPlayer();
-              if (player && subtitleCues[cueIndex]) {
-                player.currentTime(subtitleCues[cueIndex].startTime);
-              }
-            }}
-            onGetPlayer={getPlayer}
-            onNavigationRef={handleNavigationRef}
           />
         )}
       </div>

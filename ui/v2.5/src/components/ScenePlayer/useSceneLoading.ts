@@ -6,6 +6,7 @@ import { languageMap } from "src/utils/caption";
 import { type IMarker } from "./markers";
 import { getMarkerTitle, type MarkerFragment } from "./types";
 import ScreenUtils from "src/utils/screen";
+import { withApiKey } from "src/core/createClient";
 
 interface IUseSceneLoadingProps {
   getPlayer: () => VideoJsPlayer | null;
@@ -127,7 +128,7 @@ export function useSceneLoading({
           caption.caption_type
         })`;
         const setAsDefault = !hasDefault && languageCode == lang;
-        const trackSrc = `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`;
+        const trackSrc = withApiKey(`${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`) ?? "";
 
         if (setAsDefault) {
           hasDefault = true;
@@ -155,7 +156,7 @@ export function useSceneLoading({
       } else {
         const firstCaption = scene.captions[0];
         setCurrentSubtitleTrack(
-          `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`
+          withApiKey(`${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`) ?? ""
         );
         setSubtitleLanguage(firstCaption.language_code);
       }
@@ -188,7 +189,7 @@ export function useSceneLoading({
     player.focus();
 
     player.ready(() => {
-      player.vttThumbnails().src(scene.paths.vtt ?? null);
+      player.vttThumbnails().src(withApiKey(scene.paths.vtt) ?? null);
 
       if (startPosition) {
         player.currentTime(startPosition);
@@ -270,7 +271,7 @@ export function useSceneLoading({
     if (!player) return;
 
     if (scene.paths.screenshot) {
-      player.poster(scene.paths.screenshot);
+      player.poster(withApiKey(scene.paths.screenshot) ?? "");
     } else {
       player.poster("");
     }

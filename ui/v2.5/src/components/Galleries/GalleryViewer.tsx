@@ -7,6 +7,7 @@ import {
   CriterionModifier,
   useFindImagesQuery,
 } from "src/core/generated-graphql";
+import { withApiKey } from "src/core/createClient";
 
 interface IProps {
   galleryId: string;
@@ -66,7 +67,7 @@ export const GalleryViewer: React.FC<IProps> = ({ galleryId }) => {
 
   images.forEach((image, index) => {
     let imageData = {
-      src: image.paths.thumbnail!,
+      src: withApiKey(image.paths.thumbnail) ?? "",
       width: image.visual_files[0]?.width ?? 0,
       height: image.visual_files[0]?.height ?? 0,
       tabIndex: index,

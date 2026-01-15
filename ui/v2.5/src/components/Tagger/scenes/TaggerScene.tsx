@@ -21,6 +21,7 @@ import {
 import { objectPath, objectTitle } from "src/core/files";
 import { useConfigurationContext } from "src/hooks/Config";
 import { SceneQueue } from "src/models/sceneQueue";
+import { withApiKey } from "src/core/createClient";
 
 interface ITaggerSceneDetails {
   scene: GQL.SlimSceneDataFragment;
@@ -204,7 +205,7 @@ export const TaggerScene: React.FC<PropsWithChildren<ITaggerScene>> = ({
 
   function onSpriteClick(ev: React.MouseEvent<HTMLElement>) {
     ev.preventDefault();
-    showLightboxImage(scene.paths.sprite ?? "");
+    showLightboxImage(withApiKey(scene.paths.sprite) ?? "");
   }
 
   function maybeRenderSpriteIcon() {
@@ -242,11 +243,11 @@ export const TaggerScene: React.FC<PropsWithChildren<ITaggerScene>> = ({
           <div className="scene-card mr-3">
             <Link to={url}>
               <ScenePreview
-                image={scene.paths.screenshot ?? undefined}
-                video={scene.paths.preview ?? undefined}
+                image={withApiKey(scene.paths.screenshot)}
+                video={withApiKey(scene.paths.preview)}
                 isPortrait={isPortrait}
                 soundActive={false}
-                vttPath={scene.paths.vtt ?? undefined}
+                vttPath={withApiKey(scene.paths.vtt)}
                 onScrubberClick={onScrubberClick}
               />
               {maybeRenderSpriteIcon()}
