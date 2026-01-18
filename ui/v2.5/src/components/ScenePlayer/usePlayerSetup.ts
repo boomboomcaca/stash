@@ -39,6 +39,17 @@ export function usePlayerSetup({
 }: IUsePlayerSetupProps) {
   const [_player, setPlayer] = useState<VideoJsPlayer>();
   const sceneId = useRef<string>();
+  const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
+  const currentSubtitleTrackRef = useRef(currentSubtitleTrack);
+
+  // 同步状态到 ref，避免闭包陷阱
+  useEffect(() => {
+    showEnhancedSubtitlesRef.current = showEnhancedSubtitles;
+  }, [showEnhancedSubtitles]);
+
+  useEffect(() => {
+    currentSubtitleTrackRef.current = currentSubtitleTrack;
+  }, [currentSubtitleTrack]);
 
   const getPlayer = useCallback(() => {
     if (!_player) return null;
@@ -93,8 +104,8 @@ export function usePlayerSetup({
             event as unknown as KeyboardEvent,
             () => {
               // 只有在有字幕文件时才允许切换增强字幕
-              if (currentSubtitleTrack !== null) {
-                setShowEnhancedSubtitles(!showEnhancedSubtitles);
+              if (currentSubtitleTrackRef.current !== null) {
+                setShowEnhancedSubtitles(!showEnhancedSubtitlesRef.current);
               }
             },
             () => setResetFontSizeTrigger((prev) => prev + 1),
@@ -104,11 +115,12 @@ export function usePlayerSetup({
                 temporarilyUnlockControlBarRef.current();
               }
             },
-            showEnhancedSubtitles
-              ? (enhancedSubtitleNavigationRef.current as
-                  | IEnhancedSubtitleNavigation
-                  | undefined)
-              : undefined,
+            () =>
+              showEnhancedSubtitlesRef.current
+                ? (enhancedSubtitleNavigationRef.current as
+                    | IEnhancedSubtitleNavigation
+                    | undefined)
+                : undefined,
             () => controlBarVisibleRef.current,
             () => {
               // 使用 ref 来调用最新的 hideControlBar 函数

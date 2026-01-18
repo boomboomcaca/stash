@@ -8,10 +8,12 @@ export function handleHotkeys(
   toggleEnhancedSubtitles?: () => void,
   resetSubtitleFontSize?: () => void,
   showControlBar?: () => void,
-  enhancedSubtitleNavigation?: IEnhancedSubtitleNavigation,
+  getEnhancedSubtitleNavigation?: () => IEnhancedSubtitleNavigation | undefined,
   isControlBarVisible?: () => boolean,
   hideControlBar?: () => void
 ) {
+  // 每次调用时获取最新的 enhancedSubtitleNavigation
+  const enhancedSubtitleNavigation = getEnhancedSubtitleNavigation?.();
   function seekStep(step: number) {
     const time = player.currentTime() + step;
     const duration = player.duration();
