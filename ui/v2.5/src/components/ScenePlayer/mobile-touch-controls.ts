@@ -905,6 +905,32 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 如果垂直移动距离大于水平移动距离，则进入垂直滑动模式
       // 用于切换字幕（增强字幕启用时）或切换场景（无字幕时）
       if (verticalDistance > horizontalDistance) {
+        // 如果已经在选词模式，向下滑动退出选词模式
+        if (this.isInWordNavigationMode?.() && deltaY > 0) {
+          this.exitWordNavigationMode?.();
+          this.triggerHapticFeedback();
+
+          // 切换播放/暂停（与键盘↑行为一致）
+          if (this.player.paused()) {
+            this.player.play()?.catch(() => {});
+          } else {
+            this.player.pause();
+          }
+
+          // 设置垂直滑动状态为已触发，防止后续触发字幕切换
+          this.state.isVerticalSwipe = true;
+          this.state.verticalSwipeTriggered = true;
+
+          // 取消长按计时器
+          if (this.state.longPressTimer) {
+            clearTimeout(this.state.longPressTimer);
+            this.state.longPressTimer = null;
+          }
+
+          event.preventDefault();
+          return;
+        }
+
         // 只有在有字幕可切换或有场景切换回调时才进入垂直滑动模式
         const hasSubtitles =
           this.enhancedSubtitlesEnabled && this.subtitleCues.length > 0;
@@ -1043,6 +1069,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private handleSingleTap(): void {
+    // 如果在选词模式，单击触发单词选择
+    if (this.isInWordNavigationMode?.()) {
+      this.handleWordSelection?.();
+      return;
+    }
+
     if (this.player.paused()) {
       this.player.play()?.catch(() => {});
     } else {
