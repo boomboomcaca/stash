@@ -27,6 +27,7 @@ import (
 	"github.com/stashapp/stash/pkg/scraper"
 	"github.com/stashapp/stash/pkg/session"
 	"github.com/stashapp/stash/pkg/sqlite"
+	"github.com/stashapp/stash/pkg/subtitle"
 	"github.com/stashapp/stash/pkg/utils"
 
 	// register custom migrations
@@ -59,7 +60,8 @@ type Manager struct {
 	PluginPackageManager  *pkg.Manager
 	ScraperPackageManager *pkg.Manager
 
-	DLNAService *dlna.Service
+	DLNAService     *dlna.Service
+	SubtitleService *subtitle.Service
 
 	Database   *sqlite.Database
 	Repository models.Repository
