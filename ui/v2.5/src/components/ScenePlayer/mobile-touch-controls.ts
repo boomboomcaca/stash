@@ -33,6 +33,12 @@ interface ITouchControlState {
   // 垂直滑动切换字幕相关状态
   isVerticalSwipe: boolean;
   verticalSwipeTriggered: boolean;
+
+  // 水平滑动选择单词相关状态
+  isWordSwipe: boolean;
+  wordSwipeStartX: number;
+  wordSwipeLastDelta: number; // 用于计算增量
+  wordSwipeTriggered: boolean;
 }
 
 class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
@@ -69,6 +75,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 垂直滑动切换字幕相关状态初始化
     isVerticalSwipe: false,
     verticalSwipeTriggered: false,
+
+    // 水平滑动选择单词相关状态初始化
+    isWordSwipe: false,
+    wordSwipeStartX: 0,
+    wordSwipeLastDelta: 0,
+    wordSwipeTriggered: false,
   };
 
   // 绑定的事件处理函数引用，用于正确移除事件监听器
@@ -103,6 +115,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   // 场景切换回调
   private onNextScene: (() => void) | null = null;
   private onPreviousScene: (() => void) | null = null;
+
+  // 单词导航回调
+  private navigateToNextWord: (() => void) | null = null;
+  private navigateToPreviousWord: (() => void) | null = null;
+  private enterWordNavigationMode: ((selectLastWord?: boolean) => void) | null =
+    null;
+  private exitWordNavigationMode: (() => void) | null = null;
+  private handleWordSelection: (() => Promise<void>) | null = null;
+  private isInWordNavigationMode: (() => boolean) | null = null;
   private isDraggingMode: boolean = false; // 标记是否正在拖动
   private originalReportUserActivity: ((event?: Event) => void) | null = null; // 保存原始的 reportUserActivity
 
@@ -119,6 +140,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly MAX_VERTICAL_DRAG = 100; // 拖拽时允许的最大垂直偏移（像素）
   private readonly VERTICAL_SWIPE_THRESHOLD = 30; // 垂直滑动切换字幕的阈值（像素）
 
+  // 单词滑动选择相关常量
+  private readonly WORD_SWIPE_THRESHOLD = 25; // 触发单词选择的滑动距离阈值（像素）
+  private readonly WORD_SWIPE_STEP = 40; // 每个单词切换需要的滑动距离（像素）
+  private readonly WORD_SWIPE_VELOCITY_THRESHOLD = 0.3; // 快速滑动的速度阈值
+  private wordSwipeStartTime: number = 0; // 记录滑动开始时间
+
   // 长按倍速控制相关常量
   private readonly SPEED_CONTROL_SENSITIVITY = 20; // 倍速控制灵敏度（像素）- 提高灵敏度
   private readonly MIN_SPEED_RATE = 0.25; // 最小倍速
@@ -128,6 +155,46 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     8, 10, 12, 16, 20,
   ]; // 支持所有Video.js倍速档位
   private readonly SPEED_STORAGE_KEY = "stash-video-speed-rate"; // localStorage存储键
+
+  // 辅助函数：触发触觉反馈（震动）
+  private triggerHapticFeedback(): void {
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate(10); // 短促的震动反馈
+      }
+    } catch {
+      // 忽略震动失败
+    }
+  }
+
+  // 辅助函数：处理单词滑动选择
+  private handleWordSwipe(deltaX: number): void {
+    // 计算当前滑动距离应该对应的单词步数
+    const currentSteps = Math.floor(Math.abs(deltaX) / this.WORD_SWIPE_STEP);
+    const lastSteps = Math.floor(
+      Math.abs(this.state.wordSwipeLastDelta) / this.WORD_SWIPE_STEP
+    );
+
+    // 只有当步数变化时才触发单词切换
+    if (currentSteps > lastSteps) {
+      // 计算需要切换的次数
+      const stepsToNavigate = currentSteps - lastSteps;
+
+      for (let i = 0; i < stepsToNavigate; i++) {
+        if (deltaX > 0) {
+          // 右滑：下一个单词
+          this.navigateToNextWord?.();
+        } else {
+          // 左滑：上一个单词
+          this.navigateToPreviousWord?.();
+        }
+        this.triggerHapticFeedback();
+      }
+    }
+
+    // 更新上次的滑动距离
+    this.state.wordSwipeLastDelta = deltaX;
+  }
 
   // 辅助函数：统一的播放控制
   private playIfPaused(): void {
@@ -407,6 +474,19 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const isMobile = window.matchMedia("(max-width: 1199px)").matches;
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
 
+    // 检查是否在 Playwright 或自动化测试环境中
+    // navigator.webdriver 在自动化浏览器中为 true
+    // 也支持通过 window.__FORCE_TOUCH_CONTROLS__ 手动强制启用
+    const isAutomation = navigator.webdriver === true;
+    const forceEnabled =
+      (window as Window & { __FORCE_TOUCH_CONTROLS__?: boolean })
+        .__FORCE_TOUCH_CONTROLS__ === true;
+
+    // 在自动化环境中，只需要 isMobile 即可启用（跳过 pointer:coarse 检查）
+    if ((isAutomation || forceEnabled) && isMobile) {
+      return true;
+    }
+
     // 只有在移动设备且支持触摸时才启用触摸控制
     return isMobile && isTouch;
   }
@@ -560,6 +640,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.state.longPressStartY = y;
     this.state.currentSpeedRate = 1;
 
+    // 重置单词滑动状态
+    this.state.isWordSwipe = false;
+    this.state.wordSwipeStartX = x;
+    this.state.wordSwipeLastDelta = 0;
+    this.state.wordSwipeTriggered = false;
+    this.wordSwipeStartTime = Date.now();
+
     // 开始长按计时器
     this.state.longPressTimer = window.setTimeout(() => {
       // 只有在没有进入拖拽模式时才触发长按
@@ -597,6 +684,34 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     if (this.state.isVerticalSwipe) {
       this.state.isVerticalSwipe = false;
       this.state.verticalSwipeTriggered = false;
+      event.preventDefault();
+      return;
+    }
+
+    // 如果是单词滑动结束，重置状态并处理快速滑动
+    if (this.state.isWordSwipe) {
+      // 计算滑动速度和方向
+      const deltaX = x - this.state.wordSwipeStartX;
+      const elapsed = Date.now() - this.wordSwipeStartTime;
+      const velocity = Math.abs(deltaX) / elapsed; // px/ms
+
+      // 快速滑动时额外触发一次单词切换（惯性效果）
+      if (
+        velocity > this.WORD_SWIPE_VELOCITY_THRESHOLD &&
+        Math.abs(deltaX) > 50
+      ) {
+        if (deltaX > 0) {
+          this.navigateToNextWord?.();
+          this.triggerHapticFeedback();
+        } else {
+          this.navigateToPreviousWord?.();
+          this.triggerHapticFeedback();
+        }
+      }
+
+      this.state.isWordSwipe = false;
+      this.state.wordSwipeLastDelta = 0;
+      this.state.wordSwipeTriggered = false;
       event.preventDefault();
       return;
     }
@@ -776,11 +891,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       return;
     }
 
-    // 检测是否开始拖拽或垂直滑动
+    // 检测是否开始拖拽、垂直滑动或单词滑动
     if (
       !this.state.isDragging &&
       !this.state.isLongPress &&
       !this.state.isVerticalSwipe &&
+      !this.state.isWordSwipe &&
       distance > this.DRAG_THRESHOLD
     ) {
       const horizontalDistance = Math.abs(deltaX);
@@ -805,65 +921,67 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
           }
         }
       }
-      // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大，则进入拖拽模式
+      // 如果水平移动距离大于垂直移动距离，且垂直偏移不太大
       else if (
         horizontalDistance > verticalDistance &&
         verticalDistance < this.MAX_VERTICAL_DRAG
       ) {
-        this.state.isDragging = true;
-        this.isDraggingMode = true; // 标记正在拖动
+        // 如果增强字幕启用且有单词导航回调，进入单词滑动模式
+        if (
+          this.enhancedSubtitlesEnabled &&
+          this.navigateToNextWord &&
+          this.navigateToPreviousWord
+        ) {
+          this.state.isWordSwipe = true;
+          this.state.wordSwipeStartX = this.state.dragStartX;
+          this.state.wordSwipeLastDelta = 0;
 
-        // 记录拖拽前的播放状态和静音状态并暂停播放
-        this.state.wasPlayingBeforeDrag = !this.player.paused();
-        this.state.wasMutedBeforeDrag = this.player.muted() ?? false;
-        if (this.state.wasPlayingBeforeDrag) {
-          this.player.pause();
-        }
-
-        // 取消长按计时器
-        if (this.state.longPressTimer) {
-          clearTimeout(this.state.longPressTimer);
-          this.state.longPressTimer = null;
-        }
-
-        // 当拖动开始时，显示控制栏但不启动自动隐藏计时器
-        if (this.enhancedSubtitlesEnabled) {
-          // 如果增强字幕启用，临时解锁控制栏并显示
-          const playerEl = this.player.el();
-          if (playerEl) {
-            // 添加临时解锁类，允许控制栏显示
-            playerEl.classList.add("vjs-controls-unlocked-once");
-            playerEl.classList.remove("vjs-controls-locked-hidden");
-          }
-
-          this.player.userActive(true);
-
-          // 保存原始的 reportUserActivity 并临时修改它来阻止自动隐藏
-          if (!this.originalReportUserActivity) {
-            this.originalReportUserActivity = (
-              this.player as VideoJsPlayer & {
-                reportUserActivity?: (event?: Event) => void;
-              }
-            ).reportUserActivity;
-          }
-
-          const self = this;
-          (this.player as VideoJsPlayer).reportUserActivity = function (
-            this: VideoJsPlayer,
-            evt?: Event
+          // 如果还没进入单词导航模式，先进入
+          if (
+            this.enterWordNavigationMode &&
+            !this.isInWordNavigationMode?.()
           ) {
-            // 如果正在拖动，阻止触发用户活动（这样就不会重置自动隐藏计时器）
-            if (self.isDraggingMode) {
-              return;
-            }
-            // 否则调用原始的方法
-            return self.originalReportUserActivity?.call(this, evt);
-          };
-        } else if (this.showControlBar) {
-          // 如果增强字幕未启用，使用默认行为
-          this.showControlBar();
+            // 根据滑动方向决定选择第一个还是最后一个单词
+            const selectLastWord = deltaX < 0;
+            this.enterWordNavigationMode(selectLastWord);
+          }
+
+          // 取消长按计时器
+          if (this.state.longPressTimer) {
+            clearTimeout(this.state.longPressTimer);
+            this.state.longPressTimer = null;
+          }
+        } else {
+          // 如果增强字幕未启用，进入拖拽进度模式
+          this.state.isDragging = true;
+          this.isDraggingMode = true; // 标记正在拖动
+
+          // 记录拖拽前的播放状态和静音状态并暂停播放
+          this.state.wasPlayingBeforeDrag = !this.player.paused();
+          this.state.wasMutedBeforeDrag = this.player.muted() ?? false;
+          if (this.state.wasPlayingBeforeDrag) {
+            this.player.pause();
+          }
+
+          // 取消长按计时器
+          if (this.state.longPressTimer) {
+            clearTimeout(this.state.longPressTimer);
+            this.state.longPressTimer = null;
+          }
+
+          // 当拖动开始时，显示控制栏但不启动自动隐藏计时器
+          if (this.showControlBar) {
+            this.showControlBar();
+          }
         }
       }
+    }
+
+    // 如果已经在单词滑动模式，处理单词切换
+    if (this.state.isWordSwipe) {
+      this.handleWordSwipe(deltaX);
+      event.preventDefault();
+      return;
     }
 
     // 如果已经在拖拽模式，更新进度
@@ -1443,6 +1561,23 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   // 公共方法：设置上一个场景的回调函数
   public setOnPreviousScene(callback: () => void): void {
     this.onPreviousScene = callback;
+  }
+
+  // 公共方法：设置单词导航回调函数
+  public setWordNavigationCallbacks(callbacks: {
+    navigateToNextWord: () => void;
+    navigateToPreviousWord: () => void;
+    enterWordNavigationMode: (selectLastWord?: boolean) => void;
+    exitWordNavigationMode: () => void;
+    handleWordSelection: () => Promise<void>;
+    isInWordNavigationMode: () => boolean;
+  }): void {
+    this.navigateToNextWord = callbacks.navigateToNextWord;
+    this.navigateToPreviousWord = callbacks.navigateToPreviousWord;
+    this.enterWordNavigationMode = callbacks.enterWordNavigationMode;
+    this.exitWordNavigationMode = callbacks.exitWordNavigationMode;
+    this.handleWordSelection = callbacks.handleWordSelection;
+    this.isInWordNavigationMode = callbacks.isInWordNavigationMode;
   }
 }
 

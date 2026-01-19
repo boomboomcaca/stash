@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { VideoJsPlayer } from "video.js";
+import { IEnhancedSubtitleNavigation } from "./types";
 
 interface IUseControlBarManagementProps {
   getPlayer: () => VideoJsPlayer | null;
@@ -10,6 +11,7 @@ interface IUseControlBarManagementProps {
   controlBarVisibleRef: React.MutableRefObject<boolean>;
   temporarilyUnlockControlBarRef: React.MutableRefObject<(() => void) | null>;
   hideControlBarRef: React.MutableRefObject<(() => void) | null>;
+  enhancedSubtitleNavigationRef: React.MutableRefObject<IEnhancedSubtitleNavigation | null>;
 }
 
 export function useControlBarManagement({
@@ -21,6 +23,7 @@ export function useControlBarManagement({
   controlBarVisibleRef,
   temporarilyUnlockControlBarRef,
   hideControlBarRef,
+  enhancedSubtitleNavigationRef,
 }: IUseControlBarManagementProps) {
   const unlockTimerRef = useRef<number | null>(null);
   const originalReportUserActivityRef = useRef<
@@ -202,6 +205,60 @@ export function useControlBarManagement({
     subtitleCues,
     currentSubtitleIndex,
     temporarilyUnlockControlBar,
+  ]);
+
+  // 传递单词导航回调到移动触摸控件
+  // 回调函数每次调用时都从 ref 中读取最新值，避免闭包捕获旧状态
+  useEffect(() => {
+    if (!showEnhancedSubtitles) return;
+
+    const setupWordNavigation = () => {
+      const player = getPlayer();
+      const touchPlugin = player?._mobileTouchControlsPlugin;
+
+      if (touchPlugin && enhancedSubtitleNavigationRef.current) {
+        // 注意：回调函数内部每次调用时都读取 ref.current，确保获取最新状态
+        touchPlugin.setWordNavigationCallbacks?.({
+          navigateToNextWord: () =>
+            enhancedSubtitleNavigationRef.current?.navigateToNextWord?.(),
+          navigateToPreviousWord: () =>
+            enhancedSubtitleNavigationRef.current?.navigateToPreviousWord?.(),
+          enterWordNavigationMode: (selectLastWord?: boolean) =>
+            enhancedSubtitleNavigationRef.current?.enterWordNavigationMode?.(
+              selectLastWord ?? false
+            ),
+          exitWordNavigationMode: () =>
+            enhancedSubtitleNavigationRef.current?.exitWordNavigationMode?.(),
+          handleWordSelection: async () =>
+            enhancedSubtitleNavigationRef.current?.handleWordSelection?.(),
+          isInWordNavigationMode: () =>
+            enhancedSubtitleNavigationRef.current?.isInWordNavigationMode ??
+            false,
+        });
+        return true;
+      }
+      return false;
+    };
+
+    // 立即尝试设置
+    if (setupWordNavigation()) return;
+
+    // 使用 interval 持续重试，直到成功或超时
+    let retryCount = 0;
+    const maxRetries = 10;
+    const retryInterval = setInterval(() => {
+      retryCount++;
+      if (setupWordNavigation() || retryCount >= maxRetries) {
+        clearInterval(retryInterval);
+      }
+    }, 200);
+
+    return () => clearInterval(retryInterval);
+  }, [
+    showEnhancedSubtitles,
+    getPlayer,
+    enhancedSubtitleNavigationRef,
+    subtitleCues,
   ]);
 
   return {

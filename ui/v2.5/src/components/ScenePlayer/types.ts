@@ -62,6 +62,14 @@ export interface IMobileTouchControlsPlugin {
   setShowControlBar(fn: () => void): void;
   setOnNextScene(fn: () => void): void;
   setOnPreviousScene(fn: () => void): void;
+  setWordNavigationCallbacks(callbacks: {
+    navigateToNextWord: () => void;
+    navigateToPreviousWord: () => void;
+    enterWordNavigationMode: (selectLastWord?: boolean) => void;
+    exitWordNavigationMode: () => void;
+    handleWordSelection: () => Promise<void>;
+    isInWordNavigationMode: () => boolean;
+  }): void;
 }
 
 // Extend VideoJsPlayer type with custom properties and methods

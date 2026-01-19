@@ -56,7 +56,7 @@ airplay(videojs);
 chromecast(videojs);
 abLoopPlugin(window, videojs);
 
-import { IScenePlayerProps } from "./types";
+import { IScenePlayerProps, IEnhancedSubtitleNavigation } from "./types";
 import { usePlayerSetup } from "./usePlayerSetup";
 import { usePlayerEvents } from "./usePlayerEvents";
 import { useSceneLoading } from "./useSceneLoading";
@@ -127,7 +127,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const isMouseOverActionsRef = useRef(false);
     const interactiveReady = useRef(false);
     const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
-    const enhancedSubtitleNavigationRef = useRef<unknown>(null);
+    const enhancedSubtitleNavigationRef =
+      useRef<IEnhancedSubtitleNavigation | null>(null);
     const minimumPlayPercent = uiConfig?.minimumPlayPercent ?? 0;
     const trackActivity = uiConfig?.trackActivity ?? true;
     const vrTag = uiConfig?.vrTag ?? undefined;
@@ -138,9 +139,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     }, [showEnhancedSubtitles]);
 
     // Callback to receive navigation ref from EnhancedSubtitleOverlay
-    const handleNavigationRef = useCallback((navRef: unknown) => {
-      enhancedSubtitleNavigationRef.current = navRef;
-    }, []);
+    const handleNavigationRef = useCallback(
+      (navRef: IEnhancedSubtitleNavigation | null) => {
+        enhancedSubtitleNavigationRef.current = navRef;
+      },
+      []
+    );
 
     useScript(
       "https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1",
@@ -193,6 +197,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         controlBarVisibleRef,
         temporarilyUnlockControlBarRef,
         hideControlBarRef,
+        enhancedSubtitleNavigationRef,
       });
 
     // Sync control bar management refs
