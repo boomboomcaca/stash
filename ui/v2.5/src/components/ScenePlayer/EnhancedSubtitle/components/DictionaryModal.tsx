@@ -66,10 +66,25 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
     [showDictionary, setShowDictionary]
   );
 
-  const handleDictionaryTouchEnd = useCallback(() => {
-    dictionaryTouchStartYRef.current = null;
-    dictionaryTouchTriggeredRef.current = false;
-  }, []);
+  const handleDictionaryTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      // 如果没有触发滑动关闭，则单击朗读单词
+      if (
+        !dictionaryTouchTriggeredRef.current &&
+        dictionaryTouchStartYRef.current !== null
+      ) {
+        const word = selectedWordRef.current;
+        if (word) {
+          handlePronunciation(word);
+        }
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      dictionaryTouchStartYRef.current = null;
+      dictionaryTouchTriggeredRef.current = false;
+    },
+    [handlePronunciation]
+  );
 
   // Keyboard event listener for dictionary modal
   useEffect(() => {

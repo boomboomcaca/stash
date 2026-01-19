@@ -50,6 +50,9 @@ export interface IEnhancedSubtitleNavigation {
   handleWordSelection?: () => void;
   markUserResumedPlayback?: () => void;
   clearScheduledAutoPause?: () => void;
+  // 词典相关
+  isDictionaryVisible?: () => boolean;
+  pronounceCurrentWord?: () => Promise<void>;
 }
 
 // Mobile Touch Controls Plugin Interface
@@ -69,6 +72,10 @@ export interface IMobileTouchControlsPlugin {
     exitWordNavigationMode: () => void;
     handleWordSelection: () => Promise<void>;
     isInWordNavigationMode: () => boolean;
+  }): void;
+  setDictionaryCallbacks(callbacks: {
+    isDictionaryVisible: () => boolean;
+    pronounceCurrentWord: () => Promise<void>;
   }): void;
 }
 

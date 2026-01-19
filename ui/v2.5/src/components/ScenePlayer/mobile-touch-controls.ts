@@ -125,6 +125,10 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private handleWordSelection: (() => Promise<void>) | null = null;
   private isInWordNavigationMode: (() => boolean) | null = null;
   private isDraggingMode: boolean = false; // 标记是否正在拖动
+
+  // 词典回调
+  private isDictionaryVisible: (() => boolean) | null = null;
+  private pronounceCurrentWord: (() => Promise<void>) | null = null;
   private originalReportUserActivity: ((event?: Event) => void) | null = null; // 保存原始的 reportUserActivity
 
   private readonly LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
@@ -1069,6 +1073,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private handleSingleTap(): void {
+    // 如果词典窗口可见，单击朗读当前单词
+    if (this.isDictionaryVisible?.()) {
+      this.pronounceCurrentWord?.();
+      return;
+    }
+
     // 如果在选词模式，单击触发单词选择
     if (this.isInWordNavigationMode?.()) {
       this.handleWordSelection?.();
@@ -1610,6 +1620,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.exitWordNavigationMode = callbacks.exitWordNavigationMode;
     this.handleWordSelection = callbacks.handleWordSelection;
     this.isInWordNavigationMode = callbacks.isInWordNavigationMode;
+  }
+
+  // 公共方法：设置词典回调函数
+  public setDictionaryCallbacks(callbacks: {
+    isDictionaryVisible: () => boolean;
+    pronounceCurrentWord: () => Promise<void>;
+  }): void {
+    this.isDictionaryVisible = callbacks.isDictionaryVisible;
+    this.pronounceCurrentWord = callbacks.pronounceCurrentWord;
   }
 }
 

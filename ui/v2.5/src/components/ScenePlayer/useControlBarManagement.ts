@@ -235,6 +235,16 @@ export function useControlBarManagement({
             enhancedSubtitleNavigationRef.current?.isInWordNavigationMode ??
             false,
         });
+
+        // 设置词典回调
+        touchPlugin.setDictionaryCallbacks?.({
+          isDictionaryVisible: () =>
+            enhancedSubtitleNavigationRef.current?.isDictionaryVisible?.() ??
+            false,
+          pronounceCurrentWord: async () =>
+            enhancedSubtitleNavigationRef.current?.pronounceCurrentWord?.(),
+        });
+
         return true;
       }
       return false;

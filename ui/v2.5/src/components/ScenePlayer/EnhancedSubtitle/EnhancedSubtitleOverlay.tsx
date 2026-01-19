@@ -256,6 +256,13 @@ export const EnhancedSubtitleOverlay: React.FC<
           return -1;
         },
         onGetPlayer,
+        // 词典相关
+        isDictionaryVisible: () => showDictionary,
+        pronounceCurrentWord: async () => {
+          if (selectedWord) {
+            await handlePronunciation(selectedWord);
+          }
+        },
       });
     }
   }, [
@@ -274,6 +281,9 @@ export const EnhancedSubtitleOverlay: React.FC<
     setIsAutoPaused,
     userResumedPlaybackRef,
     clearAutoPauseTimeout,
+    showDictionary,
+    selectedWord,
+    handlePronunciation,
   ]);
 
   // Render segmented text with clickable words
