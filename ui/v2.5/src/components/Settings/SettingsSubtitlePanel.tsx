@@ -1,20 +1,31 @@
 import React, { useState, useEffect } from "react";
-import { Button, Form, Alert } from "react-bootstrap";
+import { Button, Alert } from "react-bootstrap";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useToast } from "src/hooks/Toast";
 import { SettingSection } from "./SettingSection";
 import { BooleanSetting, StringSetting, NumberSetting } from "./Inputs";
 import { LoadingIndicator } from "../Shared/LoadingIndicator";
 import { Icon } from "../Shared/Icon";
-import { faCheck, faTimes, faSync, faClosedCaptioning } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheck,
+  faTimes,
+  faSync,
+  faClosedCaptioning,
+} from "@fortawesome/free-solid-svg-icons";
 
-interface SubtitleConfig {
-  whisper_url: string;
+interface ISubtitleConfig {
+  // General settings
   enabled: boolean;
-  auto_generate: boolean;
   default_language: string;
   skip_if_exists: boolean;
   timeout: number;
+  // OpenSubtitles settings
+  opensubtitles_enabled: boolean;
+  opensubtitles_api_key: string;
+  // Whisper settings
+  whisper_enabled: boolean;
+  whisper_url: string;
+  whisper_translate: boolean;
 }
 
 export const SettingsSubtitlePanel: React.FC = () => {
@@ -27,13 +38,16 @@ export const SettingsSubtitlePanel: React.FC = () => {
   const [testResult, setTestResult] = useState<boolean | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  const [config, setConfig] = useState<SubtitleConfig>({
-    whisper_url: "http://localhost:8000",
+  const [config, setConfig] = useState<ISubtitleConfig>({
     enabled: true,
-    auto_generate: false,
     default_language: "en",
     skip_if_exists: true,
     timeout: 300,
+    opensubtitles_enabled: false,
+    opensubtitles_api_key: "",
+    whisper_enabled: true,
+    whisper_url: "http://localhost:8000",
+    whisper_translate: true,
   });
 
   useEffect(() => {
@@ -47,7 +61,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: `query { subtitleConfig { whisper_url enabled auto_generate default_language skip_if_exists timeout } }`,
+          query: `query { subtitleConfig { enabled default_language skip_if_exists timeout opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate } }`,
         }),
       });
       const data = await response.json();
@@ -70,17 +84,20 @@ export const SettingsSubtitlePanel: React.FC = () => {
         body: JSON.stringify({
           query: `mutation ConfigureSubtitle($input: SubtitleConfigInput!) {
             configureSubtitle(input: $input) {
-              whisper_url enabled auto_generate default_language skip_if_exists timeout
+              enabled default_language skip_if_exists timeout opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate
             }
           }`,
           variables: {
             input: {
-              whisper_url: config.whisper_url,
               enabled: config.enabled,
-              auto_generate: config.auto_generate,
               default_language: config.default_language,
               skip_if_exists: config.skip_if_exists,
               timeout: config.timeout,
+              opensubtitles_enabled: config.opensubtitles_enabled,
+              opensubtitles_api_key: config.opensubtitles_api_key,
+              whisper_enabled: config.whisper_enabled,
+              whisper_url: config.whisper_url,
+              whisper_translate: config.whisper_translate,
             },
           },
         }),
@@ -160,46 +177,10 @@ export const SettingsSubtitlePanel: React.FC = () => {
         />
       </h4>
 
-      <SettingSection headingID="config.subtitle.whisper_settings" subHeadingID="">
-        <StringSetting
-          id="whisper_url"
-          headingID="config.subtitle.whisper_url"
-          subHeadingID="config.subtitle.whisper_url_desc"
-          value={config.whisper_url}
-          onChange={(v) => setConfig({ ...config, whisper_url: v })}
-        />
-
-        <div className="setting-row">
-          <div>
-            <Button
-              variant="secondary"
-              onClick={testConnection}
-              disabled={testing}
-            >
-              {testing ? (
-                <LoadingIndicator inline small />
-              ) : (
-                <FormattedMessage
-                  id="config.subtitle.test_connection"
-                  defaultMessage="Test Connection"
-                />
-              )}
-            </Button>
-            {testResult !== null && (
-              <span className="ml-2">
-                <Icon
-                  icon={testResult ? faCheck : faTimes}
-                  color={testResult ? "green" : "red"}
-                />
-                <FormattedMessage
-                  id={testResult ? "config.subtitle.connected" : "config.subtitle.connection_failed"}
-                  defaultMessage={testResult ? "Connected" : "Connection Failed"}
-                />
-              </span>
-            )}
-          </div>
-        </div>
-
+      <SettingSection
+        headingID="config.subtitle.general_settings"
+        subHeadingID=""
+      >
         <BooleanSetting
           id="enabled"
           headingID="config.subtitle.enabled"
@@ -229,6 +210,105 @@ export const SettingsSubtitlePanel: React.FC = () => {
           value={config.timeout}
           onChange={(v) => setConfig({ ...config, timeout: v })}
         />
+      </SettingSection>
+
+      <SettingSection
+        headingID="config.subtitle.opensubtitles_settings"
+        subHeadingID=""
+      >
+        <Alert variant="info">
+          <FormattedMessage
+            id="config.subtitle.opensubtitles_info"
+            defaultMessage="OpenSubtitles fetches subtitles from online database. Get your free API key at opensubtitles.com. When enabled, it will try online first, then fall back to Whisper."
+          />
+        </Alert>
+
+        <BooleanSetting
+          id="opensubtitles_enabled"
+          headingID="config.subtitle.opensubtitles_enabled"
+          checked={config.opensubtitles_enabled}
+          onChange={(v) => setConfig({ ...config, opensubtitles_enabled: v })}
+        />
+
+        <StringSetting
+          id="opensubtitles_api_key"
+          headingID="config.subtitle.opensubtitles_api_key"
+          subHeadingID="config.subtitle.opensubtitles_api_key_desc"
+          value={config.opensubtitles_api_key}
+          onChange={(v) => setConfig({ ...config, opensubtitles_api_key: v })}
+        />
+      </SettingSection>
+
+      <SettingSection
+        headingID="config.subtitle.whisper_settings"
+        subHeadingID=""
+      >
+        <Alert variant="info">
+          <FormattedMessage
+            id="config.subtitle.whisper_info"
+            defaultMessage="Whisper generates subtitles locally using AI. Used as fallback when OpenSubtitles fails or is disabled."
+          />
+        </Alert>
+
+        <BooleanSetting
+          id="whisper_enabled"
+          headingID="config.subtitle.whisper_enabled"
+          checked={config.whisper_enabled}
+          onChange={(v) => setConfig({ ...config, whisper_enabled: v })}
+        />
+
+        <StringSetting
+          id="whisper_url"
+          headingID="config.subtitle.whisper_url"
+          subHeadingID="config.subtitle.whisper_url_desc"
+          value={config.whisper_url}
+          onChange={(v) => setConfig({ ...config, whisper_url: v })}
+        />
+
+        <BooleanSetting
+          id="whisper_translate"
+          headingID="config.subtitle.whisper_translate"
+          subHeadingID="config.subtitle.whisper_translate_desc"
+          checked={config.whisper_translate}
+          onChange={(v) => setConfig({ ...config, whisper_translate: v })}
+        />
+
+        <div className="setting-row">
+          <div>
+            <Button
+              variant="secondary"
+              onClick={testConnection}
+              disabled={testing || !config.whisper_enabled}
+            >
+              {testing ? (
+                <LoadingIndicator inline small />
+              ) : (
+                <FormattedMessage
+                  id="config.subtitle.test_connection"
+                  defaultMessage="Test Whisper Connection"
+                />
+              )}
+            </Button>
+            {testResult !== null && (
+              <span className="ml-2">
+                <Icon
+                  icon={testResult ? faCheck : faTimes}
+                  color={testResult ? "green" : "red"}
+                />
+                <FormattedMessage
+                  id={
+                    testResult
+                      ? "config.subtitle.connected"
+                      : "config.subtitle.connection_failed"
+                  }
+                  defaultMessage={
+                    testResult ? "Connected" : "Connection Failed"
+                  }
+                />
+              </span>
+            )}
+          </div>
+        </div>
       </SettingSection>
 
       <SettingSection headingID="config.subtitle.actions" subHeadingID="">

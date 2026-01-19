@@ -2,22 +2,38 @@ package api
 
 // SubtitleConfig represents the subtitle configuration
 type SubtitleConfig struct {
-	WhisperURL      string `json:"whisper_url"`
+	// General settings
 	Enabled         bool   `json:"enabled"`
-	AutoGenerate    bool   `json:"auto_generate"`
 	DefaultLanguage string `json:"default_language"`
 	SkipIfExists    bool   `json:"skip_if_exists"`
 	Timeout         int    `json:"timeout"`
+
+	// OpenSubtitles settings
+	OpenSubtitlesEnabled bool   `json:"opensubtitles_enabled"`
+	OpenSubtitlesAPIKey  string `json:"opensubtitles_api_key"`
+
+	// Whisper settings
+	WhisperEnabled   bool   `json:"whisper_enabled"`
+	WhisperURL       string `json:"whisper_url"`
+	WhisperTranslate bool   `json:"whisper_translate"`
 }
 
 // SubtitleConfigInput represents input for configuring subtitle settings
 type SubtitleConfigInput struct {
-	WhisperURL      *string `json:"whisper_url"`
+	// General settings
 	Enabled         *bool   `json:"enabled"`
-	AutoGenerate    *bool   `json:"auto_generate"`
 	DefaultLanguage *string `json:"default_language"`
 	SkipIfExists    *bool   `json:"skip_if_exists"`
 	Timeout         *int    `json:"timeout"`
+
+	// OpenSubtitles settings
+	OpenSubtitlesEnabled *bool   `json:"opensubtitles_enabled"`
+	OpenSubtitlesAPIKey  *string `json:"opensubtitles_api_key"`
+
+	// Whisper settings
+	WhisperEnabled   *bool   `json:"whisper_enabled"`
+	WhisperURL       *string `json:"whisper_url"`
+	WhisperTranslate *bool   `json:"whisper_translate"`
 }
 
 // GenerateSubtitleResult represents the result of subtitle generation

@@ -1,19 +1,35 @@
 type SubtitleConfig {
-  whisper_url: String!
+  # General settings
   enabled: Boolean!
-  auto_generate: Boolean!
   default_language: String!
   skip_if_exists: Boolean!
   timeout: Int!
+
+  # OpenSubtitles settings
+  opensubtitles_enabled: Boolean!
+  opensubtitles_api_key: String!
+
+  # Whisper settings
+  whisper_enabled: Boolean!
+  whisper_url: String!
+  whisper_translate: Boolean!
 }
 
 input SubtitleConfigInput {
-  whisper_url: String
+  # General settings
   enabled: Boolean
-  auto_generate: Boolean
   default_language: String
   skip_if_exists: Boolean
   timeout: Int
+
+  # OpenSubtitles settings
+  opensubtitles_enabled: Boolean
+  opensubtitles_api_key: String
+
+  # Whisper settings
+  whisper_enabled: Boolean
+  whisper_url: String
+  whisper_translate: Boolean
 }
 
 type GenerateSubtitleResult {

@@ -124,14 +124,9 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 	}
 
 	// Update config with input values
-	if input.WhisperURL != nil {
-		config.WhisperURL = *input.WhisperURL
-	}
+	// General settings
 	if input.Enabled != nil {
 		config.Enabled = *input.Enabled
-	}
-	if input.AutoGenerate != nil {
-		config.AutoGenerate = *input.AutoGenerate
 	}
 	if input.DefaultLanguage != nil {
 		config.DefaultLanguage = *input.DefaultLanguage
@@ -143,15 +138,37 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 		config.Timeout = *input.Timeout
 	}
 
+	// OpenSubtitles settings
+	if input.OpenSubtitlesEnabled != nil {
+		config.OpenSubtitlesEnabled = *input.OpenSubtitlesEnabled
+	}
+	if input.OpenSubtitlesAPIKey != nil {
+		config.OpenSubtitlesAPIKey = *input.OpenSubtitlesAPIKey
+	}
+
+	// Whisper settings
+	if input.WhisperEnabled != nil {
+		config.WhisperEnabled = *input.WhisperEnabled
+	}
+	if input.WhisperURL != nil {
+		config.WhisperURL = *input.WhisperURL
+	}
+	if input.WhisperTranslate != nil {
+		config.WhisperTranslate = *input.WhisperTranslate
+	}
+
 	subtitleService.UpdateConfig(config)
 
 	return &SubtitleConfig{
-		WhisperURL:      config.WhisperURL,
-		Enabled:         config.Enabled,
-		AutoGenerate:    config.AutoGenerate,
-		DefaultLanguage: config.DefaultLanguage,
-		SkipIfExists:    config.SkipIfExists,
-		Timeout:         config.Timeout,
+		Enabled:              config.Enabled,
+		DefaultLanguage:      config.DefaultLanguage,
+		SkipIfExists:         config.SkipIfExists,
+		Timeout:              config.Timeout,
+		OpenSubtitlesEnabled: config.OpenSubtitlesEnabled,
+		OpenSubtitlesAPIKey:  config.OpenSubtitlesAPIKey,
+		WhisperEnabled:       config.WhisperEnabled,
+		WhisperURL:           config.WhisperURL,
+		WhisperTranslate:     config.WhisperTranslate,
 	}, nil
 }
 

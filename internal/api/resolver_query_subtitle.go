@@ -15,12 +15,15 @@ func (r *queryResolver) SubtitleConfig(ctx context.Context) (*SubtitleConfig, er
 		// Return default config if service not initialized
 		config := subtitle.DefaultConfig()
 		return &SubtitleConfig{
-			WhisperURL:      config.WhisperURL,
-			Enabled:         config.Enabled,
-			AutoGenerate:    config.AutoGenerate,
-			DefaultLanguage: config.DefaultLanguage,
-			SkipIfExists:    config.SkipIfExists,
-			Timeout:         config.Timeout,
+			Enabled:              config.Enabled,
+			DefaultLanguage:      config.DefaultLanguage,
+			SkipIfExists:         config.SkipIfExists,
+			Timeout:              config.Timeout,
+			OpenSubtitlesEnabled: config.OpenSubtitlesEnabled,
+			OpenSubtitlesAPIKey:  config.OpenSubtitlesAPIKey,
+			WhisperEnabled:       config.WhisperEnabled,
+			WhisperURL:           config.WhisperURL,
+			WhisperTranslate:     config.WhisperTranslate,
 		}, nil
 	}
 
@@ -30,12 +33,15 @@ func (r *queryResolver) SubtitleConfig(ctx context.Context) (*SubtitleConfig, er
 	}
 
 	return &SubtitleConfig{
-		WhisperURL:      config.WhisperURL,
-		Enabled:         config.Enabled,
-		AutoGenerate:    config.AutoGenerate,
-		DefaultLanguage: config.DefaultLanguage,
-		SkipIfExists:    config.SkipIfExists,
-		Timeout:         config.Timeout,
+		Enabled:              config.Enabled,
+		DefaultLanguage:      config.DefaultLanguage,
+		SkipIfExists:         config.SkipIfExists,
+		Timeout:              config.Timeout,
+		OpenSubtitlesEnabled: config.OpenSubtitlesEnabled,
+		OpenSubtitlesAPIKey:  config.OpenSubtitlesAPIKey,
+		WhisperEnabled:       config.WhisperEnabled,
+		WhisperURL:           config.WhisperURL,
+		WhisperTranslate:     config.WhisperTranslate,
 	}, nil
 }
 

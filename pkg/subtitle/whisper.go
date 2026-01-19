@@ -37,7 +37,8 @@ type TranscribeResult struct {
 }
 
 // Transcribe sends an audio file to the Whisper API and returns the transcription
-func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, language string) (*TranscribeResult, error) {
+// If translate is true, it will translate non-English audio to English
+func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, language string, translate bool) (*TranscribeResult, error) {
 	// Open the audio file
 	file, err := os.Open(audioPath)
 	if err != nil {
@@ -64,8 +65,8 @@ func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, langua
 		return nil, fmt.Errorf("failed to write response_format field: %w", err)
 	}
 
-	// Add language field if specified
-	if language != "" {
+	// Add language field if specified (not used for translation endpoint)
+	if language != "" && !translate {
 		if err := writer.WriteField("language", language); err != nil {
 			return nil, fmt.Errorf("failed to write language field: %w", err)
 		}
@@ -75,14 +76,21 @@ func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, langua
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	// Build request URL
-	transcribeURL, err := url.JoinPath(c.baseURL, "/v1/audio/transcriptions")
+	// Build request URL - use translations endpoint if translate is true
+	var endpoint string
+	if translate {
+		endpoint = "/v1/audio/translations"
+	} else {
+		endpoint = "/v1/audio/transcriptions"
+	}
+
+	requestURL, err := url.JoinPath(c.baseURL, endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build transcribe URL: %w", err)
+		return nil, fmt.Errorf("failed to build request URL: %w", err)
 	}
 
 	// Create request
-	req, err := http.NewRequestWithContext(ctx, "POST", transcribeURL, &buf)
+	req, err := http.NewRequestWithContext(ctx, "POST", requestURL, &buf)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -105,9 +113,14 @@ func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, langua
 		return nil, fmt.Errorf("whisper API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
+	resultLang := language
+	if translate {
+		resultLang = "en"
+	}
+
 	return &TranscribeResult{
 		Content:  string(body),
-		Language: language,
+		Language: resultLang,
 		Format:   "srt",
 	}, nil
 }

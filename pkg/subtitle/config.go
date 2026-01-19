@@ -11,12 +11,20 @@ import (
 
 // SubtitleConfig holds the configuration for the subtitle service
 type SubtitleConfig struct {
-	WhisperURL      string `json:"whisper_url"`
+	// General settings
 	Enabled         bool   `json:"enabled"`
-	AutoGenerate    bool   `json:"auto_generate"`
 	DefaultLanguage string `json:"default_language"`
 	SkipIfExists    bool   `json:"skip_if_exists"`
 	Timeout         int    `json:"timeout"` // in seconds
+
+	// OpenSubtitles settings (online subtitle fetching)
+	OpenSubtitlesEnabled bool   `json:"opensubtitles_enabled"`
+	OpenSubtitlesAPIKey  string `json:"opensubtitles_api_key"`
+
+	// Whisper settings (local generation as fallback)
+	WhisperEnabled   bool   `json:"whisper_enabled"`
+	WhisperURL       string `json:"whisper_url"`
+	WhisperTranslate bool   `json:"whisper_translate"` // If true, translate non-English audio to English
 }
 
 // DefaultConfig returns the default subtitle configuration
@@ -25,12 +33,20 @@ func DefaultConfig() *SubtitleConfig {
 	whisperURL := autoDetectWhisperURL()
 
 	return &SubtitleConfig{
-		WhisperURL:      whisperURL,
+		// General
 		Enabled:         true,
-		AutoGenerate:    false,
 		DefaultLanguage: "en",
 		SkipIfExists:    true,
 		Timeout:         300, // 5 minutes
+
+		// OpenSubtitles (enabled with API key)
+		OpenSubtitlesEnabled: true,
+		OpenSubtitlesAPIKey:  "rG4c2Gr51Otieq4Ifzg3mPdiZpuXqmAx",
+
+		// Whisper (enabled as fallback)
+		WhisperEnabled:   true,
+		WhisperURL:       whisperURL,
+		WhisperTranslate: true, // Default to translate mode for mixed language videos
 	}
 }
 
