@@ -160,7 +160,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
         />
       </h4>
 
-      <SettingSection headingID="config.subtitle.whisper_settings">
+      <SettingSection headingID="config.subtitle.whisper_settings" subHeadingID="">
         <StringSetting
           id="whisper_url"
           headingID="config.subtitle.whisper_url"
@@ -191,7 +191,10 @@ export const SettingsSubtitlePanel: React.FC = () => {
                   icon={testResult ? faCheck : faTimes}
                   color={testResult ? "green" : "red"}
                 />
-                {testResult ? " Connected" : " Failed"}
+                <FormattedMessage
+                  id={testResult ? "config.subtitle.connected" : "config.subtitle.connection_failed"}
+                  defaultMessage={testResult ? "Connected" : "Connection Failed"}
+                />
               </span>
             )}
           </div>
@@ -228,7 +231,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
         />
       </SettingSection>
 
-      <SettingSection headingID="config.subtitle.actions">
+      <SettingSection headingID="config.subtitle.actions" subHeadingID="">
         <div className="setting-row">
           <Button variant="primary" onClick={saveConfig} disabled={saving}>
             {saving ? (
