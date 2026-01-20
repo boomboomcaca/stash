@@ -15,7 +15,7 @@ type SubtitleConfig struct {
 	Enabled            bool   `json:"enabled"`
 	DefaultLanguage    string `json:"default_language"`
 	SkipIfExists       bool   `json:"skip_if_exists"`
-	Timeout            int    `json:"timeout"` // in seconds
+	Timeout            int    `json:"timeout"`               // in seconds
 	AutoGenerateOnScan bool   `json:"auto_generate_on_scan"` // Auto-generate subtitles after scan
 
 	// OpenSubtitles settings (online subtitle fetching)
@@ -35,10 +35,11 @@ func DefaultConfig() *SubtitleConfig {
 
 	return &SubtitleConfig{
 		// General
-		Enabled:         true,
-		DefaultLanguage: "en",
-		SkipIfExists:    true,
-		Timeout:         300, // 5 minutes
+		Enabled:            true,
+		DefaultLanguage:    "en",
+		SkipIfExists:       true,
+		Timeout:            300,  // 5 minutes
+		AutoGenerateOnScan: true, // Auto-generate subtitles after scan
 
 		// OpenSubtitles (enabled with API key)
 		OpenSubtitlesEnabled: true,
@@ -90,9 +91,9 @@ func autoDetectWhisperURL() string {
 		}
 	}
 
-	// Default to localhost if no service found
-	logger.Warn("No Whisper service detected, using default localhost:8000")
-	return "http://localhost:8000"
+	// Default to 192.168.1.113 if no service found
+	logger.Warn("No Whisper service detected, using default 192.168.1.113:8000")
+	return "http://192.168.1.113:8000"
 }
 
 // Validate checks if the configuration is valid
