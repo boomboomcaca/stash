@@ -1,0 +1,13 @@
+# Available Tools
+
+## ai_echo
+
+Parameters:
+- summary (required): Put your COMPLETE response here in Markdown format (supports tables, code blocks, lists)
+- reason (optional)
+
+ALWAYS call ai_echo at the end of EVERY response.
+
+## Format
+
+{"tool": "ai_echo", "arguments": {"summary": "Your full Markdown response here"}}

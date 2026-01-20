@@ -19,6 +19,7 @@ interface ISubtitleConfig {
   default_language: string;
   skip_if_exists: boolean;
   timeout: number;
+  auto_generate_on_scan: boolean;
   // OpenSubtitles settings
   opensubtitles_enabled: boolean;
   opensubtitles_api_key: string;
@@ -43,6 +44,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
     default_language: "en",
     skip_if_exists: true,
     timeout: 300,
+    auto_generate_on_scan: true,
     opensubtitles_enabled: false,
     opensubtitles_api_key: "",
     whisper_enabled: true,
@@ -61,7 +63,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          query: `query { subtitleConfig { enabled default_language skip_if_exists timeout opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate } }`,
+          query: `query { subtitleConfig { enabled default_language skip_if_exists timeout auto_generate_on_scan opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate } }`,
         }),
       });
       const data = await response.json();
@@ -84,7 +86,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
         body: JSON.stringify({
           query: `mutation ConfigureSubtitle($input: SubtitleConfigInput!) {
             configureSubtitle(input: $input) {
-              enabled default_language skip_if_exists timeout opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate
+              enabled default_language skip_if_exists timeout auto_generate_on_scan opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate
             }
           }`,
           variables: {
@@ -93,6 +95,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
               default_language: config.default_language,
               skip_if_exists: config.skip_if_exists,
               timeout: config.timeout,
+              auto_generate_on_scan: config.auto_generate_on_scan,
               opensubtitles_enabled: config.opensubtitles_enabled,
               opensubtitles_api_key: config.opensubtitles_api_key,
               whisper_enabled: config.whisper_enabled,
@@ -209,6 +212,14 @@ export const SettingsSubtitlePanel: React.FC = () => {
           subHeadingID="config.subtitle.timeout_desc"
           value={config.timeout}
           onChange={(v) => setConfig({ ...config, timeout: v })}
+        />
+
+        <BooleanSetting
+          id="auto_generate_on_scan"
+          headingID="config.subtitle.auto_generate_on_scan"
+          subHeadingID="config.subtitle.auto_generate_on_scan_desc"
+          checked={config.auto_generate_on_scan}
+          onChange={(v) => setConfig({ ...config, auto_generate_on_scan: v })}
         />
       </SettingSection>
 

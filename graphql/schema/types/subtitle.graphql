@@ -4,6 +4,7 @@ type SubtitleConfig {
   default_language: String!
   skip_if_exists: Boolean!
   timeout: Int!
+  auto_generate_on_scan: Boolean!
 
   # OpenSubtitles settings
   opensubtitles_enabled: Boolean!
@@ -21,6 +22,7 @@ input SubtitleConfigInput {
   default_language: String
   skip_if_exists: Boolean
   timeout: Int
+  auto_generate_on_scan: Boolean
 
   # OpenSubtitles settings
   opensubtitles_enabled: Boolean

@@ -12,10 +12,11 @@ import (
 // SubtitleConfig holds the configuration for the subtitle service
 type SubtitleConfig struct {
 	// General settings
-	Enabled         bool   `json:"enabled"`
-	DefaultLanguage string `json:"default_language"`
-	SkipIfExists    bool   `json:"skip_if_exists"`
-	Timeout         int    `json:"timeout"` // in seconds
+	Enabled            bool   `json:"enabled"`
+	DefaultLanguage    string `json:"default_language"`
+	SkipIfExists       bool   `json:"skip_if_exists"`
+	Timeout            int    `json:"timeout"` // in seconds
+	AutoGenerateOnScan bool   `json:"auto_generate_on_scan"` // Auto-generate subtitles after scan
 
 	// OpenSubtitles settings (online subtitle fetching)
 	OpenSubtitlesEnabled bool   `json:"opensubtitles_enabled"`

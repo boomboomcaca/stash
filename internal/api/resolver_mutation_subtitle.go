@@ -137,6 +137,9 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 	if input.Timeout != nil {
 		config.Timeout = *input.Timeout
 	}
+	if input.AutoGenerateOnScan != nil {
+		config.AutoGenerateOnScan = *input.AutoGenerateOnScan
+	}
 
 	// OpenSubtitles settings
 	if input.OpenSubtitlesEnabled != nil {
@@ -164,6 +167,7 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 		DefaultLanguage:      config.DefaultLanguage,
 		SkipIfExists:         config.SkipIfExists,
 		Timeout:              config.Timeout,
+		AutoGenerateOnScan:   config.AutoGenerateOnScan,
 		OpenSubtitlesEnabled: config.OpenSubtitlesEnabled,
 		OpenSubtitlesAPIKey:  config.OpenSubtitlesAPIKey,
 		WhisperEnabled:       config.WhisperEnabled,

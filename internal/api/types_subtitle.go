@@ -3,10 +3,11 @@ package api
 // SubtitleConfig represents the subtitle configuration
 type SubtitleConfig struct {
 	// General settings
-	Enabled         bool   `json:"enabled"`
-	DefaultLanguage string `json:"default_language"`
-	SkipIfExists    bool   `json:"skip_if_exists"`
-	Timeout         int    `json:"timeout"`
+	Enabled            bool   `json:"enabled"`
+	DefaultLanguage    string `json:"default_language"`
+	SkipIfExists       bool   `json:"skip_if_exists"`
+	Timeout            int    `json:"timeout"`
+	AutoGenerateOnScan bool   `json:"auto_generate_on_scan"`
 
 	// OpenSubtitles settings
 	OpenSubtitlesEnabled bool   `json:"opensubtitles_enabled"`
@@ -21,10 +22,11 @@ type SubtitleConfig struct {
 // SubtitleConfigInput represents input for configuring subtitle settings
 type SubtitleConfigInput struct {
 	// General settings
-	Enabled         *bool   `json:"enabled"`
-	DefaultLanguage *string `json:"default_language"`
-	SkipIfExists    *bool   `json:"skip_if_exists"`
-	Timeout         *int    `json:"timeout"`
+	Enabled            *bool   `json:"enabled"`
+	DefaultLanguage    *string `json:"default_language"`
+	SkipIfExists       *bool   `json:"skip_if_exists"`
+	Timeout            *int    `json:"timeout"`
+	AutoGenerateOnScan *bool   `json:"auto_generate_on_scan"`
 
 	// OpenSubtitles settings
 	OpenSubtitlesEnabled *bool   `json:"opensubtitles_enabled"`

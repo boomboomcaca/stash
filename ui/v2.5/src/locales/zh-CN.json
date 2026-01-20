@@ -278,6 +278,8 @@
             "skip_if_exists": "已有字幕时跳过",
             "timeout": "超时时间（秒）",
             "timeout_desc": "转录请求的超时时间（秒）",
+            "auto_generate_on_scan": "扫描后自动生成",
+            "auto_generate_on_scan_desc": "扫描新视频后自动生成字幕",
             "opensubtitles_settings": "OpenSubtitles 设置",
             "opensubtitles_enabled": "启用 OpenSubtitles",
             "opensubtitles_api_key": "API 密钥",

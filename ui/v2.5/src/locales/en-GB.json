@@ -279,6 +279,8 @@
       "skip_if_exists": "Skip If Exists",
       "timeout": "Timeout (seconds)",
       "timeout_desc": "Timeout for transcription requests in seconds",
+      "auto_generate_on_scan": "Auto-generate on Scan",
+      "auto_generate_on_scan_desc": "Automatically generate subtitles for new videos after scanning",
       "opensubtitles_settings": "OpenSubtitles Settings",
       "opensubtitles_enabled": "OpenSubtitles Enabled",
       "opensubtitles_api_key": "API Key",
