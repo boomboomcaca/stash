@@ -73,12 +73,18 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         !dictionaryTouchTriggeredRef.current &&
         dictionaryTouchStartYRef.current !== null
       ) {
-        const word = selectedWordRef.current;
-        if (word) {
-          handlePronunciation(word);
+        // 检查点击目标是否是按钮，如果是则不触发朗读
+        const target = e.target as HTMLElement;
+        const isButton =
+          target.closest("button") || target.closest(".dict-action-btn");
+        if (!isButton) {
+          const word = selectedWordRef.current;
+          if (word) {
+            handlePronunciation(word);
+          }
+          e.preventDefault();
+          e.stopPropagation();
         }
-        e.preventDefault();
-        e.stopPropagation();
       }
       dictionaryTouchStartYRef.current = null;
       dictionaryTouchTriggeredRef.current = false;

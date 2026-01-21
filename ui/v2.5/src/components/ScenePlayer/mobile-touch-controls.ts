@@ -909,8 +909,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 如果垂直移动距离大于水平移动距离，则进入垂直滑动模式
       // 用于切换字幕（增强字幕启用时）或切换场景（无字幕时）
       if (verticalDistance > horizontalDistance) {
-        // 如果已经在选词模式，向下滑动退出选词模式
-        if (this.isInWordNavigationMode?.() && deltaY > 0) {
+        // 如果已经在选词模式或词典窗口打开，向上滑动退出选词模式/关闭词典
+        if (
+          (this.isInWordNavigationMode?.() || this.isDictionaryVisible?.()) &&
+          deltaY < 0
+        ) {
           this.exitWordNavigationMode?.();
           this.triggerHapticFeedback();
 
