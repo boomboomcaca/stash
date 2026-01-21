@@ -42,23 +42,35 @@ type GenerateSubtitleResult {
 }
 
 extend type Mutation {
-  """Generate subtitle for a single scene"""
+  """
+  Generate subtitle for a single scene
+  """
   generateSubtitle(scene_id: ID!, language: String): GenerateSubtitleResult!
 
-  """Generate subtitles for multiple scenes (returns job ID)"""
+  """
+  Generate subtitles for multiple scenes (returns job ID)
+  """
   generateSubtitles(scene_ids: [ID!]!, language: String): ID!
 
-  """Generate subtitles for all scenes without subtitles (returns job ID)"""
+  """
+  Generate subtitles for all scenes without subtitles (returns job ID)
+  """
   autoGenerateSubtitles(language: String): ID!
 
-  """Configure subtitle settings"""
+  """
+  Configure subtitle settings
+  """
   configureSubtitle(input: SubtitleConfigInput!): SubtitleConfig!
 }
 
 extend type Query {
-  """Get subtitle configuration"""
+  """
+  Get subtitle configuration
+  """
   subtitleConfig: SubtitleConfig!
 
-  """Test connection to Whisper service"""
+  """
+  Test connection to Whisper service
+  """
   testSubtitleConnection: Boolean!
 }

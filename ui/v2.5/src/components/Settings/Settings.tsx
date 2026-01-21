@@ -99,7 +99,10 @@ const SettingTabs: React.FC<{ tab: TabKey }> = ({ tab }) => {
             <Nav.Item>
               <LinkContainer to="/settings?tab=subtitle">
                 <Nav.Link eventKey="subtitle">
-                  <FormattedMessage id="config.categories.subtitle" defaultMessage="Subtitle" />
+                  <FormattedMessage
+                    id="config.categories.subtitle"
+                    defaultMessage="Subtitle"
+                  />
                 </Nav.Link>
               </LinkContainer>
             </Nav.Item>
