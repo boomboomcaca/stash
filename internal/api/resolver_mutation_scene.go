@@ -296,17 +296,22 @@ func (r *mutationResolver) sceneUpdate(ctx context.Context, input models.SceneUp
 		}
 	}
 
+	var coverImageData []byte
+	coverImageIncluded := translator.hasField("cover_image")
+	if input.CoverImage != nil {
+		var err error
+		coverImageData, err = utils.ProcessImageInput(ctx, *input.CoverImage)
+		if err != nil {
+			return nil, fmt.Errorf("processing cover image: %w", err)
+		}
+	}
+
 	scene, err := qb.UpdatePartial(ctx, sceneID, *updatedScene)
 	if err != nil {
 		return nil, err
 	}
 
-	// 只在明确提供了 CoverImage 时才更新封面
-	if input.CoverImage != nil {
-		coverImageData, err := utils.ProcessImageInput(ctx, *input.CoverImage)
-		if err != nil {
-			return nil, fmt.Errorf("processing cover image: %w", err)
-		}
+	if coverImageIncluded {
 		if err := r.sceneUpdateCoverImage(ctx, scene, coverImageData); err != nil {
 			return nil, err
 		}
@@ -318,7 +323,7 @@ func (r *mutationResolver) sceneUpdate(ctx context.Context, input models.SceneUp
 func (r *mutationResolver) sceneUpdateCoverImage(ctx context.Context, s *models.Scene, coverImageData []byte) error {
 	qb := r.repository.Scene
 
-	// update cover table (or delete if coverImageData is empty)
+	// update cover table - empty data will clear the cover
 	if err := qb.UpdateCover(ctx, s.ID, coverImageData); err != nil {
 		return err
 	}

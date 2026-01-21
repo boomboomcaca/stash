@@ -475,9 +475,13 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         );
     }, [getPlayer, scene]);
 
+    const pausedBeforeScrubber = useRef(true);
+
     function onScrubberScroll() {
-      if (started.current) {
-        getPlayer()?.pause();
+      const player = getPlayer();
+      if (started.current && player) {
+        pausedBeforeScrubber.current = player.paused();
+        player.pause();
       }
 
       // 当拖动进度条时，如果增强字幕已开启，显示控制栏
