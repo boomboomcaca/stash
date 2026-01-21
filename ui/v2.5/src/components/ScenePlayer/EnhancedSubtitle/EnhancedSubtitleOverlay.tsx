@@ -120,6 +120,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     isLoading,
     showDictionary,
     setShowDictionary,
+    showDictionaryRef,
     isFavorite,
     favoriteWords,
     handleWordClick,
@@ -256,13 +257,14 @@ export const EnhancedSubtitleOverlay: React.FC<
           return -1;
         },
         onGetPlayer,
-        // 词典相关
-        isDictionaryVisible: () => showDictionary,
+        // 词典相关 - 使用 ref 确保回调获取最新值
+        isDictionaryVisible: () => showDictionaryRef.current,
         pronounceCurrentWord: async () => {
           if (selectedWord) {
             await handlePronunciation(selectedWord);
           }
         },
+        closeDictionary: () => setShowDictionary(false),
       });
     }
   }, [
@@ -281,7 +283,8 @@ export const EnhancedSubtitleOverlay: React.FC<
     setIsAutoPaused,
     userResumedPlaybackRef,
     clearAutoPauseTimeout,
-    showDictionary,
+    showDictionaryRef,
+    setShowDictionary,
     selectedWord,
     handlePronunciation,
   ]);

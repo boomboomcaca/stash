@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { IDictionaryEntry, ISubtitleCue } from "../types";
 import { lookupWord, lookupWordWithContext } from "../dictionary";
 import { playWordPronunciation } from "../pronunciation";
@@ -17,6 +17,7 @@ interface IUseDictionaryResult {
   isLoading: boolean;
   showDictionary: boolean;
   setShowDictionary: (show: boolean) => void;
+  showDictionaryRef: React.MutableRefObject<boolean>;
   isFavorite: boolean;
   favoriteWords: Set<string>;
   handleWordClick: (word: string) => Promise<void>;
@@ -35,6 +36,12 @@ export function useDictionary({
   const [dictionary, setDictionary] = useState<IDictionaryEntry | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showDictionary, setShowDictionary] = useState(false);
+  const showDictionaryRef = useRef(false);
+
+  // Sync showDictionary state to ref for callbacks
+  useEffect(() => {
+    showDictionaryRef.current = showDictionary;
+  }, [showDictionary]);
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedActionIndex, setSelectedActionIndex] = useState<number>(0);
@@ -151,6 +158,7 @@ export function useDictionary({
     isLoading,
     showDictionary,
     setShowDictionary,
+    showDictionaryRef,
     isFavorite,
     favoriteWords,
     handleWordClick,

@@ -243,6 +243,8 @@ export function useControlBarManagement({
             false,
           pronounceCurrentWord: async () =>
             enhancedSubtitleNavigationRef.current?.pronounceCurrentWord?.(),
+          closeDictionary: () =>
+            enhancedSubtitleNavigationRef.current?.closeDictionary?.(),
         });
 
         return true;

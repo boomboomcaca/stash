@@ -57,7 +57,11 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
       const currentY = e.touches[0].clientY;
       const deltaY = currentY - dictionaryTouchStartYRef.current;
       const THRESHOLD = 5;
-      if (deltaY > THRESHOLD && !dictionaryTouchTriggeredRef.current) {
+      // 向上滑动（deltaY < -THRESHOLD）或向下滑动（deltaY > THRESHOLD）都关闭词典
+      if (
+        Math.abs(deltaY) > THRESHOLD &&
+        !dictionaryTouchTriggeredRef.current
+      ) {
         dictionaryTouchTriggeredRef.current = true;
         setShowDictionary(false);
         e.stopPropagation();

@@ -129,6 +129,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   // 词典回调
   private isDictionaryVisible: (() => boolean) | null = null;
   private pronounceCurrentWord: (() => Promise<void>) | null = null;
+  private closeDictionary: (() => void) | null = null;
   private originalReportUserActivity: ((event?: Event) => void) | null = null; // 保存原始的 reportUserActivity
 
   private readonly LONG_PRESS_DURATION = 500; // 长按触发时间（毫秒）
@@ -523,14 +524,16 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.boundTouchEnd = this.handleTouchEnd.bind(this);
     this.boundTouchMove = this.handleTouchMove.bind(this);
 
-    // 添加触摸事件监听器
-    videoEl.addEventListener("touchstart", this.boundTouchStart, {
+    // 添加触摸事件监听器到播放器容器元素（而非仅 video 元素）
+    // 这样即使词典弹窗等 UI 覆盖在视频上，也能正确接收触摸事件
+    const playerEl = this.player.el() as HTMLElement;
+    playerEl.addEventListener("touchstart", this.boundTouchStart, {
       passive: false,
     });
-    videoEl.addEventListener("touchend", this.boundTouchEnd, {
+    playerEl.addEventListener("touchend", this.boundTouchEnd, {
       passive: false,
     });
-    videoEl.addEventListener("touchmove", this.boundTouchMove, {
+    playerEl.addEventListener("touchmove", this.boundTouchMove, {
       passive: false,
     });
 
@@ -539,20 +542,17 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   }
 
   private removeTouchControls(): void {
-    const videoEl = this.player.el().querySelector("video");
-    if (!videoEl) {
-      return;
-    }
+    const playerEl = this.player.el() as HTMLElement;
 
-    // 使用绑定后的函数引用来移除事件监听器
+    // 使用绑定后的函数引用来移除事件监听器（从播放器容器元素移除）
     if (this.boundTouchStart) {
-      videoEl.removeEventListener("touchstart", this.boundTouchStart);
+      playerEl.removeEventListener("touchstart", this.boundTouchStart);
     }
     if (this.boundTouchEnd) {
-      videoEl.removeEventListener("touchend", this.boundTouchEnd);
+      playerEl.removeEventListener("touchend", this.boundTouchEnd);
     }
     if (this.boundTouchMove) {
-      videoEl.removeEventListener("touchmove", this.boundTouchMove);
+      playerEl.removeEventListener("touchmove", this.boundTouchMove);
     }
 
     // 清理所有计时器
@@ -909,15 +909,13 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 如果垂直移动距离大于水平移动距离，则进入垂直滑动模式
       // 用于切换字幕（增强字幕启用时）或切换场景（无字幕时）
       if (verticalDistance > horizontalDistance) {
-        // 如果已经在选词模式或词典窗口打开，向上滑动退出选词模式/关闭词典
-        if (
-          (this.isInWordNavigationMode?.() || this.isDictionaryVisible?.()) &&
-          deltaY < 0
-        ) {
+        // 如果已经在选词模式或词典窗口打开，任何垂直滑动都退出选词模式/关闭词典并切换播放/暂停
+        if (this.isInWordNavigationMode?.() || this.isDictionaryVisible?.()) {
           this.exitWordNavigationMode?.();
+          this.closeDictionary?.();
           this.triggerHapticFeedback();
 
-          // 切换播放/暂停（与键盘↑行为一致）
+          // 切换播放/暂停状态
           if (this.player.paused()) {
             this.player.play()?.catch(() => {});
           } else {
@@ -1629,9 +1627,11 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   public setDictionaryCallbacks(callbacks: {
     isDictionaryVisible: () => boolean;
     pronounceCurrentWord: () => Promise<void>;
+    closeDictionary: () => void;
   }): void {
     this.isDictionaryVisible = callbacks.isDictionaryVisible;
     this.pronounceCurrentWord = callbacks.pronounceCurrentWord;
+    this.closeDictionary = callbacks.closeDictionary;
   }
 }
 

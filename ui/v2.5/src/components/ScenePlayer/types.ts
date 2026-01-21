@@ -53,6 +53,7 @@ export interface IEnhancedSubtitleNavigation {
   // 词典相关
   isDictionaryVisible?: () => boolean;
   pronounceCurrentWord?: () => Promise<void>;
+  closeDictionary?: () => void;
 }
 
 // Mobile Touch Controls Plugin Interface
@@ -76,6 +77,7 @@ export interface IMobileTouchControlsPlugin {
   setDictionaryCallbacks(callbacks: {
     isDictionaryVisible: () => boolean;
     pronounceCurrentWord: () => Promise<void>;
+    closeDictionary: () => void;
   }): void;
 }
 
