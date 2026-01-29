@@ -39,6 +39,13 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
   const selectedWordRef = useRef(selectedWord);
   selectedWordRef.current = selectedWord;
 
+  // 使用 ref 存储 handlePronunciation 和 toggleFavorite，避免 useEffect 频繁重新注册事件监听器
+  const handlePronunciationRef = useRef(handlePronunciation);
+  handlePronunciationRef.current = handlePronunciation;
+
+  const toggleFavoriteRef = useRef(toggleFavorite);
+  toggleFavoriteRef.current = toggleFavorite;
+
   const handleDictionaryTouchStart = useCallback(
     (e: React.TouchEvent) => {
       if (!showDictionary) return;
@@ -133,10 +140,10 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         if (currentIndex === 0) {
           const word = selectedWordRef.current;
           if (word) {
-            handlePronunciation(word);
+            handlePronunciationRef.current(word);
           }
         } else if (currentIndex === 1) {
-          toggleFavorite();
+          toggleFavoriteRef.current();
         } else if (currentIndex === 2) {
           setShowDictionary(false);
         }
@@ -164,13 +171,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [
-    showDictionary,
-    handlePronunciation,
-    toggleFavorite,
-    setShowDictionary,
-    setSelectedActionIndex,
-  ]);
+  }, [showDictionary, setShowDictionary, setSelectedActionIndex]);
 
   return (
     <Modal
