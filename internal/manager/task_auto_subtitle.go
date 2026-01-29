@@ -121,6 +121,12 @@ func (j *AutoSubtitleJob) getScenesWithoutSubtitles(ctx context.Context) ([]*mod
 		}
 
 		for _, scene := range allScenes {
+			// Load files to get the Path
+			if err := scene.LoadFiles(ctx, j.Repository.Scene); err != nil {
+				logger.Warnf("Failed to load files for scene %d: %v", scene.ID, err)
+				continue
+			}
+
 			// Check if scene has subtitle
 			if !j.SubtitleService.HasSubtitle(scene) {
 				scenes = append(scenes, scene)
