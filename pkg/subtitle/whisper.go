@@ -174,20 +174,14 @@ func (c *WhisperClient) TranscribeAsync(ctx context.Context, audioPath string, l
 
 	logger.Infof("Submitted async task %s for %s", taskID, filepath.Base(audioPath))
 
-	// Step 2: Poll for completion
+	// Step 2: Poll for completion (no timeout - wait until done)
 	pollInterval := 5 * time.Second
-	maxWait := 30 * time.Minute
 
-	startTime := time.Now()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-time.After(pollInterval):
-			if time.Since(startTime) > maxWait {
-				return nil, fmt.Errorf("task %s timed out after %v", taskID, maxWait)
-			}
-
 			status, result, err := c.getTaskStatus(ctx, taskID)
 			if err != nil {
 				logger.Warnf("Failed to get task status: %v", err)
