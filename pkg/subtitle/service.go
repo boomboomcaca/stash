@@ -202,8 +202,8 @@ func (s *Service) generateWithWhisper(ctx context.Context, videoPath, subtitlePa
 	}
 	logger.Infof("Extracted audio to %s, sending to Whisper (%s)...", audioPath, mode)
 
-	// Transcribe/translate audio
-	result, err := client.Transcribe(ctx, audioPath, language, translate)
+	// Transcribe/translate audio using async API
+	result, err := client.TranscribeAsync(ctx, audioPath, language, translate)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrTranscribeFailed, err)
 	}
