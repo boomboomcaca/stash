@@ -100,11 +100,14 @@ func (j *AutoSubtitleJob) getScenesWithoutSubtitles(ctx context.Context) ([]*mod
 	var scenes []*models.Scene
 
 	err := txn.WithReadTxn(ctx, j.Repository.TxnManager, func(ctx context.Context) error {
-		// Query all scenes
+		// Query all scenes - use PerPageAll to get all results
+		perPage := models.PerPageAll
 		result, err := j.Repository.Scene.Query(ctx, models.SceneQueryOptions{
 			QueryOptions: models.QueryOptions{
-				FindFilter: &models.FindFilterType{},
-				Count:      false,
+				FindFilter: &models.FindFilterType{
+					PerPage: &perPage,
+				},
+				Count: false,
 			},
 			SceneFilter: &models.SceneFilterType{},
 		})
@@ -118,6 +121,12 @@ func (j *AutoSubtitleJob) getScenesWithoutSubtitles(ctx context.Context) ([]*mod
 		}
 
 		for _, scene := range allScenes {
+			// Load files to get the Path
+			if err := scene.LoadFiles(ctx, j.Repository.Scene); err != nil {
+				logger.Warnf("Failed to load files for scene %d: %v", scene.ID, err)
+				continue
+			}
+
 			// Check if scene has subtitle
 			if !j.SubtitleService.HasSubtitle(scene) {
 				scenes = append(scenes, scene)
