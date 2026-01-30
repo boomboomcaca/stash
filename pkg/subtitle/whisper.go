@@ -290,6 +290,11 @@ func (c *WhisperClient) getTaskStatus(ctx context.Context, taskID string) (statu
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		// Task not found - treat as failed (e.g., server restarted and lost task)
+		return "failed", "task not found (server may have restarted)", nil
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return "", "", fmt.Errorf("task API returned status %d: %s", resp.StatusCode, string(body))
