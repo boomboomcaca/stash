@@ -139,6 +139,29 @@ export const EnhancedSubtitleOverlay: React.FC<
     setOnWordSelect(handleWordClick);
   }, [setOnWordSelect, handleWordClick]);
 
+  // Auto-show dictionary for favorited words when navigating
+  useEffect(() => {
+    if (
+      isInWordNavigationMode &&
+      selectedWordIndex >= 0 &&
+      selectedWordIndex < wordSegments.length &&
+      wordSegments[selectedWordIndex]
+    ) {
+      const {word} = wordSegments[selectedWordIndex];
+      const wordKey = `${word.toLowerCase()}:${detectedLanguage}`;
+      if (favoriteWords.has(wordKey)) {
+        handleWordClick(word);
+      }
+    }
+  }, [
+    isInWordNavigationMode,
+    selectedWordIndex,
+    wordSegments,
+    detectedLanguage,
+    favoriteWords,
+    handleWordClick,
+  ]);
+
   // Drag hook
   const {
     isDragging,
