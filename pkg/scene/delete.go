@@ -248,9 +248,9 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 	videoDir := filepath.Dir(videoPath)
 	videoBase := strings.TrimSuffix(filepath.Base(videoPath), filepath.Ext(videoPath))
 
-	// Check for common subtitle extensions
-	subtitleExts := []string{".srt", ".vtt", ".ass", ".ssa", ".sub"}
-	for _, ext := range subtitleExts {
+	// Check for common subtitle extensions using the centralized SubtitleExts list
+	for _, extWithoutDot := range video.SubtitleExts {
+		ext := "." + extWithoutDot
 		// Check for files with same basename + language code + extension
 		pattern := filepath.Join(videoDir, videoBase+".*"+ext)
 		matches, err := filepath.Glob(pattern)

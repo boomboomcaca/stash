@@ -10,6 +10,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/stashapp/stash/internal/manager/config"
 	"github.com/stashapp/stash/internal/manager/task"
+	"github.com/stashapp/stash/pkg/file/video"
 	"github.com/stashapp/stash/pkg/fsutil"
 	"github.com/stashapp/stash/pkg/logger"
 )
@@ -166,6 +167,12 @@ func (lw *LibraryWatcher) shouldProcessEvent(event fsnotify.Event) bool {
 		event.Op&fsnotify.Create == 0 &&
 		event.Op&fsnotify.Remove == 0 &&
 		event.Op&fsnotify.Rename == 0 {
+		return false
+	}
+
+	// Ignore subtitle files to prevent circular triggering
+	// (subtitle generation creates .srt files which would trigger another scan)
+	if fsutil.MatchExtension(event.Name, video.SubtitleExts) {
 		return false
 	}
 

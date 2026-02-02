@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/stashapp/stash/pkg/file/video"
 	"github.com/stashapp/stash/pkg/fsutil"
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
@@ -275,9 +276,18 @@ func (s *Service) HasSubtitle(scene *models.Scene) bool {
 	if scene.Path == "" {
 		return false
 	}
-	subtitlePath := getSubtitlePath(scene.Path)
-	exists, _ := fsutil.FileExists(subtitlePath)
-	return exists
+
+	ext := filepath.Ext(scene.Path)
+	basePath := strings.TrimSuffix(scene.Path, ext)
+
+	// Check all supported subtitle extensions using the centralized SubtitleExts list
+	for _, subExt := range video.SubtitleExts {
+		subtitlePath := basePath + "." + subExt
+		if exists, _ := fsutil.FileExists(subtitlePath); exists {
+			return true
+		}
+	}
+	return false
 }
 
 // TestConnection tests the connection to the Whisper service

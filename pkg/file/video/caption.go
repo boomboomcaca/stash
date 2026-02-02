@@ -15,7 +15,13 @@ import (
 	"golang.org/x/text/language"
 )
 
-var CaptionExts = []string{"vtt", "srt"} // in a case where vtt and srt files are both provided prioritize vtt file due to native support
+// CaptionExts contains supported caption file extensions (without dot prefix).
+// In a case where vtt and srt files are both provided, prioritize vtt file due to native support.
+var CaptionExts = []string{"vtt", "srt"}
+
+// SubtitleExts contains all subtitle file extensions (without dot prefix).
+// This includes caption formats plus additional subtitle formats like ASS/SSA.
+var SubtitleExts = []string{"srt", "vtt", "ass", "ssa", "sub", "idx"}
 
 // to be used for captions without a language code in the filename
 // ISO 639-1 uses 2 or 3 a-z chars for codes so 00 is a safe non valid choise
