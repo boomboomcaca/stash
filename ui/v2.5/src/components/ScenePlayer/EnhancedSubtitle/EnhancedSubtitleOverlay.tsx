@@ -147,7 +147,7 @@ export const EnhancedSubtitleOverlay: React.FC<
       selectedWordIndex < wordSegments.length &&
       wordSegments[selectedWordIndex]
     ) {
-      const {word} = wordSegments[selectedWordIndex];
+      const { word } = wordSegments[selectedWordIndex];
       const wordKey = `${word.toLowerCase()}:${detectedLanguage}`;
       if (favoriteWords.has(wordKey)) {
         handleWordClick(word);
