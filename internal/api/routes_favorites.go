@@ -75,7 +75,11 @@ func (rs favoritesRoutes) AddFavorite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	favorites, err := loadFavorites()
+	// Hold write lock for entire read-modify-write operation to prevent race conditions
+	favoritesLock.Lock()
+	defer favoritesLock.Unlock()
+
+	favorites, err := loadFavoritesUnsafe()
 	if err != nil {
 		logger.Errorf("Failed to load favorites: %v", err)
 		http.Error(w, "Failed to load favorites", http.StatusInternalServerError)
@@ -98,7 +102,7 @@ func (rs favoritesRoutes) AddFavorite(w http.ResponseWriter, r *http.Request) {
 	// Add new favorite
 	favorites = append(favorites, favorite)
 
-	if err := saveFavorites(favorites); err != nil {
+	if err := saveFavoritesUnsafe(favorites); err != nil {
 		logger.Errorf("Failed to save favorites: %v", err)
 		http.Error(w, "Failed to save favorites", http.StatusInternalServerError)
 		return
@@ -126,7 +130,11 @@ func (rs favoritesRoutes) RemoveFavorite(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	favorites, err := loadFavorites()
+	// Hold write lock for entire read-modify-write operation to prevent race conditions
+	favoritesLock.Lock()
+	defer favoritesLock.Unlock()
+
+	favorites, err := loadFavoritesUnsafe()
 	if err != nil {
 		logger.Errorf("Failed to load favorites: %v", err)
 		http.Error(w, "Failed to load favorites", http.StatusInternalServerError)
@@ -154,7 +162,7 @@ func (rs favoritesRoutes) RemoveFavorite(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := saveFavorites(newFavorites); err != nil {
+	if err := saveFavoritesUnsafe(newFavorites); err != nil {
 		logger.Errorf("Failed to save favorites: %v", err)
 		http.Error(w, "Failed to save favorites", http.StatusInternalServerError)
 		return
@@ -201,11 +209,17 @@ func (rs favoritesRoutes) CheckFavorite(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// loadFavorites loads favorites from JSON file
+// loadFavorites loads favorites from JSON file (thread-safe for read-only operations)
 func loadFavorites() ([]FavoriteWord, error) {
 	favoritesLock.RLock()
 	defer favoritesLock.RUnlock()
 
+	return loadFavoritesUnsafe()
+}
+
+// loadFavoritesUnsafe loads favorites without acquiring lock.
+// Caller must hold favoritesLock before calling this function.
+func loadFavoritesUnsafe() ([]FavoriteWord, error) {
 	file := getFavoritesFile()
 
 	// Check if file exists
@@ -226,11 +240,9 @@ func loadFavorites() ([]FavoriteWord, error) {
 	return favorites, nil
 }
 
-// saveFavorites saves favorites to JSON file
-func saveFavorites(favorites []FavoriteWord) error {
-	favoritesLock.Lock()
-	defer favoritesLock.Unlock()
-
+// saveFavoritesUnsafe saves favorites without acquiring lock.
+// Caller must hold favoritesLock (write lock) before calling this function.
+func saveFavoritesUnsafe(favorites []FavoriteWord) error {
 	file := getFavoritesFile()
 
 	data, err := json.MarshalIndent(favorites, "", "  ")
