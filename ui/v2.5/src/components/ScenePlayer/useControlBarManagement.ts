@@ -139,6 +139,13 @@ export function useControlBarManagement({
 
         const handleFocusLoss = () => {
           setTimeout(() => {
+            // 如果词典模态框正在显示，不要强制重新聚焦播放器，避免边框闪烁
+            const isDictionaryVisible =
+              enhancedSubtitleNavigationRef.current?.isDictionaryVisible?.() ??
+              false;
+            if (isDictionaryVisible) {
+              return;
+            }
             if (playerEl?.classList.contains("vjs-controls-locked-hidden")) {
               playerEl.focus();
             }
@@ -187,7 +194,7 @@ export function useControlBarManagement({
         }
       }
     }
-  }, [getPlayer, showEnhancedSubtitles]);
+  }, [getPlayer, showEnhancedSubtitles, enhancedSubtitleNavigationRef]);
 
   // 同步所有状态到移动触摸控件
   useEffect(() => {
