@@ -26,7 +26,8 @@ const (
 
 func allowUnauthenticated(r *http.Request) bool {
 	// #2715 - allow access to UI files
-	return strings.HasPrefix(r.URL.Path, loginEndpoint) || r.URL.Path == logoutEndpoint || r.URL.Path == "/css" || strings.HasPrefix(r.URL.Path, "/assets")
+	// Also allow TTS pronunciation endpoint for Android TV word lookup feature
+	return strings.HasPrefix(r.URL.Path, loginEndpoint) || r.URL.Path == logoutEndpoint || r.URL.Path == "/css" || strings.HasPrefix(r.URL.Path, "/assets") || strings.HasPrefix(r.URL.Path, "/tts/")
 }
 
 func authenticateHandler() func(http.Handler) http.Handler {
