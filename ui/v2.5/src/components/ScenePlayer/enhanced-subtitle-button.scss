@@ -1,6 +1,12 @@
 .vjs-enhanced-subtitles-button {
   cursor: pointer;
 
+  // 隐藏tooltip
+  .vjs-control-text {
+    /* stylelint-disable-next-line declaration-no-important */
+    display: none !important;
+  }
+
   // 确保图标正确显示
   .vjs-icon-placeholder::before {
     font-family: VideoJS;

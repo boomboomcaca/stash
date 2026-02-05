@@ -18,7 +18,6 @@ class EnhancedSubtitleButton extends Button {
   ) {
     super(player, options as videojs.ComponentOptions);
     this.toggleCallback = options.onToggle;
-    this.controlText("增强字幕");
     this.addClass("vjs-enhanced-subtitles-button");
     this.updateIcon();
   }
