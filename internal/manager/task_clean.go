@@ -185,7 +185,7 @@ func (j *cleanJob) deleteScene(ctx context.Context, id int) {
 			Paths:          mgr.Paths,
 		}
 
-		if err := mgr.SceneService.Destroy(ctx, s, sceneFileDeleter, true, true, false); err != nil {
+		if err := mgr.SceneService.Destroy(ctx, s, sceneFileDeleter, true, true, false, false); err != nil {
 			return err
 		}
 
@@ -393,7 +393,11 @@ func (h *cleanHandler) handleRelatedScenes(ctx context.Context, fileDeleter *fil
 		// only delete if the scene has no other files
 		if len(scene.Files.List()) <= 1 {
 			logger.Infof("Deleting scene %q since it has no other related files", scene.DisplayName())
-			if err := mgr.SceneService.Destroy(ctx, scene, sceneFileDeleter, true, false, false); err != nil {
+			const deleteGenerated = true
+			const deleteFile = false
+			const deleteSubtitles = false
+			const destroyFileEntry = false
+			if err := mgr.SceneService.Destroy(ctx, scene, sceneFileDeleter, deleteGenerated, deleteFile, deleteSubtitles, destroyFileEntry); err != nil {
 				return err
 			}
 
@@ -514,7 +518,10 @@ func (h *cleanHandler) handleRelatedImages(ctx context.Context, fileDeleter *fil
 
 		if len(i.Files.List()) <= 1 {
 			logger.Infof("Deleting image %q since it has no other related files", i.DisplayName())
-			if err := mgr.ImageService.Destroy(ctx, i, imageFileDeleter, true, false); err != nil {
+			const deleteGenerated = true
+			const deleteFile = false
+			const destroyFileEntry = false
+			if err := mgr.ImageService.Destroy(ctx, i, imageFileDeleter, deleteGenerated, deleteFile, destroyFileEntry); err != nil {
 				return err
 			}
 

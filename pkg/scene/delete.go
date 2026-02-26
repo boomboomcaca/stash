@@ -111,7 +111,7 @@ func (d *FileDeleter) MarkMarkerFiles(scene *models.Scene, seconds int) error {
 
 // Destroy deletes a scene and its associated relationships from the
 // database.
-func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter, deleteGenerated, deleteFile, deleteSubtitles bool) error {
+func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter, deleteGenerated, deleteFile, deleteSubtitles, destroyFileEntry bool) error {
 	// Only delete markers if we're actually deleting the scene
 	// If only deleting subtitles or generated files, keep the markers
 	if deleteFile {
@@ -137,6 +137,10 @@ func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter 
 	// Delete subtitle files independently if requested
 	if deleteSubtitles && !deleteFile {
 		if err := s.deleteSubtitlesOnly(ctx, scene, fileDeleter); err != nil {
+			return err
+		}
+	} else if destroyFileEntry {
+		if err := s.destroyFileEntries(ctx, scene); err != nil {
 			return err
 		}
 	}
@@ -292,6 +296,35 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 	if len(captionFiles) > 0 {
 		if err := fileDeleter.Files(captionFiles); err != nil {
 			return fmt.Errorf("marking caption files for deletion: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// destroyFileEntries destroys file entries from the database without deleting
+// the files from the filesystem
+func (s *Service) destroyFileEntries(ctx context.Context, scene *models.Scene) error {
+	if err := scene.LoadFiles(ctx, s.Repository); err != nil {
+		return err
+	}
+
+	for _, f := range scene.Files.List() {
+		// only destroy file entries where there is no other associated scene
+		otherScenes, err := s.Repository.FindByFileID(ctx, f.ID)
+		if err != nil {
+			return err
+		}
+
+		if len(otherScenes) > 1 {
+			// other scenes associated, don't remove
+			continue
+		}
+
+		const deleteFile = false
+		logger.Info("Destroying scene file entry: ", f.Path)
+		if err := file.Destroy(ctx, s.File, f, nil, deleteFile); err != nil {
+			return err
 		}
 	}
 

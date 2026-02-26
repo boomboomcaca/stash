@@ -62,6 +62,15 @@ func (qb *imageFilterHandler) criterionHandler() criterionHandler {
 
 			stringCriterionHandler(imageFilter.Checksum, "fingerprints_md5.fingerprint")(ctx, f)
 		}),
+
+		&phashDistanceCriterionHandler{
+			joinFn: func(f *filterBuilder) {
+				imageRepository.addImagesFilesTable(f)
+				f.addLeftJoin(fingerprintTable, "fingerprints_phash", "images_files.file_id = fingerprints_phash.file_id AND fingerprints_phash.type = 'phash'")
+			},
+			criterion: imageFilter.PhashDistance,
+		},
+
 		stringCriterionHandler(imageFilter.Title, "images.title"),
 		stringCriterionHandler(imageFilter.Code, "images.code"),
 		stringCriterionHandler(imageFilter.Details, "images.details"),
@@ -90,6 +99,13 @@ func (qb *imageFilterHandler) criterionHandler() criterionHandler {
 		qb.performerAgeCriterionHandler(imageFilter.PerformerAge),
 		&timestampCriterionHandler{imageFilter.CreatedAt, "images.created_at", nil},
 		&timestampCriterionHandler{imageFilter.UpdatedAt, "images.updated_at", nil},
+
+		&customFieldsFilterHandler{
+			table: imagesCustomFieldsTable.GetTable(),
+			fkCol: imageIDColumn,
+			c:     imageFilter.CustomFields,
+			idCol: "images.id",
+		},
 
 		&relatedFilterHandler{
 			relatedIDCol:   "galleries_images.gallery_id",

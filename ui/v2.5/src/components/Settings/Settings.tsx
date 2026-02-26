@@ -19,6 +19,8 @@ import { SettingsContext, useSettings } from "./context";
 import { SettingsLibraryPanel } from "./SettingsLibraryPanel";
 import { SettingsSecurityPanel } from "./SettingsSecurityPanel";
 import Changelog from "../Changelog/Changelog";
+import { TroubleshootingModeButton } from "../TroubleshootingMode/TroubleshootingModeButton";
+import { useTroubleshootingMode } from "../TroubleshootingMode/useTroubleshootingMode";
 
 const validTabs = [
   "tasks",
@@ -45,6 +47,7 @@ function isTabKey(tab: string | null): tab is TabKey {
 
 const SettingTabs: React.FC<{ tab: TabKey }> = ({ tab }) => {
   const { advancedMode, setAdvancedMode } = useSettings();
+  const { isActive: troubleshootingModeActive } = useTroubleshootingMode();
 
   const titleProps = useTitleProps({ id: "settings" });
 
@@ -160,6 +163,7 @@ const SettingTabs: React.FC<{ tab: TabKey }> = ({ tab }) => {
                 />
               </div>
             </Nav.Item>
+            {!troubleshootingModeActive && <TroubleshootingModeButton />}
             <hr className="d-sm-none" />
           </Nav>
         </Col>
