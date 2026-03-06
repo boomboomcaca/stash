@@ -110,8 +110,7 @@ func (s *Service) GenerateSubtitle(ctx context.Context, scene *models.Scene, lan
 	// Check if subtitle already exists
 	subtitlePath := getSubtitlePath(videoPath)
 	if config.SkipIfExists {
-		exists, _ := fsutil.FileExists(subtitlePath)
-		if exists {
+		if s.HasSubtitle(scene) {
 			return &GenerateSubtitleResult{
 				Success:      true,
 				SubtitlePath: subtitlePath,
@@ -284,6 +283,12 @@ func (s *Service) HasSubtitle(scene *models.Scene) bool {
 	for _, subExt := range video.SubtitleExts {
 		subtitlePath := basePath + "." + subExt
 		if exists, _ := fsutil.FileExists(subtitlePath); exists {
+			return true
+		}
+
+		// Check for language-specific subtitles (e.g., video.en.srt, video.zh.vtt)
+		matches, err := filepath.Glob(basePath + ".*." + subExt)
+		if err == nil && len(matches) > 0 {
 			return true
 		}
 	}
