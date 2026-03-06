@@ -44,6 +44,7 @@ const OLLAMA_EXPLAIN_WORD_MUTATION = gql`
         examples
       }
       etymology
+      morphology
     }
   }
 `;
@@ -80,6 +81,7 @@ export interface IBackendDictionaryEntry {
   pronunciation?: string;
   definitions: IBackendDictionaryDefinition[];
   etymology: string;
+  morphology?: string;
 }
 
 export interface IBackendDictionaryDefinition {

@@ -290,6 +290,12 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
                 </div>
               </div>
             ))}
+            {dictionary.morphology && (
+              <div className="morphology-section">
+                <div className="section-label">词根拆解</div>
+                <div className="morphology-text">{dictionary.morphology}</div>
+              </div>
+            )}
           </div>
         ) : (
           <div

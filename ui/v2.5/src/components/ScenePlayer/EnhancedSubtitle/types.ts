@@ -20,6 +20,7 @@ export interface IDictionaryEntry {
     examples?: string[];
   }>;
   etymology?: string;
+  morphology?: string;
   frequency?: number;
 }
 

@@ -41,13 +41,15 @@ func DefaultConfig() *OllamaConfig {
 **词性：** [词性名称：单词<WORD>所有的中文翻译]
 **含义：** [解释一下这句话中这个词的用法<WORD>： <CONTEXT>]
 **用法说明：** [解释一下这句话中这个词的语法<WORD>： <CONTEXT>]
+**词根拆解：** [拆分前缀、词根、后缀，标注来源和含义，如：un- (否定) + break (打破) + -able (可能)]
 
 要求：
 1. 直接回答，不要前言或总结
 2. 每部分内容简洁明了
 3. 美音音标请用国际音标（IPA）格式
 4. 词性部分必须包含单词的中文翻译，多个翻译用顿号分隔
-5. 不要使用markdown标题符号（#）或分割线（---）`,
+5. 词根拆解部分请尽量详细拆分，若无法拆分请说明
+6. 不要使用markdown标题符号（#）或分割线（---）`,
 	}
 }
 
@@ -173,6 +175,7 @@ type DictionaryEntry struct {
 	Pronunciation string                 `json:"pronunciation,omitempty"`
 	Definitions   []DictionaryDefinition `json:"definitions"`
 	Etymology     string                 `json:"etymology"`
+	Morphology    string                 `json:"morphology,omitempty"`
 }
 
 // DictionaryDefinition represents a word definition
@@ -391,7 +394,7 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 	cleanExplanation := s.cleanExplanationText(explanation)
 
 	// Try to parse structured content
-	pronunciation, partOfSpeech, meaning, usageNote, _ := s.parseStructuredExplanation(cleanExplanation)
+	pronunciation, partOfSpeech, meaning, usageNote, morphology, _ := s.parseStructuredExplanation(cleanExplanation)
 
 	// Build the complete meaning text
 	completeMeaning := meaning
@@ -407,6 +410,7 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 				Meaning:      completeMeaning,
 			},
 		},
+		Morphology: morphology,
 	}
 
 	// Add pronunciation to entry if available
@@ -459,7 +463,7 @@ func (s *Service) cleanExplanationText(text string) string {
 }
 
 // parseStructuredExplanation attempts to parse structured response
-func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOfSpeech, meaning, usageNote string, examples []string) {
+func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOfSpeech, meaning, usageNote, morphology string, examples []string) {
 	lines := strings.Split(text, "\n")
 
 	currentSection := ""
@@ -490,6 +494,10 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 			usageNote = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**用法说明：**"), "**用法说明:**"))
 			usageNote = strings.Trim(usageNote, "[]")
 			currentSection = "usage"
+		} else if strings.HasPrefix(line, "**词根拆解：**") || strings.HasPrefix(line, "**词根拆解:**") {
+			morphology = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**词根拆解：**"), "**词根拆解:**"))
+			morphology = strings.Trim(morphology, "[]")
+			currentSection = "morphology"
 		} else if strings.HasPrefix(line, "**例句：**") || strings.HasPrefix(line, "**例句:**") {
 			exampleText := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**例句：**"), "**例句:**"))
 			if exampleText != "" && !strings.HasPrefix(exampleText, "[") {
@@ -542,5 +550,5 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 		examples = exampleLines
 	}
 
-	return pronunciation, partOfSpeech, meaning, usageNote, examples
+	return pronunciation, partOfSpeech, meaning, usageNote, morphology, examples
 }

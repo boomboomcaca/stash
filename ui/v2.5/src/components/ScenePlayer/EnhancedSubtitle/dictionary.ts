@@ -70,6 +70,7 @@ export class DictionaryService {
               examples: def.examples,
             })),
             etymology: backendEntry.etymology,
+            morphology: backendEntry.morphology,
           };
         } catch (error) {
           // console.warn('Ollama backend lookup failed:', error);

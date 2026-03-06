@@ -503,6 +503,29 @@
         }
       }
     }
+
+    .morphology-section {
+      background: rgba(100, 100, 120, 0.2);
+      border-left: 3px solid #fbbf24;
+      border-radius: 4px;
+      margin-top: 1.2rem;
+      padding: 0.8rem 1rem;
+
+      .section-label {
+        color: #fbbf24;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+        text-transform: uppercase;
+      }
+
+      .morphology-text {
+        color: rgba(255, 255, 255, 0.9);
+        font-family: inherit;
+        font-size: 1.4rem;
+        line-height: 1.5;
+      }
+    }
   }
 }
 
