@@ -38,9 +38,10 @@ func NewLibraryWatcher(manager *Manager) (*LibraryWatcher, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &LibraryWatcher{
-		watcher:      watcher,
-		manager:      manager,
-		debounceTime: 2 * time.Second, // Debounce time to avoid excessive scanning
+		watcher: watcher,
+		manager: manager,
+
+		debounceTime: 30 * time.Second, // Increased debounce time for network mounts
 		events:       make(map[string]time.Time),
 		ctx:          ctx,
 		cancel:       cancel,
@@ -189,8 +190,24 @@ func (lw *LibraryWatcher) shouldProcessEvent(event fsnotify.Event) bool {
 
 // handleEvent processes a file system event
 func (lw *LibraryWatcher) handleEvent(event fsnotify.Event) {
+	// If a new directory is created, add it to the watcher recursively
+	if event.Op&fsnotify.Create != 0 {
+		info, err := os.Stat(event.Name)
+		if err == nil && info.IsDir() {
+			logger.Infof("New directory detected, adding to watcher: %s", event.Name)
+			if err := lw.addPathRecursively(event.Name); err != nil {
+				logger.Warnf("Failed to add new directory %s to watcher: %v", event.Name, err)
+			}
+		}
+	}
+
 	// Get the directory containing the changed file
 	dir := filepath.Dir(event.Name)
+	// If the event itself is a directory, use the directory itself
+	info, err := os.Stat(event.Name)
+	if err == nil && info.IsDir() {
+		dir = event.Name
+	}
 
 	lw.eventsMutex.Lock()
 	lw.events[dir] = time.Now()
