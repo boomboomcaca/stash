@@ -118,6 +118,32 @@ export class PronunciationService {
     return this.provider.getAudioUrl(word, language);
   }
 
+  // Preload pronunciation for a word (fetch without playing)
+  preloadPronunciation(word: string, language: string = "en"): void {
+    if (!this.useBackend) return;
+
+    const cacheKey = `${word}_${language}`;
+    if (this.audioCache.has(cacheKey)) return;
+
+    // Check cache size and cleanup if needed
+    if (this.audioCache.size >= this.MAX_CACHE_SIZE) {
+      this.cleanupCache();
+    }
+
+    const url = this.getPronunciationUrl(word, language);
+    const audio = new Audio(url);
+    audio.onerror = () => {
+      this.audioCache.delete(cacheKey);
+    };
+    audio.oncanplaythrough = () => {
+      // Preloaded successfully
+    };
+    // Trigger load explicitly
+    audio.load();
+
+    this.audioCache.set(cacheKey, audio);
+  }
+
   // Play pronunciation for a word
   async playPronunciation(
     word: string,
@@ -243,4 +269,12 @@ export function getPronunciationUrl(
   language: string = "en"
 ): string {
   return pronunciationService.getPronunciationUrl(word, language);
+}
+
+// Helper function to preload pronunciation
+export function preloadWordPronunciation(
+  word: string,
+  language: string = "en"
+): void {
+  pronunciationService.preloadPronunciation(word, language);
 }

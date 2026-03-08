@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { IDictionaryEntry, ISubtitleCue } from "../types";
 import { lookupWord, lookupWordWithContext } from "../dictionary";
-import { playWordPronunciation } from "../pronunciation";
+import {
+  playWordPronunciation,
+  preloadWordPronunciation,
+} from "../pronunciation";
 import { getFavorites, addFavorite, removeFavorite } from "../favorites";
 
 interface IUseDictionaryProps {
@@ -87,6 +90,13 @@ export function useDictionary({
       setIsFavorite(false);
     }
   }, [selectedWord, detectedLanguage, favoriteWords]);
+
+  // Pre-load pronunciation as soon as a word is selected and dictionary is shown
+  useEffect(() => {
+    if (showDictionary && selectedWord) {
+      preloadWordPronunciation(selectedWord, detectedLanguage);
+    }
+  }, [showDictionary, selectedWord, detectedLanguage]);
 
   const handlePronunciation = useCallback(
     async (word: string) => {
