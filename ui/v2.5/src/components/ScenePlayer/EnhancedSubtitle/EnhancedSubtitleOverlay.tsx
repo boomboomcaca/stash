@@ -97,6 +97,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     wordSegments,
     detectedLanguage,
     selectedWordIndex,
+    setSelectedWordIndex,
     isInWordNavigationMode,
     enterWordNavigationMode,
     exitWordNavigationMode,
@@ -140,7 +141,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     setOnWordSelect(handleWordClick);
   }, [setOnWordSelect, handleWordClick]);
 
-  // Auto-show dictionary for favorited words when navigating
+  // Auto-show/update dictionary when navigating
   useEffect(() => {
     if (
       isInWordNavigationMode &&
@@ -150,8 +151,12 @@ export const EnhancedSubtitleOverlay: React.FC<
     ) {
       const { word } = wordSegments[selectedWordIndex];
       const wordKey = `${word.toLowerCase()}:${detectedLanguage}`;
-      if (favoriteWords.has(wordKey)) {
-        handleWordClick(word);
+      // Auto-show if favorited OR update if dictionary is already open
+      if (favoriteWords.has(wordKey) || showDictionaryRef.current) {
+        // Avoid redundant calls if the word is already selected in dictionary
+        if (selectedWord !== word) {
+          handleWordClick(word);
+        }
       }
     }
   }, [
@@ -161,6 +166,8 @@ export const EnhancedSubtitleOverlay: React.FC<
     detectedLanguage,
     favoriteWords,
     handleWordClick,
+    selectedWord,
+    showDictionaryRef,
   ]);
 
   // Drag hook
@@ -362,12 +369,16 @@ export const EnhancedSubtitleOverlay: React.FC<
           className={`subtitle-word ${segment.isSelected ? "selected" : ""} ${
             isSelectedInNav ? "navigation-selected" : ""
           } ${isFavorited ? "favorited" : ""}`}
-          onClick={() => handleWordClick(segment.word)}
+          onClick={() => {
+            handleWordClick(segment.word);
+            setSelectedWordIndex(index);
+          }}
           onTouchEnd={(e) => {
             if (isDragging) return;
             e.preventDefault();
             e.stopPropagation();
             handleWordClick(segment.word);
+            setSelectedWordIndex(index);
           }}
           title={
             isFavorited
@@ -398,6 +409,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     isInWordNavigationMode,
     selectedWordIndex,
     isDragging,
+    setSelectedWordIndex,
   ]);
 
   if (!isVisible) {
