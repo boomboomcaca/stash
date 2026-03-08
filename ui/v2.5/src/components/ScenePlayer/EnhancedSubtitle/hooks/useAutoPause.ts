@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ISubtitleCue } from "../types";
 
-const AUTO_PAUSE_THRESHOLD = 0.1;
+const AUTO_PAUSE_THRESHOLD = 0.05;
 
 const getCueSignature = (cue: ISubtitleCue) =>
   `${cue.startTime}-${cue.endTime}-${cue.text}`;
