@@ -1,14 +1,14 @@
 // Text-to-Speech service for word pronunciation
-// Uses backend proxy to avoid CORS issues and support mobile browsers
+// Uses backend Edge TTS proxy to avoid CORS issues and support mobile browsers
 
 export interface ITTSProvider {
   name: string;
   getAudioUrl(word: string, language: string): string;
 }
 
-// Backend TTS Provider (proxies Google TTS through our server)
+// Backend TTS Provider (proxies Microsoft Edge TTS through our server)
 class BackendTTSProvider implements ITTSProvider {
-  name = "Backend TTS Proxy";
+  name = "Backend Edge TTS Proxy";
 
   getAudioUrl(word: string, language: string): string {
     // Use our backend proxy endpoint
