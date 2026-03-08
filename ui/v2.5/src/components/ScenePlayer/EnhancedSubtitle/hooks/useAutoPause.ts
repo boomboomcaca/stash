@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ISubtitleCue } from "../types";
 
-const AUTO_PAUSE_THRESHOLD = 0.05;
+const AUTO_PAUSE_THRESHOLD = 0.02;
 
 const getCueSignature = (cue: ISubtitleCue) =>
   `${cue.startTime}-${cue.endTime}-${cue.text}`;
@@ -59,6 +59,8 @@ export function useAutoPause({
   const onPausePlayerRef = useRef<typeof onPausePlayer>(onPausePlayer);
   const onGetPlayerRef = useRef<typeof onGetPlayer>(onGetPlayer);
 
+  const rafIdRef = useRef<number | null>(null);
+
   const clearAutoPauseTimeout = useCallback(() => {
     if (autoPauseTimeoutRef.current !== null) {
       clearTimeout(autoPauseTimeoutRef.current);
@@ -67,51 +69,115 @@ export function useAutoPause({
     scheduledCueSignatureRef.current = null;
   }, []);
 
-  useEffect(() => {
-    return () => clearAutoPauseTimeout();
-  }, [clearAutoPauseTimeout]);
-
-  useEffect(() => {
-    autoPauseEnabledRef.current = autoPauseEnabled;
-    if (!autoPauseEnabled) {
-      clearAutoPauseTimeout();
-    }
-  }, [autoPauseEnabled, clearAutoPauseTimeout]);
-
-  useEffect(() => {
-    getPlayerPausedRef.current = getPlayerPaused;
-  }, [getPlayerPaused]);
-
-  useEffect(() => {
-    onPausePlayerRef.current = onPausePlayer;
-  }, [onPausePlayer]);
-
-  useEffect(() => {
-    onGetPlayerRef.current = onGetPlayer;
-  }, [onGetPlayer]);
-
-  useEffect(() => {
-    currentCueRef.current = currentCue;
-  }, [currentCue]);
-
   const attemptAutoPause = useCallback(() => {
-    // Auto-pause if: manual auto-pause enabled OR in word navigation mode
     const isInWordMode = isInWordNavigationModeRef?.current ?? false;
     const shouldAutoPause = autoPauseEnabledRef.current || isInWordMode;
     if (!shouldAutoPause) return;
 
     const pausePlayer = onPausePlayerRef.current;
-    const getPaused = getPlayerPausedRef.current;
+    const getPlayer = onGetPlayerRef.current;
+    if (!pausePlayer || !getPlayer) return;
 
-    if (!pausePlayer || !getPaused) return;
-    if (autoPauseTriggeredRef.current || userResumedPlaybackRef.current) return;
-    if (getPaused()) return;
+    const player = getPlayer();
+    if (!player) return;
+
+    const isPaused =
+      typeof player.paused === "function" ? player.paused() : player.paused;
+    if (
+      autoPauseTriggeredRef.current ||
+      userResumedPlaybackRef.current ||
+      isPaused
+    )
+      return;
 
     pausePlayer();
     autoPauseTriggeredRef.current = true;
     setIsAutoPaused(true);
     clearAutoPauseTimeout();
   }, [clearAutoPauseTimeout, isInWordNavigationModeRef]);
+
+  // High-precision monitoring loop
+  useEffect(() => {
+    const monitor = () => {
+      const getPlayer = onGetPlayerRef.current;
+      if (!getPlayer) {
+        rafIdRef.current = requestAnimationFrame(monitor);
+        return;
+      }
+
+      const player = getPlayer();
+      if (!player) {
+        rafIdRef.current = requestAnimationFrame(monitor);
+        return;
+      }
+
+      const pCurrentTime = player.currentTime();
+      const isPaused =
+        typeof player.paused === "function" ? player.paused() : player.paused;
+
+      // Sync player paused state to React
+      if (lastPausedStateRef.current !== isPaused) {
+        setIsPlayerPaused(isPaused);
+
+        // Handle state transitions
+        if (lastPausedStateRef.current === false && isPaused === true) {
+          if (!isAutoPaused) {
+            userResumedPlaybackRef.current = false;
+          }
+        }
+
+        if (lastPausedStateRef.current === true && isPaused === false) {
+          if (autoPauseTriggeredRef.current && isAutoPaused) {
+            userResumedPlaybackRef.current = true;
+            setIsAutoPaused(false);
+            clearAutoPauseTimeout();
+          } else if (autoPauseTriggeredRef.current && !isAutoPaused) {
+            autoPauseTriggeredRef.current = false;
+            userResumedPlaybackRef.current = false;
+            clearAutoPauseTimeout();
+          }
+        }
+        lastPausedStateRef.current = isPaused;
+      }
+
+      // Auto-pause logic
+      const isInWordMode = isInWordNavigationModeRef?.current ?? false;
+      const shouldRunAutoPause =
+        (autoPauseEnabledRef.current || isInWordMode) && !isPaused;
+
+      if (shouldRunAutoPause && currentCueRef.current) {
+        const cue = currentCueRef.current;
+        const timeUntilEnd = cue.endTime - pCurrentTime;
+
+        if (timeUntilEnd <= 0) {
+          clearAutoPauseTimeout();
+        } else if (timeUntilEnd <= AUTO_PAUSE_THRESHOLD) {
+          if (
+            !autoPauseTriggeredRef.current &&
+            !userResumedPlaybackRef.current
+          ) {
+            attemptAutoPause();
+          }
+        }
+      }
+
+      lastCurrentTimeRef.current = pCurrentTime;
+      rafIdRef.current = requestAnimationFrame(monitor);
+    };
+
+    rafIdRef.current = requestAnimationFrame(monitor);
+    return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, [
+    attemptAutoPause,
+    clearAutoPauseTimeout,
+    isAutoPaused,
+    isInWordNavigationModeRef,
+    setIsAutoPaused,
+  ]);
 
   const scheduleAutoPause = useCallback(
     (cue: ISubtitleCue, timeUntilEnd: number) => {
@@ -143,14 +209,6 @@ export function useAutoPause({
       scheduledCueSignatureRef.current = cueSignature;
       autoPauseTimeoutRef.current = setTimeout(() => {
         if (scheduledCueSignatureRef.current !== cueSignature) return;
-
-        const activeCue = currentCueRef.current;
-        const activeCueSignature = activeCue
-          ? getCueSignature(activeCue)
-          : null;
-
-        if (activeCueSignature !== cueSignature) return;
-
         attemptAutoPause();
       }, delayMs);
     },
@@ -182,13 +240,6 @@ export function useAutoPause({
   }, [currentTime, parsedSubtitles]);
 
   useEffect(() => {
-    if (getPlayerPaused) {
-      const paused = getPlayerPaused();
-      setIsPlayerPaused(paused);
-    }
-  }, [currentTime, getPlayerPaused]);
-
-  useEffect(() => {
     if (!parsedSubtitles) {
       setCurrentCue(null);
       return;
@@ -196,123 +247,72 @@ export function useAutoPause({
 
     const { cue, cueIndex } = currentCueData;
 
-    // Run auto-pause logic if: manual auto-pause enabled OR in word navigation mode
-    const isInWordMode = isInWordNavigationModeRef?.current ?? false;
-    const shouldRunAutoPauseLogic =
-      (autoPauseEnabled || isInWordMode) && onPausePlayer && getPlayerPaused;
-
-    if (shouldRunAutoPauseLogic) {
-      const isPaused = getPlayerPaused();
-
+    if (cue) {
       const isSameCue =
-        cue &&
         lastCueRef.current &&
         cue.startTime === lastCueRef.current.startTime &&
-        cue.endTime === lastCueRef.current.endTime &&
-        cue.text === lastCueRef.current.text;
+        cue.endTime === lastCueRef.current.endTime;
 
-      if (cue && isSameCue && autoPauseTriggeredRef.current) {
-        const timeDiff = currentTime - lastCurrentTimeRef.current;
-        const isNearStart = Math.abs(currentTime - cue.startTime) < 0.5;
-
-        if (timeDiff < -0.5 && isNearStart) {
-          autoPauseTriggeredRef.current = false;
-          userResumedPlaybackRef.current = false;
-          setIsAutoPaused(false);
-          clearAutoPauseTimeout();
-        }
-      }
-
-      if (cue && !isSameCue) {
+      if (!isSameCue) {
         autoPauseTriggeredRef.current = false;
         userResumedPlaybackRef.current = false;
         setIsAutoPaused(false);
         lastCueRef.current = cue;
-        lastPausedStateRef.current = isPaused;
         clearAutoPauseTimeout();
       }
 
-      if (lastPausedStateRef.current === false && isPaused === true) {
-        if (!isAutoPaused) {
-          userResumedPlaybackRef.current = false;
-        }
-      }
-
-      if (lastPausedStateRef.current === true && isPaused === false) {
-        if (autoPauseTriggeredRef.current && isAutoPaused) {
-          userResumedPlaybackRef.current = true;
-          setIsAutoPaused(false);
-          lastPausedStateRef.current = isPaused;
-          clearAutoPauseTimeout();
-          return;
-        } else if (autoPauseTriggeredRef.current && !isAutoPaused) {
-          autoPauseTriggeredRef.current = false;
-          userResumedPlaybackRef.current = false;
-          clearAutoPauseTimeout();
-        }
-      }
-
-      lastPausedStateRef.current = isPaused;
-
+      const isPaused = getPlayerPausedRef.current
+        ? getPlayerPausedRef.current()
+        : true;
       if (
-        cue &&
         !autoPauseTriggeredRef.current &&
         !userResumedPlaybackRef.current &&
         !isPaused
       ) {
         const timeUntilEnd = cue.endTime - currentTime;
-
-        if (timeUntilEnd <= 0) {
-          clearAutoPauseTimeout();
-        } else if (timeUntilEnd <= AUTO_PAUSE_THRESHOLD) {
-          attemptAutoPause();
-        } else {
+        if (timeUntilEnd > AUTO_PAUSE_THRESHOLD) {
           scheduleAutoPause(cue, timeUntilEnd);
         }
-      } else {
-        clearAutoPauseTimeout();
       }
-
-      if (!cue) {
-        lastCueRef.current = null;
-        autoPauseTriggeredRef.current = false;
-        userResumedPlaybackRef.current = false;
-        setIsAutoPaused(false);
-        clearAutoPauseTimeout();
-      }
+    } else {
+      lastCueRef.current = null;
+      autoPauseTriggeredRef.current = false;
+      userResumedPlaybackRef.current = false;
+      setIsAutoPaused(false);
+      clearAutoPauseTimeout();
     }
 
-    const isSameCueContent =
-      cue &&
-      currentCue &&
-      cue.startTime === currentCue.startTime &&
-      cue.endTime === currentCue.endTime &&
-      cue.text === currentCue.text;
-
-    if (!isSameCueContent) {
+    if (cue !== currentCue) {
       setCurrentCue(cue || null);
-
       if (onCurrentCueChange) {
         onCurrentCueChange(cueIndex);
       }
     }
-
-    lastCurrentTimeRef.current = currentTime;
   }, [
     currentCueData,
     autoPauseEnabled,
-    onPausePlayer,
-    getPlayerPaused,
     onCurrentCueChange,
     currentCue,
     currentTime,
-    attemptAutoPause,
     clearAutoPauseTimeout,
-    isAutoPaused,
     parsedSubtitles,
     scheduleAutoPause,
-    isInWordNavigationModeRef,
   ]);
+  useEffect(() => {
+    currentCueRef.current = currentCue;
+  }, [currentCue]);
+
+  useEffect(() => {
+    autoPauseEnabledRef.current = autoPauseEnabled;
+  }, [autoPauseEnabled]);
+
+  useEffect(() => {
+    onPausePlayerRef.current = onPausePlayer;
+  }, [onPausePlayer]);
+
+  useEffect(() => {
+    onGetPlayerRef.current = onGetPlayer;
+  }, [onGetPlayer]);
 
   return {
     currentCue,
