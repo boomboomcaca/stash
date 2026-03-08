@@ -14,6 +14,8 @@ interface IUseWordNavigationProps {
   clearAutoPauseTimeout?: () => void;
   // Callback to reset auto-pause state
   setIsAutoPaused?: (paused: boolean) => void;
+  // Ref to reset when entering mode to ensure auto-pause triggers
+  userResumedPlaybackRef?: React.MutableRefObject<boolean>;
 }
 
 interface IUseWordNavigationResult {
@@ -38,6 +40,7 @@ export function useWordNavigation({
   autoPauseEnabled,
   clearAutoPauseTimeout,
   setIsAutoPaused,
+  userResumedPlaybackRef,
 }: IUseWordNavigationProps): IUseWordNavigationResult {
   const [wordSegments, setWordSegments] = useState<IWordSegment[]>([]);
   const [detectedLanguage, setDetectedLanguage] = useState<string>(language);
@@ -110,10 +113,29 @@ export function useWordNavigation({
         const initialIndex = selectLastWord ? wordSegments.length - 1 : 0;
         setSelectedWordIndex(initialIndex);
         prevCueRef.current = currentCue;
+
+        // Synchronously update the ref for useAutoPause to see it IMMEDIATELY
+        if (isInWordNavigationModeRef) {
+          isInWordNavigationModeRef.current = true;
+        }
+
+        // Reset user manual resume flag in useAutoPause
+        // This ensures that even if the user manually resumed playback earlier in this cue,
+        // entering word navigation mode will re-trigger the auto-pause at the end of the cue.
+        if (userResumedPlaybackRef) {
+          userResumedPlaybackRef.current = false;
+        }
+
         // Don't pause immediately - auto-pause will trigger when current subtitle ends
       }
     },
-    [wordSegments, currentCue, autoPauseEnabled]
+    [
+      wordSegments,
+      currentCue,
+      autoPauseEnabled,
+      isInWordNavigationModeRef,
+      userResumedPlaybackRef,
+    ]
   );
 
   const exitWordNavigationMode = useCallback(() => {

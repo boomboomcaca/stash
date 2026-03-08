@@ -111,6 +111,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     autoPauseEnabled,
     clearAutoPauseTimeout,
     setIsAutoPaused,
+    userResumedPlaybackRef,
   });
 
   // Dictionary hook
