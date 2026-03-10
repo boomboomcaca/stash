@@ -281,6 +281,17 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
                 <div className="pos-phonetic-line">
                   <span className="pos-tag">{def.partOfSpeech}</span>
                 </div>
+                {index === 0 && dictionary.morphology && (
+                  <div className="meaning morphology-inline">
+                    {dictionary.morphology
+                      .split("\n")
+                      .map((line, lineIndex) => (
+                        <p key={lineIndex} className="meaning-line">
+                          {line}
+                        </p>
+                      ))}
+                  </div>
+                )}
                 <div className="meaning">
                   {def.meaning.split("\n").map((line, lineIndex) => (
                     <p key={lineIndex} className="meaning-line">
@@ -290,17 +301,6 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
                 </div>
               </div>
             ))}
-            {dictionary.morphology && (
-              <div className="definition morphology">
-                <div className="meaning">
-                  {dictionary.morphology.split("\n").map((line, lineIndex) => (
-                    <p key={lineIndex} className="meaning-line">
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         ) : (
           <div
