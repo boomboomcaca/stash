@@ -412,6 +412,7 @@ func (qb *SceneStore) UpdatePartial(ctx context.Context, id int, partial models.
 		if err := scenesGroupsTableMgr.modifyJoins(ctx, id, partial.GroupIDs.Groups, partial.GroupIDs.Mode); err != nil {
 			return nil, err
 		}
+		qb.propagateCoverToGroups(ctx, id, nil)
 	}
 	if partial.PrimaryFileID != nil {
 		if err := scenesFilesTableMgr.setPrimary(ctx, id, *partial.PrimaryFileID); err != nil {
@@ -1364,7 +1365,40 @@ func (qb *SceneStore) HasCover(ctx context.Context, sceneID int) (bool, error) {
 }
 
 func (qb *SceneStore) UpdateCover(ctx context.Context, sceneID int, image []byte) error {
-	return qb.UpdateImage(ctx, sceneID, sceneCoverBlobColumn, image)
+	if err := qb.UpdateImage(ctx, sceneID, sceneCoverBlobColumn, image); err != nil {
+		return err
+	}
+
+	qb.propagateCoverToGroups(ctx, sceneID, image)
+
+	return nil
+}
+
+func (qb *SceneStore) propagateCoverToGroups(ctx context.Context, sceneID int, image []byte) {
+	// If image is nil, try to fetch it from the database
+	if image == nil {
+		hasCover, err := qb.HasCover(ctx, sceneID)
+		if err != nil || !hasCover {
+			return
+		}
+
+		image, err = qb.GetImage(ctx, sceneID, sceneCoverBlobColumn)
+		if err != nil || len(image) == 0 {
+			return
+		}
+	}
+
+	groups, err := qb.GetGroups(ctx, sceneID)
+	if err != nil {
+		return
+	}
+
+	for _, g := range groups {
+		hasFrontImage, err := qb.repo.Group.HasFrontImage(ctx, g.GroupID)
+		if err == nil && !hasFrontImage {
+			_ = qb.repo.Group.UpdateFrontImage(ctx, g.GroupID, image)
+		}
+	}
 }
 
 func (qb *SceneStore) destroyCover(ctx context.Context, sceneID int) error {

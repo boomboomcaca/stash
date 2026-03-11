@@ -172,3 +172,4 @@ func ensureSubgroup(ctx context.Context, repo GroupRepository, parentID int, chi
 
 	return nil
 }
+
