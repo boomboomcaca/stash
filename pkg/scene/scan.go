@@ -30,6 +30,7 @@ type ScanCreatorUpdater interface {
 	Create(ctx context.Context, newScene *models.Scene, fileIDs []models.FileID) error
 	UpdatePartial(ctx context.Context, id int, updatedScene models.ScenePartial) (*models.Scene, error)
 	AddFileID(ctx context.Context, id int, fileID models.FileID) error
+	GetGroups(ctx context.Context, id int) ([]models.GroupsScenes, error)
 }
 
 type ScanGenerator interface {
@@ -38,6 +39,7 @@ type ScanGenerator interface {
 
 type ScanHandler struct {
 	CreatorUpdater ScanCreatorUpdater
+	GroupUpdater   GroupRepository
 
 	ScanGenerator  ScanGenerator
 	CaptionUpdater video.CaptionUpdater
@@ -112,6 +114,12 @@ func (h *ScanHandler) Handle(ctx context.Context, f models.File, oldFile models.
 			return fmt.Errorf("creating new scene: %w", err)
 		}
 
+		if h.GroupUpdater != nil {
+			if err := autoGroupScene(ctx, h.GroupUpdater, h.CreatorUpdater, newScene.ID, videoFile.Basename); err != nil {
+				logger.Errorf("Failed to auto-group scene: %v", err)
+			}
+		}
+
 		h.PluginCache.RegisterPostHooks(ctx, newScene.ID, hook.SceneCreatePost, nil, nil)
 
 		existing = []*models.Scene{&newScene}
@@ -170,6 +178,15 @@ func (h *ScanHandler) associateExisting(ctx context.Context, existing []*models.
 
 		if !found || updateExisting {
 			h.PluginCache.RegisterPostHooks(ctx, s.ID, hook.SceneUpdatePost, nil, nil)
+		}
+
+		// Try to auto-group if it has no groups
+		if h.GroupUpdater != nil {
+			if err := s.LoadGroups(ctx, h.CreatorUpdater); err == nil && len(s.Groups.List()) == 0 {
+				if err := autoGroupScene(ctx, h.GroupUpdater, h.CreatorUpdater, s.ID, f.Basename); err != nil {
+					logger.Errorf("Failed to auto-group existing scene: %v", err)
+				}
+			}
 		}
 	}
 

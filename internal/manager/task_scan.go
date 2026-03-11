@@ -709,6 +709,7 @@ func getScanHandlers(options ScanMetadataInput, taskQueue *job.TaskQueue, progre
 			Filter: file.FilterFunc(videoFileFilter),
 			Handler: &scene.ScanHandler{
 				CreatorUpdater: r.Scene,
+				GroupUpdater:   r.Group,
 				CaptionUpdater: r.File,
 				PluginCache:    pluginCache,
 				ScanGenerator: &sceneGenerators{
