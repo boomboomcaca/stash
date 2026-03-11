@@ -1394,10 +1394,25 @@ func (qb *SceneStore) propagateCoverToGroups(ctx context.Context, sceneID int, i
 	}
 
 	for _, g := range groups {
-		hasFrontImage, err := qb.repo.Group.HasFrontImage(ctx, g.GroupID)
-		if err == nil && !hasFrontImage {
-			_ = qb.repo.Group.UpdateFrontImage(ctx, g.GroupID, image)
-		}
+		qb.updateGroupCoverRecursive(ctx, g.GroupID, image)
+	}
+}
+
+func (qb *SceneStore) updateGroupCoverRecursive(ctx context.Context, groupID int, image []byte) {
+	hasFrontImage, err := qb.repo.Group.HasFrontImage(ctx, groupID)
+	if err == nil && !hasFrontImage {
+		_ = qb.repo.Group.UpdateFrontImage(ctx, groupID, image)
+	}
+
+	// Always propagate to parents because a parent might still be empty
+	// even if this group already has a cover.
+	parents, err := qb.repo.Group.GetContainingGroupDescriptions(ctx, groupID)
+	if err != nil {
+		return
+	}
+
+	for _, p := range parents {
+		qb.updateGroupCoverRecursive(ctx, p.GroupID, image)
 	}
 }
 
