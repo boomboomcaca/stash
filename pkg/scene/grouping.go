@@ -7,6 +7,9 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 )
@@ -72,7 +75,7 @@ func cleanTitle(title string) string {
 	title = strings.ReplaceAll(title, "_", " ")
 	title = strings.Trim(title, " ._-")
 	// Capitalize each word
-	return strings.Title(strings.ToLower(title))
+	return cases.Title(language.English).String(strings.ToLower(title))
 }
 
 type GroupRepository interface {
@@ -172,4 +175,3 @@ func ensureSubgroup(ctx context.Context, repo GroupRepository, parentID int, chi
 
 	return nil
 }
-
