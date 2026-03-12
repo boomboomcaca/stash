@@ -93,7 +93,7 @@ func autoGroupScene(ctx context.Context, groupRepo GroupRepository, sceneRepo Sc
 	logger.Infof("Auto-grouping scene %d: Show=%s, Season=%d, Episode=%d", sceneID, info.ShowName, info.SeasonNum, info.EpisodeNum)
 
 	// 1. Find or create Show Group
-	showGroup, err := findOrCreateGroup(ctx, groupRepo, info.ShowName)
+	showGroup, _, err := findOrCreateGroup(ctx, groupRepo, info.ShowName)
 	if err != nil {
 		return err
 	}
@@ -103,14 +103,16 @@ func autoGroupScene(ctx context.Context, groupRepo GroupRepository, sceneRepo Sc
 	// 2. Find or create Season Group if applicable
 	if info.HasSeason {
 		seasonName := fmt.Sprintf("%s - Season %02d", info.ShowName, info.SeasonNum)
-		seasonGroup, err := findOrCreateGroup(ctx, groupRepo, seasonName)
+		seasonGroup, isNew, err := findOrCreateGroup(ctx, groupRepo, seasonName)
 		if err != nil {
 			return err
 		}
 
-		// Ensure Season Group is a subgroup of Show Group
-		if err := ensureSubgroup(ctx, groupRepo, showGroup.ID, seasonGroup.ID); err != nil {
-			logger.Errorf("Failed to ensure subgroup relationship: %v", err)
+		// Ensure Season Group is a subgroup of Show Group only if newly created
+		if isNew {
+			if err := ensureSubgroup(ctx, groupRepo, showGroup.ID, seasonGroup.ID); err != nil {
+				logger.Errorf("Failed to ensure subgroup relationship: %v", err)
+			}
 		}
 
 		targetGroupID = seasonGroup.ID
@@ -136,24 +138,24 @@ func autoGroupScene(ctx context.Context, groupRepo GroupRepository, sceneRepo Sc
 	return nil
 }
 
-func findOrCreateGroup(ctx context.Context, repo GroupRepository, name string) (*models.Group, error) {
+func findOrCreateGroup(ctx context.Context, repo GroupRepository, name string) (*models.Group, bool, error) {
 	existing, err := repo.FindByName(ctx, name, true)
 	if err != nil {
-		return nil, fmt.Errorf("finding group %q: %w", name, err)
+		return nil, false, fmt.Errorf("finding group %q: %w", name, err)
 	}
 
 	if existing != nil {
-		return existing, nil
+		return existing, false, nil
 	}
 
 	// Create new group
 	newGroup := models.NewGroup()
 	newGroup.Name = name
 	if err := repo.Create(ctx, &newGroup); err != nil {
-		return nil, fmt.Errorf("creating group %q: %w", name, err)
+		return nil, false, fmt.Errorf("creating group %q: %w", name, err)
 	}
 
-	return &newGroup, nil
+	return &newGroup, true, nil
 }
 
 func ensureSubgroup(ctx context.Context, repo GroupRepository, parentID int, childID int) error {
