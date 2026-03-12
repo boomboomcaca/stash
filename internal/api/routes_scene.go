@@ -61,6 +61,7 @@ func (rs sceneRoutes) Routes() chi.Router {
 		// streaming endpoints
 		r.Get("/stream", rs.StreamDirect)
 		r.Get("/stream.mp4", rs.StreamMp4)
+r.Get("/stream.mp3", rs.StreamMp3Audio)
 		r.Get("/stream.webm", rs.StreamWebM)
 		r.Get("/stream.mkv", rs.StreamMKV)
 		r.Get("/stream.m3u8", rs.StreamHLS)
@@ -97,6 +98,10 @@ func (rs sceneRoutes) StreamDirect(w http.ResponseWriter, r *http.Request) {
 		SceneCoverGetter: rs.sceneFinder,
 	}
 	ss.StreamSceneDirect(scene, w, r)
+}
+
+func (rs sceneRoutes) StreamMp3Audio(w http.ResponseWriter, r *http.Request) {
+	rs.streamTranscode(w, r, ffmpeg.StreamTypeMP3Audio)
 }
 
 func (rs sceneRoutes) StreamMp4(w http.ResponseWriter, r *http.Request) {

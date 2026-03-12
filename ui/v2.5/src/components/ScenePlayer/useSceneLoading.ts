@@ -96,8 +96,9 @@ export function useSceneLoading({
         .filter((stream) => {
           const src = new URL(stream.url);
           const isFileTranscode = !isDirect(src);
+          const isMp3 = src.pathname.endsWith("/stream.mp3");
 
-          return !(isFileTranscode && isSafari);
+          return !(isFileTranscode && isSafari && !isMp3);
         })
         .map((stream) => {
           const src = new URL(stream.url);

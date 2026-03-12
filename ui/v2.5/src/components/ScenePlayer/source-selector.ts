@@ -153,7 +153,11 @@ class SourceSelectorPlugin extends videojs.getPlugin("plugin") {
         const currentSrc = player.currentSrc();
         if (currentSrc === null) return;
 
-        if (currentSrc.includes(".m3u8") || currentSrc.includes(".mpd")) {
+        if (
+          currentSrc.includes(".m3u8") ||
+          currentSrc.includes(".mpd") ||
+          currentSrc.includes(".mp3")
+        ) {
           player.play();
         } else {
           player.error(MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);

@@ -20,6 +20,7 @@ var (
 	FormatMP4      Format = "mp4"
 	FormatWebm     Format = "webm"
 	FormatMatroska Format = "matroska"
+	FormatMp3      Format = "mp3"
 )
 
 // ImageFormat represents the input format for an image for ffmpeg.
