@@ -380,11 +380,6 @@ export const EnhancedSubtitleOverlay: React.FC<
             handleWordClick(segment.word);
             setSelectedWordIndex(index);
           }}
-          title={
-            isFavorited
-              ? `⭐ "${segment.word}" (favorited)`
-              : `Click to look up "${segment.word}"`
-          }
         >
           {segment.word}
         </span>
@@ -430,13 +425,6 @@ export const EnhancedSubtitleOverlay: React.FC<
     >
       <div
         className={`subtitle-text ${!currentCue ? "no-content" : ""}`}
-        title={
-          isDragging
-            ? dragMode === "size"
-              ? `Resizing... (${Math.round(fontSize * 100)}%)`
-              : "Moving..."
-            : "Use AP button to drag or resize, 'R' key to reset size"
-        }
         style={{
           fontSize: `${fontSize * (isFullscreen ? 2.6 : 1.9)}rem`,
         }}
@@ -450,13 +438,6 @@ export const EnhancedSubtitleOverlay: React.FC<
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
-          title={
-            isAutoPaused
-              ? "Auto-paused (click or press space to resume)"
-              : autoPauseEnabled
-              ? "Auto-pause enabled (click to disable)"
-              : "Auto-pause disabled (click to enable). Drag vertically to move, horizontally to resize."
-          }
         >
           <span className="drag-dots">AP</span>
         </div>
