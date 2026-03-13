@@ -422,11 +422,19 @@ export const LightboxComponent: React.FC<IProps> = ({
 
   const handleKey = useCallback(
     (e: KeyboardEvent) => {
-      if (e.repeat && (e.key === "ArrowRight" || e.key === "ArrowLeft"))
+      let { key } = e;
+      if (key === "a" || key === "A") key = "ArrowLeft";
+      else if (key === "d" || key === "D") key = "ArrowRight";
+      else if (key === "w" || key === "W") key = "ArrowUp";
+      else if (key === "s" || key === "S") key = "ArrowDown";
+      else if (key === " ") key = "Enter";
+
+      if (e.repeat && (key === "ArrowRight" || key === "ArrowLeft"))
         setInstant();
-      if (e.key === "ArrowLeft") handleLeft();
-      else if (e.key === "ArrowRight") handleRight();
-      else if (e.key === "Escape") close();
+      if (key === "ArrowLeft") handleLeft();
+      else if (key === "ArrowRight") handleRight();
+      else if (key === "Escape") close();
+      else if (key === "Enter") handleRight(); // Space/Enter to go next
     },
     [setInstant, handleLeft, handleRight, close]
   );

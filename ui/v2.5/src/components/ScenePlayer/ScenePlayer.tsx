@@ -552,10 +552,17 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       const player = getPlayer();
       if (!player) return;
 
+      let { key } = event;
+      if (key === "w" || key === "W") key = "ArrowUp";
+      else if (key === "s" || key === "S") key = "ArrowDown";
+      else if (key === "a" || key === "A") key = "ArrowLeft";
+      else if (key === "d" || key === "D") key = "ArrowRight";
+      else if (key === " ") key = "Enter";
+
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
         return;
       }
-      if (event.key == " ") {
+      if (key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
         if (player.paused()) {

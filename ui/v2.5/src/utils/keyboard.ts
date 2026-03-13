@@ -1,6 +1,8 @@
 export function keyboardClickHandler(onClick: () => void) {
   function onKeyDown(e: React.KeyboardEvent<HTMLAnchorElement>) {
-    if (e.key === "Enter" || e.key === " ") {
+    let { key } = e;
+    if (key === " ") key = "Enter";
+    if (key === "Enter") {
       onClick();
     }
   }

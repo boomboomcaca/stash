@@ -161,6 +161,94 @@ export const App: React.FC = () => {
     })();
   }, []);
 
+  // Global keyboard mapping: WASD -> Arrows, Space -> Enter
+  useEffect(() => {
+    let isSimulating = false;
+
+    const handleGlobalKeys = (e: KeyboardEvent) => {
+      if (isSimulating) return;
+
+      // Ignore if typing in an input, textarea or contenteditable element
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable ||
+        target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      let simulatedKey = "";
+      let simulatedKeyCode = 0;
+
+      const key = e.key.toLowerCase();
+      if (key === "w") {
+        simulatedKey = "ArrowUp";
+        simulatedKeyCode = 38;
+      } else if (key === "s") {
+        simulatedKey = "ArrowDown";
+        simulatedKeyCode = 40;
+      } else if (key === "a") {
+        simulatedKey = "ArrowLeft";
+        simulatedKeyCode = 37;
+      } else if (key === "d") {
+        simulatedKey = "ArrowRight";
+        simulatedKeyCode = 39;
+      } else if (e.key === " ") {
+        simulatedKey = "Enter";
+        simulatedKeyCode = 13;
+      }
+
+      if (simulatedKey) {
+        // Stop the original event
+        e.preventDefault();
+        e.stopPropagation();
+
+        isSimulating = true;
+        const eventOptions = {
+          key: simulatedKey,
+          code: simulatedKey === "Enter" ? "Enter" : simulatedKey,
+          keyCode: simulatedKeyCode,
+          which: simulatedKeyCode,
+          bubbles: true,
+          cancelable: true,
+          shiftKey: e.shiftKey,
+          ctrlKey: e.ctrlKey,
+          altKey: e.altKey,
+          metaKey: e.metaKey,
+        };
+
+        const newKeyDown = new KeyboardEvent("keydown", eventOptions);
+        target.dispatchEvent(newKeyDown);
+
+        // Also dispatch keyup to be complete
+        const newKeyUp = new KeyboardEvent("keyup", eventOptions);
+        target.dispatchEvent(newKeyUp);
+
+        isSimulating = false;
+
+        // If it was Space -> Enter mapping, simulate native click if not prevented
+        if (simulatedKey === "Enter" && !newKeyDown.defaultPrevented) {
+          // If the target is clickable, trigger a click
+          const isClickable =
+            target.tagName === "BUTTON" ||
+            target.tagName === "A" ||
+            target.getAttribute("role") === "button" ||
+            target.classList.contains("btn") ||
+            target.tagName === "SUMMARY";
+
+          if (isClickable) {
+            target.click();
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeys, true);
+    return () => window.removeEventListener("keydown", handleGlobalKeys, true);
+  }, []);
+
   useEffect(() => {
     const setLocale = async () => {
       const defaultMessageLanguage = languageMessageString(defaultLocale);

@@ -108,8 +108,26 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
     if (!showDictionary) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      const { key } = e;
-      const keyCode = e.keyCode || e.which;
+      let { key } = e;
+      let keyCode = e.keyCode || e.which;
+
+      // Normalize WASD and Space
+      if (key === "w" || key === "W") {
+        key = "ArrowUp";
+        keyCode = 38;
+      } else if (key === "s" || key === "S") {
+        key = "ArrowDown";
+        keyCode = 40;
+      } else if (key === "a" || key === "A") {
+        key = "ArrowLeft";
+        keyCode = 37;
+      } else if (key === "d" || key === "D") {
+        key = "ArrowRight";
+        keyCode = 39;
+      } else if (key === " ") {
+        key = "Enter";
+        keyCode = 13;
+      }
 
       if (key === "ArrowLeft" || keyCode === 37) {
         e.preventDefault();
