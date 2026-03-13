@@ -173,11 +173,11 @@ func GetSceneStreamPaths(scene *models.Scene, directStreamURL *url.URL, maxStrea
 	webmStreams := []*SceneStreamEndpoint{}
 	hlsStreams := []*SceneStreamEndpoint{}
 	dashStreams := []*SceneStreamEndpoint{}
-mp3Streams := []*SceneStreamEndpoint{}
+	mp3Streams := []*SceneStreamEndpoint{}
 
 	if includeSceneStreamPath(models.StreamingResolutionEnumOriginal) {
 		mp4Streams = append(mp4Streams, makeStreamEndpoint(mp4EndpointType, models.StreamingResolutionEnumOriginal))
-mp3Streams = append(mp3Streams, makeStreamEndpoint(mp3EndpointType, ""))
+		mp3Streams = append(mp3Streams, makeStreamEndpoint(mp3EndpointType, ""))
 		webmStreams = append(webmStreams, makeStreamEndpoint(webmEndpointType, models.StreamingResolutionEnumOriginal))
 		hlsStreams = append(hlsStreams, makeStreamEndpoint(hlsEndpointType, models.StreamingResolutionEnumOriginal))
 		dashStreams = append(dashStreams, makeStreamEndpoint(dashEndpointType, models.StreamingResolutionEnumOriginal))
@@ -219,7 +219,7 @@ mp3Streams = append(mp3Streams, makeStreamEndpoint(mp3EndpointType, ""))
 	}
 
 	endpoints = append(endpoints, mp3Streams...)
-endpoints = append(endpoints, mp4Streams...)
+	endpoints = append(endpoints, mp4Streams...)
 	endpoints = append(endpoints, webmStreams...)
 	endpoints = append(endpoints, hlsStreams...)
 	endpoints = append(endpoints, dashStreams...)

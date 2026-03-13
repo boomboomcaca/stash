@@ -99,7 +99,7 @@ func (a Args) MaxMuxingQueueSize(s int) Args {
 // SkipAudio adds the skip audio flag (-an) and returns the result.
 // SkipVideo adds the skip video flag (-vn) and returns the result.
 func (a Args) SkipVideo() Args {
-        return append(a, "-vn")
+	return append(a, "-vn")
 }
 
 func (a Args) SkipAudio() Args {
