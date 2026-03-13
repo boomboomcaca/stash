@@ -547,24 +547,26 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
     }
 
-    // Override spacebar to always pause/play
+    // Override spacebar and enter to always pause/play or handle word selection
     function onKeyDown(this: HTMLDivElement, event: KeyboardEvent) {
       const player = getPlayer();
       if (!player) return;
 
-      let { key } = event;
-      if (key === "w" || key === "W") key = "ArrowUp";
-      else if (key === "s" || key === "S") key = "ArrowDown";
-      else if (key === "a" || key === "A") key = "ArrowLeft";
-      else if (key === "d" || key === "D") key = "ArrowRight";
-      else if (key === " ") key = "Enter";
-
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
         return;
       }
-      if (key === "Enter") {
+      if (event.key === " " || event.key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
+
+        const nav = enhancedSubtitleNavigationRef.current;
+        if (nav?.isInWordNavigationMode) {
+          if (nav.handleWordSelection) {
+            nav.handleWordSelection();
+          }
+          return;
+        }
+
         if (player.paused()) {
           player.play();
         } else {

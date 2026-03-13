@@ -108,28 +108,16 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
     if (!showDictionary) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      let { key } = e;
-      let keyCode = e.keyCode || e.which;
+      const { key } = e;
+      const keyCode = e.keyCode || e.which;
+      const keyLower = key.toLowerCase();
 
-      // Normalize WASD and Space
-      if (key === "w" || key === "W") {
-        key = "ArrowUp";
-        keyCode = 38;
-      } else if (key === "s" || key === "S") {
-        key = "ArrowDown";
-        keyCode = 40;
-      } else if (key === "a" || key === "A") {
-        key = "ArrowLeft";
-        keyCode = 37;
-      } else if (key === "d" || key === "D") {
-        key = "ArrowRight";
-        keyCode = 39;
-      } else if (key === " ") {
-        key = "Enter";
-        keyCode = 13;
-      }
-
-      if (key === "ArrowLeft" || keyCode === 37) {
+      if (
+        key === "ArrowLeft" ||
+        keyCode === 37 ||
+        keyLower === "a" ||
+        keyCode === 65
+      ) {
         e.preventDefault();
         e.stopPropagation();
         setSelectedActionIndex(
@@ -140,7 +128,12 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         return;
       }
 
-      if (key === "ArrowRight" || keyCode === 39) {
+      if (
+        key === "ArrowRight" ||
+        keyCode === 39 ||
+        keyLower === "d" ||
+        keyCode === 68
+      ) {
         e.preventDefault();
         e.stopPropagation();
         setSelectedActionIndex(
@@ -151,7 +144,13 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         return;
       }
 
-      if (key === "Enter" || key === "Ok" || keyCode === 13) {
+      if (
+        key === "Enter" ||
+        key === "Ok" ||
+        keyCode === 13 ||
+        key === " " ||
+        keyCode === 32
+      ) {
         e.preventDefault();
         e.stopPropagation();
         const currentIndex = selectedActionIndexRef.current;
@@ -168,7 +167,12 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         return;
       }
 
-      if (key === "ArrowUp" || keyCode === 38) {
+      if (
+        key === "ArrowUp" ||
+        keyCode === 38 ||
+        keyLower === "w" ||
+        keyCode === 87
+      ) {
         e.preventDefault();
         e.stopPropagation();
         setShowDictionary(false);

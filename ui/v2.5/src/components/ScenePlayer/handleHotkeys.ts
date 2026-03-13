@@ -12,15 +12,6 @@ export function handleHotkeys(
   isControlBarVisible?: () => boolean,
   hideControlBar?: () => void
 ) {
-  // Normalize key codes for WASD and Space keys
-  let eventWhich = event.which;
-  const {key} = event;
-  if (key === "w" || key === "W") eventWhich = 38; // ArrowUp
-  else if (key === "s" || key === "S") eventWhich = 40; // ArrowDown
-  else if (key === "a" || key === "A") eventWhich = 37; // ArrowLeft
-  else if (key === "d" || key === "D") eventWhich = 39; // ArrowRight
-  else if (key === " ") eventWhich = 13; // Space to Enter
-
   // 每次调用时获取最新的 enhancedSubtitleNavigation
   const enhancedSubtitleNavigation = getEnhancedSubtitleNavigation?.();
   function seekStep(step: number) {
@@ -65,7 +56,7 @@ export function handleHotkeys(
   const controlBarVisible = isControlBarVisible ? isControlBarVisible() : false;
 
   // Handle ESC key to hide control bar when it's visible
-  if (eventWhich === 27) {
+  if (event.which === 27) {
     // If not in word navigation mode and auto-paused, resume playback
     if (
       !enhancedSubtitleNavigation?.isInWordNavigationMode &&
@@ -96,13 +87,16 @@ export function handleHotkeys(
     // and control bar is not visible
     if (
       !enhancedSubtitleNavigation.isInWordNavigationMode &&
-      (eventWhich === 37 || eventWhich === 39)
+      (event.which === 37 ||
+        event.which === 39 ||
+        event.which === 65 ||
+        event.which === 68)
     ) {
       event.preventDefault();
       event.stopPropagation();
       if (enhancedSubtitleNavigation.enterWordNavigationMode) {
-        // Left arrow (37) selects last word, right arrow (39) selects first word
-        const selectLastWord = eventWhich === 37;
+        // Left arrow (37)/A (65) selects last word, right arrow (39)/D (68) selects first word
+        const selectLastWord = event.which === 37 || event.which === 65;
         enhancedSubtitleNavigation.enterWordNavigationMode(selectLastWord);
       }
       return;
@@ -110,8 +104,9 @@ export function handleHotkeys(
 
     // Handle word navigation mode
     if (enhancedSubtitleNavigation.isInWordNavigationMode) {
-      switch (eventWhich) {
+      switch (event.which) {
         case 37: // left arrow - navigate to previous word
+        case 65: // a
           event.preventDefault();
           event.stopPropagation();
           if (enhancedSubtitleNavigation.navigateToPreviousWord) {
@@ -119,6 +114,7 @@ export function handleHotkeys(
           }
           return;
         case 39: // right arrow - navigate to next word
+        case 68: // d
           event.preventDefault();
           event.stopPropagation();
           if (enhancedSubtitleNavigation.navigateToNextWord) {
@@ -133,6 +129,7 @@ export function handleHotkeys(
           }
           return;
         case 13: // Enter/OK - lookup selected word
+        case 32: // space - also lookup selected word
           event.preventDefault();
           event.stopPropagation();
           if (enhancedSubtitleNavigation.handleWordSelection) {
@@ -140,6 +137,7 @@ export function handleHotkeys(
           }
           return;
         case 38: // up arrow - exit word navigation mode and toggle play/pause
+        case 87: // w
           event.preventDefault();
           event.stopPropagation();
           if (enhancedSubtitleNavigation.exitWordNavigationMode) {
@@ -153,6 +151,7 @@ export function handleHotkeys(
           }
           return;
         case 40: // down arrow - handle in code below
+        case 83: // s
           // Will be handled below
           break;
       }
@@ -166,17 +165,19 @@ export function handleHotkeys(
   } else if (event.ctrlKey || event.altKey) {
     seekFactor = 60;
   }
-  switch (eventWhich) {
+  switch (event.which) {
     case 39: // right arrow
+    case 68: // d
       seekStep(seekFactor);
       break;
     case 37: // left arrow
+    case 65: // a
       seekStep(-seekFactor);
       break;
   }
 
   // toggle player looping with shift+l
-  if (event.shiftKey && eventWhich === 76) {
+  if (event.shiftKey && event.which === 76) {
     player.loop(!player.loop());
     return;
   }
@@ -201,10 +202,11 @@ export function handleHotkeys(
     }
   }
 
-  switch (eventWhich) {
-    case 13: // enter & normalized space
+  switch (event.which) {
+    case 32: // space
+    case 13: // enter
       if (enhancedSubtitleNavigation?.isInWordNavigationMode) {
-        // In word navigation mode, both should lookup selected word
+        // In word navigation mode, space/enter key should lookup selected word
         event.preventDefault();
         event.stopPropagation();
         if (enhancedSubtitleNavigation.handleWordSelection) {
@@ -226,6 +228,7 @@ export function handleHotkeys(
       toggleABLooping();
       break;
     case 38: // up arrow
+    case 87: // w
       if (enhancedSubtitleNavigation) {
         // Handle single/double press for up arrow
         event.preventDefault();
@@ -317,6 +320,7 @@ export function handleHotkeys(
       player.volume(player.volume() + 0.1);
       break;
     case 40: // down arrow
+    case 83: // s
       if (enhancedSubtitleNavigation) {
         // Down arrow: single press to repeat current subtitle, double press to go to previous subtitle
         event.preventDefault();
