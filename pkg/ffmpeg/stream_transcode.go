@@ -122,15 +122,15 @@ var (
 			return
 		},
 	}
-StreamTypeMP3Audio = StreamFormat{
-MimeType: MimeMp3Audio,
-Args: func(codec VideoCodec, videoFilter VideoFilter, videoOnly bool) (args Args) {
-args = args.SkipVideo()
-args = append(args, "-c:a", "libmp3lame")
-args = args.Format(FormatMp3)
-return
-},
-}
+	StreamTypeMP3Audio = StreamFormat{
+		MimeType: MimeMp3Audio,
+		Args: func(codec VideoCodec, videoFilter VideoFilter, videoOnly bool) (args Args) {
+			args = args.SkipVideo()
+			args = append(args, "-c:a", "libmp3lame")
+			args = args.Format(FormatMp3)
+			return
+		},
+	}
 	StreamTypeMKV = StreamFormat{
 		MimeType: MimeMkvVideo,
 		Args: func(codec VideoCodec, videoFilter VideoFilter, videoOnly bool) (args Args) {
