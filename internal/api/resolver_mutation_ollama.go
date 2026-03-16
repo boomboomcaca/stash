@@ -16,6 +16,9 @@ func (r *mutationResolver) ConfigureOllama(ctx context.Context, input OllamaConf
 		FallbackToTraditionalDict: input.FallbackToTraditionalDict,
 		PromptTemplate:            input.PromptTemplate,
 	}
+	if input.GeminiAPIKey != nil {
+		config.GeminiAPIKey = *input.GeminiAPIKey
+	}
 
 	ollamaService := r.getOllamaService()
 	ollamaService.UpdateConfig(config)
@@ -33,6 +36,7 @@ func (r *mutationResolver) ConfigureOllama(ctx context.Context, input OllamaConf
 		Enabled:                   config.Enabled,
 		FallbackToTraditionalDict: config.FallbackToTraditionalDict,
 		PromptTemplate:            config.PromptTemplate,
+		GeminiAPIKey:              &config.GeminiAPIKey,
 	}, nil
 }
 

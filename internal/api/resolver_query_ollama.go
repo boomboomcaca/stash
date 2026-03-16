@@ -30,6 +30,7 @@ func (r *queryResolver) OllamaStatus(ctx context.Context) (*OllamaStatus, error)
 			Enabled:                   config.Enabled,
 			FallbackToTraditionalDict: config.FallbackToTraditionalDict,
 			PromptTemplate:            config.PromptTemplate,
+			GeminiAPIKey:              &config.GeminiAPIKey,
 		},
 		Models:  models,
 		Version: version,

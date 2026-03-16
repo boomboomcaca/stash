@@ -184,7 +184,10 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         e.stopPropagation();
         const currentIndex = selectedActionIndexRef.current;
         if (currentIndex === 0) {
-          setAiProviderRef.current(localAiProviderRef.current);
+          // 直接通过回车或空格来切换AI提供商
+          const nextProvider = aiProvider === "gemini" ? "ollama" : "gemini";
+          setLocalAiProvider(nextProvider);
+          setAiProviderRef.current(nextProvider);
         } else if (currentIndex === 1) {
           const word = selectedWordRef.current;
           if (word) {
@@ -206,13 +209,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
       ) {
         e.preventDefault();
         e.stopPropagation();
-        if (selectedActionIndexRef.current === 0) {
-          setLocalAiProvider((prev) =>
-            prev === "gemini" ? "ollama" : "gemini"
-          );
-        } else {
-          setShowDictionary(false);
-        }
+        setShowDictionary(false);
         return;
       }
 
@@ -222,14 +219,8 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         keyLower === "s" ||
         keyCode === 83
       ) {
-        if (selectedActionIndexRef.current === 0) {
-          e.preventDefault();
-          e.stopPropagation();
-          setLocalAiProvider((prev) =>
-            prev === "gemini" ? "ollama" : "gemini"
-          );
-          return;
-        }
+        // 取消向下方向键切换AI引擎的功能，统一用回车
+        return;
       }
 
       if (key === "Escape" || keyCode === 27) {
@@ -246,7 +237,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [showDictionary, setShowDictionary, setSelectedActionIndex]);
+  }, [showDictionary, setShowDictionary, setSelectedActionIndex, aiProvider]);
 
   return (
     <Modal

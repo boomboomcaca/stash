@@ -8,6 +8,7 @@ type OllamaConfig {
   enabled: Boolean!
   fallbackToTraditionalDict: Boolean!
   promptTemplate: String!
+  geminiApiKey: String
 }
 
 """
@@ -20,6 +21,7 @@ input OllamaConfigInput {
   enabled: Boolean!
   fallbackToTraditionalDict: Boolean!
   promptTemplate: String!
+  geminiApiKey: String
 }
 
 """

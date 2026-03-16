@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ type OllamaConfig struct {
 	Enabled                   bool   `json:"enabled"`
 	FallbackToTraditionalDict bool   `json:"fallbackToTraditionalDict"`
 	PromptTemplate            string `json:"promptTemplate"`
+	GeminiAPIKey              string `json:"geminiApiKey"`
 }
 
 // DefaultConfig returns the default Ollama configuration
@@ -29,12 +31,16 @@ func DefaultConfig() *OllamaConfig {
 	// Auto-detect available Ollama service
 	baseURL := autoDetectOllamaURL()
 
+	// 优先从环境变量中读取 Gemini API Key，防止硬编码导致泄露
+	geminiKey := os.Getenv("GEMINI_API_KEY")
+
 	return &OllamaConfig{
 		BaseURL:                   baseURL,
 		Model:                     "huihui_ai/qwen3-abliterated:8b-v2",
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
+		GeminiAPIKey:              geminiKey,
 		PromptTemplate: `请严格按照以下格式回答，不要添加额外的标题、分割线或格式：
 
 **美音音标：** [音标]
@@ -195,7 +201,11 @@ type Service struct {
 
 // GenerateGemini generates text using Gemini API
 func (s *Service) GenerateGemini(ctx context.Context, prompt string) (string, error) {
-	apiKey := "AIzaSyBAfWjdlRfPL5Fk19zWpMSwNQpOGhOL0DA" // Hardcoded as requested
+	apiKey := s.config.GeminiAPIKey
+	if apiKey == "" {
+		return "", fmt.Errorf("Gemini API key is not configured. Please configure it in settings")
+	}
+
 	urlStr := "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 
 	// Add API key to query string
@@ -445,21 +455,22 @@ func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, p
 	var err error
 	var aiSource string
 
-	if provider == "ollama" {
+	switch provider {
+	case "ollama":
 		// User explicitly requested Ollama
 		explanation, err = s.Generate(ctx, prompt, "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to explain word with Ollama: %w", err)
 		}
 		aiSource = "ollama"
-	} else if provider == "gemini" {
+	case "gemini":
 		// User explicitly requested Gemini
 		explanation, err = s.GenerateGemini(ctx, prompt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to explain word with Gemini: %w", err)
 		}
 		aiSource = "gemini"
-	} else {
+	default:
 		// Default behavior: Try Gemini first, fallback to Ollama
 		explanation, err = s.GenerateGemini(ctx, prompt)
 		if err == nil {
