@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { IDictionaryEntry, ISubtitleCue } from "../types";
-import { lookupWord, lookupWordWithContext } from "../dictionary";
+import {
+  lookupWord,
+  lookupWordWithContext,
+  getCachedWord,
+} from "../dictionary";
 import {
   playWordPronunciation,
   preloadWordPronunciation,
@@ -64,6 +68,60 @@ export function useDictionary({
     setAiProvider(provider);
     localStorage.setItem("stash_subtitle_ai_provider", provider);
   }, []);
+
+  const previousAiProvider = useRef(aiProvider);
+
+  // Auto-fetch or load from cache when aiProvider changes
+  useEffect(() => {
+    let ignore = false;
+
+    if (previousAiProvider.current !== aiProvider) {
+      previousAiProvider.current = aiProvider;
+
+      if (showDictionary && selectedWord) {
+        const context = currentCue?.text || "";
+        const cachedEntry = getCachedWord(
+          selectedWord,
+          context,
+          detectedLanguage,
+          aiProvider
+        );
+
+        if (cachedEntry) {
+          setDictionary(cachedEntry);
+          setIsLoading(false);
+        } else {
+          setIsLoading(true);
+          const fetchWord = async () => {
+            try {
+              const entry = context
+                ? await lookupWordWithContext(
+                    selectedWord,
+                    context,
+                    detectedLanguage,
+                    aiProvider
+                  )
+                : await lookupWord(selectedWord, detectedLanguage, aiProvider);
+              if (!ignore) {
+                setDictionary(entry);
+              }
+            } catch (error) {
+              console.error("Dictionary lookup failed:", error);
+            } finally {
+              if (!ignore) {
+                setIsLoading(false);
+              }
+            }
+          };
+          fetchWord();
+        }
+      }
+    }
+
+    return () => {
+      ignore = true;
+    };
+  }, [aiProvider, showDictionary, selectedWord, currentCue, detectedLanguage]);
 
   // Load favorites on mount
   useEffect(() => {
@@ -132,11 +190,25 @@ export function useDictionary({
       }
 
       setSelectedWord(word);
-      setIsLoading(true);
       setShowDictionary(true);
 
+      const context = currentCue?.text || "";
+      const cachedEntry = getCachedWord(
+        word,
+        context,
+        detectedLanguage,
+        aiProvider
+      );
+
+      if (cachedEntry) {
+        setDictionary(cachedEntry);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+
       try {
-        const context = currentCue?.text || "";
         const entry = context
           ? await lookupWordWithContext(
               word,

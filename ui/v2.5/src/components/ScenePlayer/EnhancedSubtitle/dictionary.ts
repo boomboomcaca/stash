@@ -54,8 +54,8 @@ export class DictionaryService {
     try {
       let entry: IDictionaryEntry | null = null;
 
-      // Only use Ollama for word lookup - no fallback to traditional APIs
-      if (this.ollamaAvailable) {
+      // Allow calling backend for both Ollama and Gemini
+      if (this.ollamaAvailable || provider === "gemini") {
         try {
           const backendEntry = await ollamaBackendService.explainWord(
             word,
@@ -80,10 +80,20 @@ export class DictionaryService {
           };
         } catch (error) {
           // console.warn('Ollama backend lookup failed:', error);
-          entry = this.createBasicEntry(word, language, "Ollama服务暂时不可用");
+          const providerName = provider === "gemini" ? "Gemini" : "Ollama";
+          entry = this.createBasicEntry(
+            word,
+            language,
+            `${providerName}服务暂时不可用`
+          );
         }
       } else {
-        entry = this.createBasicEntry(word, language, "Ollama服务未启用");
+        const providerName = provider === "gemini" ? "Gemini" : "Ollama";
+        entry = this.createBasicEntry(
+          word,
+          language,
+          `${providerName}服务未启用`
+        );
       }
 
       // ✅ Cache the result with size limit
@@ -110,6 +120,21 @@ export class DictionaryService {
     } catch (error) {
       return this.createBasicEntry(word, language, "查词失败");
     }
+  }
+
+  // Get from cache synchronously
+  getCachedEntry(
+    word: string,
+    context: string = "",
+    language: string = "en",
+    provider?: string
+  ): IDictionaryEntry | null {
+    const cacheKey = context
+      ? `${word.toLowerCase()}_${language}_${context.slice(0, 50)}_${
+          provider || "auto"
+        }`
+      : `${word.toLowerCase()}_${language}_${provider || "auto"}`;
+    return this.cache.get(cacheKey) || null;
   }
 
   // Traditional APIs removed - only using Ollama backend service
@@ -224,4 +249,14 @@ export async function lookupWordWithContext(
   provider?: string
 ): Promise<IDictionaryEntry | null> {
   return dictionaryService.lookupWithContext(word, context, language, provider);
+}
+
+// Helper function to get cached word synchronously
+export function getCachedWord(
+  word: string,
+  context: string = "",
+  language: string = "en",
+  provider?: string
+): IDictionaryEntry | null {
+  return dictionaryService.getCachedEntry(word, context, language, provider);
 }

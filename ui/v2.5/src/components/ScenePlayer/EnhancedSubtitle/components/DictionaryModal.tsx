@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import { Modal } from "react-bootstrap";
 import { IDictionaryEntry } from "../types";
 
@@ -49,6 +49,17 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
 
   const toggleFavoriteRef = useRef(toggleFavorite);
   toggleFavoriteRef.current = toggleFavorite;
+
+  const setAiProviderRef = useRef(setAiProvider);
+  setAiProviderRef.current = setAiProvider;
+
+  const [localAiProvider, setLocalAiProvider] = useState(aiProvider);
+  useEffect(() => {
+    setLocalAiProvider(aiProvider);
+  }, [aiProvider]);
+
+  const localAiProviderRef = useRef(localAiProvider);
+  localAiProviderRef.current = localAiProvider;
 
   const handleDictionaryTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -112,9 +123,23 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
     if (!showDictionary) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target &&
+        (target.tagName === "SELECT" ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA")
+      ) {
+        if (e.key === "Escape" || e.keyCode === 27) {
+          // 继续处理
+        } else {
+          return;
+        }
+      }
+
       const { key } = e;
       const keyCode = e.keyCode || e.which;
-      const keyLower = key.toLowerCase();
+      const keyLower = key?.toLowerCase();
 
       if (
         key === "ArrowLeft" ||
@@ -127,7 +152,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         setSelectedActionIndex(
           selectedActionIndexRef.current > 0
             ? selectedActionIndexRef.current - 1
-            : 2
+            : 3
         );
         return;
       }
@@ -141,7 +166,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         e.preventDefault();
         e.stopPropagation();
         setSelectedActionIndex(
-          selectedActionIndexRef.current < 2
+          selectedActionIndexRef.current < 3
             ? selectedActionIndexRef.current + 1
             : 0
         );
@@ -159,13 +184,15 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         e.stopPropagation();
         const currentIndex = selectedActionIndexRef.current;
         if (currentIndex === 0) {
+          setAiProviderRef.current(localAiProviderRef.current);
+        } else if (currentIndex === 1) {
           const word = selectedWordRef.current;
           if (word) {
             handlePronunciationRef.current(word);
           }
-        } else if (currentIndex === 1) {
-          toggleFavoriteRef.current();
         } else if (currentIndex === 2) {
+          toggleFavoriteRef.current();
+        } else if (currentIndex === 3) {
           setShowDictionary(false);
         }
         return;
@@ -179,8 +206,30 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
       ) {
         e.preventDefault();
         e.stopPropagation();
-        setShowDictionary(false);
+        if (selectedActionIndexRef.current === 0) {
+          setLocalAiProvider((prev) =>
+            prev === "gemini" ? "ollama" : "gemini"
+          );
+        } else {
+          setShowDictionary(false);
+        }
         return;
+      }
+
+      if (
+        key === "ArrowDown" ||
+        keyCode === 40 ||
+        keyLower === "s" ||
+        keyCode === 83
+      ) {
+        if (selectedActionIndexRef.current === 0) {
+          e.preventDefault();
+          e.stopPropagation();
+          setLocalAiProvider((prev) =>
+            prev === "gemini" ? "ollama" : "gemini"
+          );
+          return;
+        }
       }
 
       if (key === "Escape" || keyCode === 27) {
@@ -191,7 +240,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
       }
     };
 
-    setSelectedActionIndex(0);
+    setSelectedActionIndex(1); // 默认选在播放发音上
     document.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
@@ -235,22 +284,45 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             }}
           >
             <div
-              className="ai-provider-selector"
-              style={{ marginRight: "8px", cursor: "pointer" }}
+              className={`ai-provider-selector ${
+                selectedActionIndex === 0 ? "selected" : ""
+              }`}
+              style={{
+                marginRight: "8px",
+                cursor: "pointer",
+                borderRadius: "8px",
+                border:
+                  selectedActionIndex === 0
+                    ? "2px solid #3b82f6"
+                    : "2px solid transparent",
+                padding: "2px",
+                transition: "all 0.2s ease",
+              }}
             >
               <select
                 className="form-select form-select-sm"
                 style={{
-                  backgroundColor: "rgba(100, 100, 120, 0.3)",
+                  backgroundColor:
+                    selectedActionIndex === 0
+                      ? "rgba(59, 130, 246, 0.2)"
+                      : "rgba(100, 100, 120, 0.3)",
                   border: "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "rgba(255, 255, 255, 0.9)",
+                  color:
+                    selectedActionIndex === 0
+                      ? "#3b82f6"
+                      : "rgba(255, 255, 255, 0.9)",
                   borderRadius: "6px",
                   padding: "4px 24px 4px 8px",
                   fontSize: "0.85rem",
                   cursor: "pointer",
+                  outline: "none",
+                  transition: "all 0.2s ease",
                 }}
-                value={aiProvider}
-                onChange={(e) => setAiProvider(e.target.value)}
+                value={selectedActionIndex === 0 ? localAiProvider : aiProvider}
+                onChange={(e) => {
+                  setLocalAiProvider(e.target.value);
+                  setAiProvider(e.target.value);
+                }}
                 onClick={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()}
                 title="选择AI翻译服务"
@@ -265,7 +337,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             </div>
             <button
               className={`dict-action-btn ${
-                selectedActionIndex === 0 ? "selected" : ""
+                selectedActionIndex === 1 ? "selected" : ""
               }`}
               onClick={() => selectedWord && handlePronunciation(selectedWord)}
               title="播放发音"
@@ -281,7 +353,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             </button>
             <button
               className={`dict-action-btn ${
-                selectedActionIndex === 1 ? "selected" : ""
+                selectedActionIndex === 2 ? "selected" : ""
               } ${isFavorite ? "favorited" : ""}`}
               onClick={toggleFavorite}
               title={isFavorite ? "取消收藏" : "添加到收藏"}
@@ -299,7 +371,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             </button>
             <button
               className={`dict-action-btn ${
-                selectedActionIndex === 2 ? "selected" : ""
+                selectedActionIndex === 3 ? "selected" : ""
               }`}
               onClick={() => setShowDictionary(false)}
               title="关闭"

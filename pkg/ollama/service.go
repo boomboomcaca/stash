@@ -195,7 +195,7 @@ type Service struct {
 
 // GenerateGemini generates text using Gemini API
 func (s *Service) GenerateGemini(ctx context.Context, prompt string) (string, error) {
-	apiKey := "AIzaSyDF5qy-qrZBwrvCrqZfgSZiIXGONwLG3zY" // Hardcoded as requested
+	apiKey := "AIzaSyBAfWjdlRfPL5Fk19zWpMSwNQpOGhOL0DA" // Hardcoded as requested
 	urlStr := "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
 
 	// Add API key to query string
