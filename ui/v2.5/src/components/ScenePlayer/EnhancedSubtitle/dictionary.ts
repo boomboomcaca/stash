@@ -55,7 +55,7 @@ export class DictionaryService {
       let entry: IDictionaryEntry | null = null;
 
       // Allow calling backend for both Ollama and Gemini
-      if (this.ollamaAvailable || provider === "gemini") {
+      if (this.ollamaAvailable || provider === "groq") {
         try {
           const backendEntry = await ollamaBackendService.explainWord(
             word,
@@ -80,7 +80,7 @@ export class DictionaryService {
           };
         } catch (error) {
           // console.warn('Ollama backend lookup failed:', error);
-          const providerName = provider === "gemini" ? "Gemini" : "Ollama";
+          const providerName = provider === "groq" ? "Groq" : "Ollama";
           entry = this.createBasicEntry(
             word,
             language,
@@ -88,7 +88,7 @@ export class DictionaryService {
           );
         }
       } else {
-        const providerName = provider === "gemini" ? "Gemini" : "Ollama";
+        const providerName = provider === "groq" ? "Groq" : "Ollama";
         entry = this.createBasicEntry(
           word,
           language,

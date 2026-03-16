@@ -54,12 +54,12 @@ export function useDictionary({
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedActionIndex, setSelectedActionIndex] = useState<number>(0);
-  const [aiProvider, setAiProvider] = useState<string>("gemini");
+  const [aiProvider, setAiProvider] = useState<string>("groq");
 
   // Load provider preference from local storage
   useEffect(() => {
     const savedProvider = localStorage.getItem("stash_subtitle_ai_provider");
-    if (savedProvider === "ollama" || savedProvider === "gemini") {
+    if (savedProvider === "ollama" || savedProvider === "groq") {
       setAiProvider(savedProvider);
     }
   }, []);

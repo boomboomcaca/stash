@@ -185,7 +185,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         const currentIndex = selectedActionIndexRef.current;
         if (currentIndex === 0) {
           // 直接通过回车或空格来切换AI提供商
-          const nextProvider = aiProvider === "gemini" ? "ollama" : "gemini";
+          const nextProvider = aiProvider === "groq" ? "ollama" : "groq";
           setLocalAiProvider(nextProvider);
           setAiProviderRef.current(nextProvider);
         } else if (currentIndex === 1) {
@@ -318,8 +318,8 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
                 onTouchStart={(e) => e.stopPropagation()}
                 title="选择AI翻译服务"
               >
-                <option value="gemini" style={{ backgroundColor: "#2b2b2b" }}>
-                  ✨ Gemini
+                <option value="groq" style={{ backgroundColor: "#2b2b2b" }}>
+                  ✨ Groq
                 </option>
                 <option value="ollama" style={{ backgroundColor: "#2b2b2b" }}>
                   🦙 Ollama
