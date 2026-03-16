@@ -66,7 +66,12 @@ func (r *mutationResolver) OllamaExplainWord(ctx context.Context, input OllamaEx
 		language = *input.Language
 	}
 
-	entry, err := ollamaService.ExplainWord(ctx, input.Word, input.Context, language)
+	var provider string
+	if input.Provider != nil {
+		provider = *input.Provider
+	}
+
+	entry, err := ollamaService.ExplainWord(ctx, input.Word, input.Context, language, provider)
 	if err != nil {
 		return nil, err
 	}
@@ -87,5 +92,6 @@ func (r *mutationResolver) OllamaExplainWord(ctx context.Context, input OllamaEx
 		Definitions:   definitions,
 		Etymology:     entry.Etymology,
 		Morphology:    &entry.Morphology,
+		AiSource:      &entry.AISource,
 	}, nil
 }

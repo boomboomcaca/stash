@@ -15,6 +15,8 @@ interface IDictionaryModalProps {
   setSelectedActionIndex: (index: number) => void;
   handlePronunciation: (word: string) => Promise<void>;
   toggleFavorite: () => Promise<void>;
+  aiProvider: string;
+  setAiProvider: (provider: string) => void;
 }
 
 export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
@@ -30,6 +32,8 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
   setSelectedActionIndex,
   handlePronunciation,
   toggleFavorite,
+  aiProvider,
+  setAiProvider,
 }) => {
   const dictionaryTouchStartYRef = useRef<number | null>(null);
   const dictionaryTouchTriggeredRef = useRef<boolean>(false);
@@ -230,6 +234,35 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
               gap: "8px",
             }}
           >
+            <div
+              className="ai-provider-selector"
+              style={{ marginRight: "8px", cursor: "pointer" }}
+            >
+              <select
+                className="form-select form-select-sm"
+                style={{
+                  backgroundColor: "rgba(100, 100, 120, 0.3)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  color: "rgba(255, 255, 255, 0.9)",
+                  borderRadius: "6px",
+                  padding: "4px 24px 4px 8px",
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                }}
+                value={aiProvider}
+                onChange={(e) => setAiProvider(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
+                title="选择AI翻译服务"
+              >
+                <option value="gemini" style={{ backgroundColor: "#2b2b2b" }}>
+                  ✨ Gemini
+                </option>
+                <option value="ollama" style={{ backgroundColor: "#2b2b2b" }}>
+                  🦙 Ollama
+                </option>
+              </select>
+            </div>
             <button
               className={`dict-action-btn ${
                 selectedActionIndex === 0 ? "selected" : ""

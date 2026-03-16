@@ -45,6 +45,7 @@ const OLLAMA_EXPLAIN_WORD_MUTATION = gql`
       }
       etymology
       morphology
+      aiSource
     }
   }
 `;
@@ -81,6 +82,7 @@ export interface IBackendDictionaryEntry {
   pronunciation?: string;
   definitions: IBackendDictionaryDefinition[];
   etymology: string;
+  aiSource?: string;
   morphology?: string;
 }
 
@@ -194,7 +196,8 @@ export class OllamaBackendService {
     word: string,
     context: string,
     language: string = "en",
-    model?: string
+    model?: string,
+    provider?: string
   ): Promise<IBackendDictionaryEntry> {
     try {
       const result = await this.client.mutate({
@@ -205,6 +208,7 @@ export class OllamaBackendService {
             context,
             language,
             model: model || undefined,
+            provider: provider || undefined,
           },
         },
       });

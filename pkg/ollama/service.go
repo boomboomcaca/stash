@@ -176,6 +176,7 @@ type DictionaryEntry struct {
 	Definitions   []DictionaryDefinition `json:"definitions"`
 	Etymology     string                 `json:"etymology"`
 	Morphology    string                 `json:"morphology,omitempty"`
+	AISource      string                 `json:"aiSource,omitempty"`
 }
 
 // DictionaryDefinition represents a word definition
@@ -190,6 +191,75 @@ type Service struct {
 	config     *OllamaConfig
 	httpClient *http.Client
 	logger     *logrus.Entry
+}
+
+// GenerateGemini generates text using Gemini API
+func (s *Service) GenerateGemini(ctx context.Context, prompt string) (string, error) {
+	apiKey := "AIzaSyDF5qy-qrZBwrvCrqZfgSZiIXGONwLG3zY" // Hardcoded as requested
+	urlStr := "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+
+	// Add API key to query string
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse URL: %w", err)
+	}
+	q := u.Query()
+	q.Set("key", apiKey)
+	u.RawQuery = q.Encode()
+
+	requestData := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{
+						"text": prompt,
+					},
+				},
+			},
+		},
+	}
+
+	requestBody, err := json.Marshal(requestData)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", u.String(), bytes.NewBuffer(requestBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate text with Gemini: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("unexpected status code from Gemini: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		return "", fmt.Errorf("failed to decode Gemini response: %w", err)
+	}
+
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("empty response from Gemini")
+	}
+
+	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
 }
 
 // NewService creates a new Ollama service
@@ -367,17 +437,48 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 	return chatResp.Message.Content, nil
 }
 
-// ExplainWord explains a word in context using Ollama
-func (s *Service) ExplainWord(ctx context.Context, word, context, language string) (*DictionaryEntry, error) {
-	prompt := s.buildPrompt(word, context)
+// ExplainWord explains a word in context using Gemini or Ollama
+func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, provider string) (*DictionaryEntry, error) {
+	prompt := s.buildPrompt(word, contextStr)
 
-	explanation, err := s.Generate(ctx, prompt, "")
-	if err != nil {
-		return nil, fmt.Errorf("failed to explain word: %w", err)
+	var explanation string
+	var err error
+	var aiSource string
+
+	if provider == "ollama" {
+		// User explicitly requested Ollama
+		explanation, err = s.Generate(ctx, prompt, "")
+		if err != nil {
+			return nil, fmt.Errorf("failed to explain word with Ollama: %w", err)
+		}
+		aiSource = "ollama"
+	} else if provider == "gemini" {
+		// User explicitly requested Gemini
+		explanation, err = s.GenerateGemini(ctx, prompt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to explain word with Gemini: %w", err)
+		}
+		aiSource = "gemini"
+	} else {
+		// Default behavior: Try Gemini first, fallback to Ollama
+		explanation, err = s.GenerateGemini(ctx, prompt)
+		if err == nil {
+			aiSource = "gemini"
+		} else {
+			// Log Gemini error and fallback to Ollama
+			s.logger.WithError(err).Warn("Gemini failed, falling back to Ollama")
+			explanation, err = s.Generate(ctx, prompt, "")
+			if err != nil {
+				return nil, fmt.Errorf("failed to explain word (both Gemini and Ollama failed): %w", err)
+			}
+			aiSource = "ollama"
+		}
 	}
 
 	// Parse the explanation into a structured format
-	return s.parseExplanation(word, explanation), nil
+	entry := s.parseExplanation(word, explanation)
+	entry.AISource = aiSource
+	return entry, nil
 }
 
 // buildPrompt builds a prompt from the template

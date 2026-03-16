@@ -37,11 +37,14 @@ export class DictionaryService {
   async lookupWithContext(
     word: string,
     context: string = "",
-    language: string = "en"
+    language: string = "en",
+    provider?: string
   ): Promise<IDictionaryEntry | null> {
     const cacheKey = context
-      ? `${word.toLowerCase()}_${language}_${context.slice(0, 50)}` // Include context in cache key
-      : `${word.toLowerCase()}_${language}`;
+      ? `${word.toLowerCase()}_${language}_${context.slice(0, 50)}_${
+          provider || "auto"
+        }` // Include context and provider in cache key
+      : `${word.toLowerCase()}_${language}_${provider || "auto"}`;
 
     // Check cache first
     if (this.cache.has(cacheKey)) {
@@ -57,7 +60,9 @@ export class DictionaryService {
           const backendEntry = await ollamaBackendService.explainWord(
             word,
             context,
-            language
+            language,
+            undefined,
+            provider
           );
 
           // Convert backend format to local format
@@ -71,6 +76,7 @@ export class DictionaryService {
             })),
             etymology: backendEntry.etymology,
             morphology: backendEntry.morphology,
+            aiSource: backendEntry.aiSource,
           };
         } catch (error) {
           // console.warn('Ollama backend lookup failed:', error);
@@ -204,16 +210,18 @@ export const dictionaryService = new DictionaryService();
 // Helper function for quick lookup (without context)
 export async function lookupWord(
   word: string,
-  language: string = "en"
+  language: string = "en",
+  provider?: string
 ): Promise<IDictionaryEntry | null> {
-  return dictionaryService.lookup(word, language);
+  return dictionaryService.lookupWithContext(word, "", language, provider);
 }
 
 // Helper function for contextual lookup using Ollama
 export async function lookupWordWithContext(
   word: string,
   context: string,
-  language: string = "en"
+  language: string = "en",
+  provider?: string
 ): Promise<IDictionaryEntry | null> {
-  return dictionaryService.lookupWithContext(word, context, language);
+  return dictionaryService.lookupWithContext(word, context, language, provider);
 }

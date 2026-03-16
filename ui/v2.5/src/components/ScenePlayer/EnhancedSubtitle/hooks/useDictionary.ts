@@ -28,6 +28,8 @@ interface IUseDictionaryResult {
   toggleFavorite: () => Promise<void>;
   selectedActionIndex: number;
   setSelectedActionIndex: (index: number) => void;
+  aiProvider: string;
+  setAiProvider: (provider: string) => void;
 }
 
 export function useDictionary({
@@ -48,6 +50,20 @@ export function useDictionary({
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const [isFavorite, setIsFavorite] = useState(false);
   const [selectedActionIndex, setSelectedActionIndex] = useState<number>(0);
+  const [aiProvider, setAiProvider] = useState<string>("gemini");
+
+  // Load provider preference from local storage
+  useEffect(() => {
+    const savedProvider = localStorage.getItem("stash_subtitle_ai_provider");
+    if (savedProvider === "ollama" || savedProvider === "gemini") {
+      setAiProvider(savedProvider);
+    }
+  }, []);
+
+  const handleSetAiProvider = useCallback((provider: string) => {
+    setAiProvider(provider);
+    localStorage.setItem("stash_subtitle_ai_provider", provider);
+  }, []);
 
   // Load favorites on mount
   useEffect(() => {
@@ -122,8 +138,13 @@ export function useDictionary({
       try {
         const context = currentCue?.text || "";
         const entry = context
-          ? await lookupWordWithContext(word, context, detectedLanguage)
-          : await lookupWord(word, detectedLanguage);
+          ? await lookupWordWithContext(
+              word,
+              context,
+              detectedLanguage,
+              aiProvider
+            )
+          : await lookupWord(word, detectedLanguage, aiProvider);
 
         setDictionary(entry);
       } catch (error) {
@@ -133,7 +154,7 @@ export function useDictionary({
         setIsLoading(false);
       }
     },
-    [detectedLanguage, currentCue, onPausePlayer]
+    [detectedLanguage, currentCue, onPausePlayer, aiProvider]
   );
 
   const toggleFavorite = useCallback(async () => {
@@ -176,5 +197,7 @@ export function useDictionary({
     toggleFavorite,
     selectedActionIndex,
     setSelectedActionIndex,
+    aiProvider,
+    setAiProvider: handleSetAiProvider,
   };
 }

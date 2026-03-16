@@ -470,6 +470,27 @@
         text-transform: uppercase;
       }
 
+      .ai-source-tag {
+        border-radius: 4px;
+        display: inline-block;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+        padding: 0.2rem 0.5rem;
+
+        &.ai-source-gemini {
+          background: rgba(66, 133, 244, 0.2);
+          border: 1px solid rgba(66, 133, 244, 0.5);
+          color: #8ab4f8;
+        }
+
+        &.ai-source-ollama {
+          background: rgba(251, 192, 45, 0.2);
+          border: 1px solid rgba(251, 192, 45, 0.5);
+          color: #fde293;
+        }
+      }
+
       .phonetic {
         color: #64b4ff;
         font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif;

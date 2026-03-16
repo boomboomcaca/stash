@@ -22,6 +22,7 @@ export interface IDictionaryEntry {
   etymology?: string;
   morphology?: string;
   frequency?: number;
+  aiSource?: string;
 }
 
 export interface ISegmentationOptions {
