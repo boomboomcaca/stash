@@ -54,8 +54,13 @@ export class DictionaryService {
     try {
       let entry: IDictionaryEntry | null = null;
 
-      // Allow calling backend for both Ollama and Gemini
-      if (this.ollamaAvailable || provider === "groq") {
+      // Allow calling backend for both Ollama and Groq
+      // If user explicitly selected Ollama, always try to call it to bypass the static availability check
+      if (
+        this.ollamaAvailable ||
+        provider === "groq" ||
+        provider === "ollama"
+      ) {
         try {
           const backendEntry = await ollamaBackendService.explainWord(
             word,
