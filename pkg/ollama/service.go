@@ -41,12 +41,12 @@ func DefaultConfig() *OllamaConfig {
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
 		GeminiAPIKey:                geminiKey,
-		PromptTemplate: `请严格按照以下格式回答，不要添加额外的标题、分割线或格式：
+		PromptTemplate: `请严格按照以下格式用中文回答，不要添加额外的标题、分割线或格式：
 
 **美音音标：** [音标]
 **词性：** [词性名称：单词<WORD>所有的中文翻译]
-**含义：** [解释一下这句话中这个词的用法<WORD>： <CONTEXT>]
-**用法说明：** [解释一下这句话中这个词的语法<WORD>： <CONTEXT>]
+**含义：** [用中文解释一下这句话中这个词的用法<WORD>： <CONTEXT>]
+**用法说明：** [用中文解释一下这句话中这个词的语法<WORD>： <CONTEXT>]
 **词根拆解：** [拆分前缀、词根、后缀，标注来源和含义，如：un- (否定) + break (打破) + -able (可能)]
 
 要求：
@@ -55,7 +55,8 @@ func DefaultConfig() *OllamaConfig {
 3. 美音音标请用国际音标（IPA）格式
 4. 词性部分必须包含单词的中文翻译，多个翻译用顿号分隔
 5. 词根拆解部分请尽量详细拆分，若无法拆分请说明
-6. 不要使用markdown标题符号（#）或分割线（---）`,
+6. 不要使用markdown标题符号（#）或分割线（---）
+7. 必须使用中文回答，禁止使用英文解释`,
 	}
 }
 
@@ -209,6 +210,13 @@ func (s *Service) GenerateGemini(ctx context.Context, prompt string) (string, er
 	urlStr := "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
 
 	requestData := map[string]interface{}{
+		"systemInstruction": map[string]interface{}{
+			"parts": []map[string]interface{}{
+				{
+					"text": "你是一个专业的中英文词典助手。你必须全程使用中文回答，所有解释、说明、描述都必须是中文。禁止使用英文进行任何解释或描述。",
+				},
+			},
+		},
 		"contents": []map[string]interface{}{
 			{
 				"parts": []map[string]interface{}{
