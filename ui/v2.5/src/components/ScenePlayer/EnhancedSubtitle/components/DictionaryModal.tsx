@@ -265,7 +265,22 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             width: "100%",
           }}
         >
-          <span className="word-text">{selectedWord}</span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+            <span className="word-text">{selectedWord}</span>
+            {dictionary?.pronunciation && (
+              <span
+                className="phonetic-text"
+                style={{
+                  fontSize: "1.1rem",
+                  color: "rgba(255, 255, 255, 0.6)",
+                  fontWeight: "normal",
+                  fontFamily: "sans-serif",
+                }}
+              >
+                [{dictionary.pronunciation}]
+              </span>
+            )}
+          </div>
           <div
             className="dictionary-actions"
             style={{
