@@ -185,7 +185,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         const currentIndex = selectedActionIndexRef.current;
         if (currentIndex === 0) {
           // 直接通过回车或空格来切换AI提供商
-          const nextProvider = aiProvider === "groq" ? "ollama" : "groq";
+          const nextProvider = aiProvider === "gemini" ? "ollama" : "gemini";
           setLocalAiProvider(nextProvider);
           setAiProviderRef.current(nextProvider);
         } else if (currentIndex === 1) {
@@ -259,10 +259,11 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
       >
         <Modal.Title
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto 1fr",
+            display: "flex",
+            justifyContent: "space-between",
             alignItems: "center",
             width: "100%",
+            gap: "10px",
           }}
         >
           <div
@@ -270,7 +271,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
               display: "flex",
               alignItems: "baseline",
               gap: "10px",
-              flexWrap: "wrap",
+              whiteSpace: "nowrap",
             }}
           >
             <span className="word-text">{selectedWord}</span>
@@ -341,8 +342,8 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
                 onTouchStart={(e) => e.stopPropagation()}
                 title="选择AI翻译服务"
               >
-                <option value="groq" style={{ backgroundColor: "#2b2b2b" }}>
-                  ✨ Groq
+                <option value="gemini" style={{ backgroundColor: "#2b2b2b" }}>
+                  ✨ Gemini
                 </option>
                 <option value="ollama" style={{ backgroundColor: "#2b2b2b" }}>
                   🦙 Ollama

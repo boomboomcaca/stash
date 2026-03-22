@@ -54,11 +54,11 @@ export class DictionaryService {
     try {
       let entry: IDictionaryEntry | null = null;
 
-      // Allow calling backend for both Ollama and Groq
+      // Allow calling backend for both Ollama and Gemini
       // If user explicitly selected Ollama, always try to call it to bypass the static availability check
       if (
         this.ollamaAvailable ||
-        provider === "groq" ||
+        provider === "gemini" ||
         provider === "ollama"
       ) {
         try {
@@ -85,7 +85,7 @@ export class DictionaryService {
           };
         } catch (error) {
           // console.warn('Ollama backend lookup failed:', error);
-          const providerName = provider === "groq" ? "Groq" : "Ollama";
+          const providerName = provider === "gemini" ? "Gemini" : "Ollama";
           entry = this.createBasicEntry(
             word,
             language,
@@ -93,7 +93,7 @@ export class DictionaryService {
           );
         }
       } else {
-        const providerName = provider === "groq" ? "Groq" : "Ollama";
+        const providerName = provider === "gemini" ? "Gemini" : "Ollama";
         entry = this.createBasicEntry(
           word,
           language,

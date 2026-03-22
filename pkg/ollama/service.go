@@ -23,7 +23,7 @@ type OllamaConfig struct {
 	Enabled                   bool   `json:"enabled"`
 	FallbackToTraditionalDict bool   `json:"fallbackToTraditionalDict"`
 	PromptTemplate            string `json:"promptTemplate"`
-	GroqAPIKey                string `json:"groqApiKey"`
+	GeminiAPIKey                string `json:"geminiApiKey"`
 }
 
 // DefaultConfig returns the default Ollama configuration
@@ -31,8 +31,8 @@ func DefaultConfig() *OllamaConfig {
 	// Auto-detect available Ollama service
 	baseURL := autoDetectOllamaURL()
 
-	// 优先从环境变量中读取 Groq API Key
-	groqKey := os.Getenv("GROQ_API_KEY")
+	// 优先从环境变量中读取 Gemini API Key
+	geminiKey := os.Getenv("GROQ_API_KEY")
 
 	return &OllamaConfig{
 		BaseURL:                   baseURL,
@@ -40,7 +40,7 @@ func DefaultConfig() *OllamaConfig {
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
-		GroqAPIKey:                groqKey,
+		GeminiAPIKey:                geminiKey,
 		PromptTemplate: `请严格按照以下格式回答，不要添加额外的标题、分割线或格式：
 
 **美音音标：** [音标]
@@ -199,24 +199,28 @@ type Service struct {
 	logger     *logrus.Entry
 }
 
-// GenerateGroq generates text using Groq API
-func (s *Service) GenerateGroq(ctx context.Context, prompt string) (string, error) {
-	apiKey := s.config.GroqAPIKey
+// GenerateGemini generates text using Gemini API
+func (s *Service) GenerateGemini(ctx context.Context, prompt string) (string, error) {
+	apiKey := s.config.GeminiAPIKey
 	if apiKey == "" {
-		return "", fmt.Errorf("Groq API key is not configured. Please configure it in settings")
+		return "", fmt.Errorf("Gemini API key is not configured. Please configure it in settings")
 	}
 
-	urlStr := "https://api.groq.com/openai/v1/chat/completions"
+	urlStr := "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
 
 	requestData := map[string]interface{}{
-		"model": "llama-3.3-70b-versatile",
-		"messages": []map[string]interface{}{
+		"contents": []map[string]interface{}{
 			{
-				"role":    "user",
-				"content": prompt,
+				"parts": []map[string]interface{}{
+					{
+						"text": prompt,
+					},
+				},
 			},
 		},
-		"temperature": 0.3,
+		"generationConfig": map[string]interface{}{
+			"temperature": 0.3,
+		},
 	}
 
 	requestBody, err := json.Marshal(requestData)
@@ -229,36 +233,38 @@ func (s *Service) GenerateGroq(ctx context.Context, prompt string) (string, erro
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("X-goog-api-key", apiKey)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate text with Groq: %w", err)
+		return "", fmt.Errorf("failed to generate text with Gemini: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("unexpected status code from Groq: %d, body: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("unexpected status code from Gemini: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var groqResp struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&groqResp); err != nil {
-		return "", fmt.Errorf("failed to decode Groq response: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
+		return "", fmt.Errorf("failed to decode Gemini response: %w", err)
 	}
 
-	if len(groqResp.Choices) == 0 {
-		return "", fmt.Errorf("empty response from Groq")
+	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("empty response from Gemini")
 	}
 
-	return groqResp.Choices[0].Message.Content, nil
+	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
 }
 
 // NewService creates a new Ollama service
@@ -436,7 +442,7 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 	return chatResp.Message.Content, nil
 }
 
-// ExplainWord explains a word in context using Groq or Ollama
+// ExplainWord explains a word in context using Gemini or Ollama
 func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, provider string) (*DictionaryEntry, error) {
 	prompt := s.buildPrompt(word, contextStr)
 
@@ -452,24 +458,24 @@ func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, p
 			return nil, fmt.Errorf("failed to explain word with Ollama: %w", err)
 		}
 		aiSource = "ollama"
-	case "groq":
-		// User explicitly requested Groq
-		explanation, err = s.GenerateGroq(ctx, prompt)
+	case "gemini":
+		// User explicitly requested Gemini
+		explanation, err = s.GenerateGemini(ctx, prompt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to explain word with Groq: %w", err)
+			return nil, fmt.Errorf("failed to explain word with Gemini: %w", err)
 		}
-		aiSource = "groq"
+		aiSource = "gemini"
 	default:
-		// Default behavior: Try Groq first, fallback to Ollama
-		explanation, err = s.GenerateGroq(ctx, prompt)
+		// Default behavior: Try Gemini first, fallback to Ollama
+		explanation, err = s.GenerateGemini(ctx, prompt)
 		if err == nil {
-			aiSource = "groq"
+			aiSource = "gemini"
 		} else {
-			// Log Groq error and fallback to Ollama
-			s.logger.WithError(err).Warn("Groq failed, falling back to Ollama")
+			// Log Gemini error and fallback to Ollama
+			s.logger.WithError(err).Warn("Gemini failed, falling back to Ollama")
 			explanation, err = s.Generate(ctx, prompt, "")
 			if err != nil {
-				return nil, fmt.Errorf("failed to explain word (both Groq and Ollama failed): %w", err)
+				return nil, fmt.Errorf("failed to explain word (both Gemini and Ollama failed): %w", err)
 			}
 			aiSource = "ollama"
 		}
