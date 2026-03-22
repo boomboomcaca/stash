@@ -265,7 +265,14 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             width: "100%",
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
             <span className="word-text">{selectedWord}</span>
             {dictionary?.pronunciation && (
               <span
@@ -275,6 +282,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
                   color: "rgba(255, 255, 255, 0.6)",
                   fontWeight: "normal",
                   fontFamily: "sans-serif",
+                  whiteSpace: "nowrap",
                 }}
               >
                 [{dictionary.pronunciation}]

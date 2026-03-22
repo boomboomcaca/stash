@@ -27,7 +27,9 @@ export class WordSegmenter {
   // Latin-based languages (English, Spanish, French, etc.)
   private segmentLatin(text: string): IWordSegment[] {
     const segments: IWordSegment[] = [];
-    const wordRegex = /\b\w+\b/g;
+    // Use Unicode property escapes to match letters (including accented ones like é, à) and numbers,
+    // optionally followed by apostrophes/hyphens inside the word.
+    const wordRegex = /[\p{L}\p{M}\p{N}]+(?:['\-][\p{L}\p{M}\p{N}]+)*/gu;
     let match;
 
     while ((match = wordRegex.exec(text)) !== null) {
