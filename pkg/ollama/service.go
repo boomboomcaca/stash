@@ -23,7 +23,7 @@ type OllamaConfig struct {
 	Enabled                   bool   `json:"enabled"`
 	FallbackToTraditionalDict bool   `json:"fallbackToTraditionalDict"`
 	PromptTemplate            string `json:"promptTemplate"`
-	GeminiAPIKey                string `json:"geminiApiKey"`
+	MistralAPIKey               string `json:"mistralApiKey"`
 }
 
 // DefaultConfig returns the default Ollama configuration
@@ -31,8 +31,8 @@ func DefaultConfig() *OllamaConfig {
 	// Auto-detect available Ollama service
 	baseURL := autoDetectOllamaURL()
 
-	// 优先从环境变量中读取 Gemini API Key
-	geminiKey := os.Getenv("GROQ_API_KEY")
+	// 优先从环境变量中读取 Mistral API Key
+	mistralKey := os.Getenv("MISTRAL_API_KEY")
 
 	return &OllamaConfig{
 		BaseURL:                   baseURL,
@@ -40,7 +40,7 @@ func DefaultConfig() *OllamaConfig {
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
-		GeminiAPIKey:                geminiKey,
+		MistralAPIKey:               mistralKey,
 		PromptTemplate: `请严格按照以下格式用中文回答，不要添加额外的标题、分割线或格式：
 
 **美音音标：** [音标]
@@ -200,35 +200,28 @@ type Service struct {
 	logger     *logrus.Entry
 }
 
-// GenerateGemini generates text using Gemini API
-func (s *Service) GenerateGemini(ctx context.Context, prompt string) (string, error) {
-	apiKey := s.config.GeminiAPIKey
+// GenerateMistral generates text using Mistral AI chat completions API
+func (s *Service) GenerateMistral(ctx context.Context, prompt string) (string, error) {
+	apiKey := s.config.MistralAPIKey
 	if apiKey == "" {
-		return "", fmt.Errorf("Gemini API key is not configured. Please configure it in settings")
+		return "", fmt.Errorf("Mistral API key is not configured. Please configure it in settings")
 	}
 
-	urlStr := "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+	urlStr := "https://api.mistral.ai/v1/chat/completions"
 
 	requestData := map[string]interface{}{
-		"systemInstruction": map[string]interface{}{
-			"parts": []map[string]interface{}{
-				{
-					"text": "你是一个专业的中英文词典助手。你必须全程使用中文回答，所有解释、说明、描述都必须是中文。禁止使用英文进行任何解释或描述。",
-				},
-			},
-		},
-		"contents": []map[string]interface{}{
+		"model": "mistral-small-latest",
+		"messages": []map[string]interface{}{
 			{
-				"parts": []map[string]interface{}{
-					{
-						"text": prompt,
-					},
-				},
+				"role":    "system",
+				"content": "你是一个专业的中英文词典助手。你必须全程使用中文回答，所有解释、说明、描述都必须是中文。禁止使用英文进行任何解释或描述。",
+			},
+			{
+				"role":    "user",
+				"content": prompt,
 			},
 		},
-		"generationConfig": map[string]interface{}{
-			"temperature": 0.3,
-		},
+		"temperature": 0.3,
 	}
 
 	requestBody, err := json.Marshal(requestData)
@@ -241,38 +234,36 @@ func (s *Service) GenerateGemini(ctx context.Context, prompt string) (string, er
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-goog-api-key", apiKey)
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate text with Gemini: %w", err)
+		return "", fmt.Errorf("failed to generate text with Mistral: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("unexpected status code from Gemini: %d, body: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("unexpected status code from Mistral: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var geminiResp struct {
-		Candidates []struct {
-			Content struct {
-				Parts []struct {
-					Text string `json:"text"`
-				} `json:"parts"`
-			} `json:"content"`
-		} `json:"candidates"`
+	var mistralResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-		return "", fmt.Errorf("failed to decode Gemini response: %w", err)
+	if err := json.NewDecoder(resp.Body).Decode(&mistralResp); err != nil {
+		return "", fmt.Errorf("failed to decode Mistral response: %w", err)
 	}
 
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("empty response from Gemini")
+	if len(mistralResp.Choices) == 0 {
+		return "", fmt.Errorf("empty response from Mistral")
 	}
 
-	return geminiResp.Candidates[0].Content.Parts[0].Text, nil
+	return mistralResp.Choices[0].Message.Content, nil
 }
 
 // NewService creates a new Ollama service
@@ -450,7 +441,7 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 	return chatResp.Message.Content, nil
 }
 
-// ExplainWord explains a word in context using Gemini or Ollama
+// ExplainWord explains a word in context using Mistral or Ollama
 func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, provider string) (*DictionaryEntry, error) {
 	prompt := s.buildPrompt(word, contextStr)
 
@@ -466,24 +457,24 @@ func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, p
 			return nil, fmt.Errorf("failed to explain word with Ollama: %w", err)
 		}
 		aiSource = "ollama"
-	case "gemini":
-		// User explicitly requested Gemini
-		explanation, err = s.GenerateGemini(ctx, prompt)
+	case "mistral":
+		// User explicitly requested Mistral
+		explanation, err = s.GenerateMistral(ctx, prompt)
 		if err != nil {
-			return nil, fmt.Errorf("failed to explain word with Gemini: %w", err)
+			return nil, fmt.Errorf("failed to explain word with Mistral: %w", err)
 		}
-		aiSource = "gemini"
+		aiSource = "mistral"
 	default:
-		// Default behavior: Try Gemini first, fallback to Ollama
-		explanation, err = s.GenerateGemini(ctx, prompt)
+		// Default behavior: Try Mistral first, fallback to Ollama
+		explanation, err = s.GenerateMistral(ctx, prompt)
 		if err == nil {
-			aiSource = "gemini"
+			aiSource = "mistral"
 		} else {
-			// Log Gemini error and fallback to Ollama
-			s.logger.WithError(err).Warn("Gemini failed, falling back to Ollama")
+			// Log Mistral error and fallback to Ollama
+			s.logger.WithError(err).Warn("Mistral failed, falling back to Ollama")
 			explanation, err = s.Generate(ctx, prompt, "")
 			if err != nil {
-				return nil, fmt.Errorf("failed to explain word (both Gemini and Ollama failed): %w", err)
+				return nil, fmt.Errorf("failed to explain word (both Mistral and Ollama failed): %w", err)
 			}
 			aiSource = "ollama"
 		}
