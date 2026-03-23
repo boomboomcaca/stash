@@ -23,7 +23,7 @@ type OllamaConfig struct {
 	Enabled                   bool   `json:"enabled"`
 	FallbackToTraditionalDict bool   `json:"fallbackToTraditionalDict"`
 	PromptTemplate            string `json:"promptTemplate"`
-	MistralAPIKey               string `json:"mistralApiKey"`
+	MistralAPIKey             string `json:"mistralApiKey"`
 }
 
 // DefaultConfig returns the default Ollama configuration
@@ -40,7 +40,7 @@ func DefaultConfig() *OllamaConfig {
 		Timeout:                   30000, // 30 seconds
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
-		MistralAPIKey:               mistralKey,
+		MistralAPIKey:             mistralKey,
 		PromptTemplate: `严格按以下格式回答，每项限一行，禁止展开解释：
 
 **美音音标：** [IPA音标]
