@@ -135,26 +135,6 @@ export function useDictionary({
     loadFavorites();
   }, []);
 
-  // Clean up PronunciationService cache on unmount
-  useEffect(() => {
-    return () => {
-      try {
-        import("../pronunciation")
-          .then(({ pronunciationService }) => {
-            if (
-              pronunciationService &&
-              typeof pronunciationService.clearCache === "function"
-            ) {
-              pronunciationService.clearCache();
-            }
-          })
-          .catch(() => {});
-      } catch (error) {
-        // ignore
-      }
-    };
-  }, []);
-
   // Check if selected word is favorite
   useEffect(() => {
     if (selectedWord) {
@@ -206,6 +186,7 @@ export function useDictionary({
         return;
       }
 
+      setDictionary(null);
       setIsLoading(true);
 
       try {
