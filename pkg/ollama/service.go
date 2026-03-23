@@ -41,22 +41,14 @@ func DefaultConfig() *OllamaConfig {
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
 		MistralAPIKey:               mistralKey,
-		PromptTemplate: `请严格按照以下格式用中文回答，不要添加额外的标题、分割线或格式：
+		PromptTemplate: `严格按以下格式回答，每项限一行，禁止展开解释：
 
-**美音音标：** [音标]
-**词性：** [词性名称：单词<WORD>所有的中文翻译]
-**含义：** [用中文解释一下这句话中这个词的用法<WORD>： <CONTEXT>]
-**用法说明：** [用中文解释一下这句话中这个词的语法<WORD>： <CONTEXT>]
-**词根拆解：** [拆分前缀、词根、后缀，标注来源和含义，如：un- (否定) + break (打破) + -able (可能)]
+**美音音标：** [IPA音标]
+**词性：** [词性：中文翻译，多个用顿号分隔]
+**含义：** [一句话说明<WORD>在此句中的意思：<CONTEXT>]
+**词根拆解：** [前缀+词根+后缀，如：un-(否定)+break(打破)+-able(可能)，无法拆分则写"基础词汇"]
 
-要求：
-1. 直接回答，不要前言或总结
-2. 每部分内容简洁明了
-3. 美音音标请用国际音标（IPA）格式
-4. 词性部分必须包含单词的中文翻译，多个翻译用顿号分隔
-5. 词根拆解部分请尽量详细拆分，若无法拆分请说明
-6. 不要使用markdown标题符号（#）或分割线（---）
-7. 必须使用中文回答，禁止使用英文解释`,
+要求：直接回答，每项限一行，不要展开，不要前言总结，中文回答`,
 	}
 }
 
@@ -214,7 +206,7 @@ func (s *Service) GenerateMistral(ctx context.Context, prompt string) (string, e
 		"messages": []map[string]interface{}{
 			{
 				"role":    "system",
-				"content": "你是一个专业的中英文词典助手。你必须全程使用中文回答，所有解释、说明、描述都必须是中文。禁止使用英文进行任何解释或描述。",
+				"content": "你是一个简洁的中英文词典助手。每项回答限一行，禁止展开解释。全程中文回答。",
 			},
 			{
 				"role":    "user",
@@ -222,6 +214,7 @@ func (s *Service) GenerateMistral(ctx context.Context, prompt string) (string, e
 			},
 		},
 		"temperature": 0.3,
+		"max_tokens":  300,
 	}
 
 	requestBody, err := json.Marshal(requestData)
