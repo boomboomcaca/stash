@@ -210,7 +210,7 @@ func (s *Service) GenerateMistral(ctx context.Context, prompt string) (string, e
 	urlStr := "https://api.mistral.ai/v1/chat/completions"
 
 	requestData := map[string]interface{}{
-		"model": "mistral-small-latest",
+		"model": "mistral-large-latest",
 		"messages": []map[string]interface{}{
 			{
 				"role":    "system",
