@@ -259,20 +259,13 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
       >
         <Modal.Title
           style={{
-            display: "flex",
-            justifyContent: "space-between",
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr",
             alignItems: "center",
             width: "100%",
-            gap: "10px",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span className="word-text">{selectedWord}</span>
           </div>
           <div
