@@ -601,7 +601,7 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 			posContent = strings.TrimPrefix(posContent, "● 词性：")
 			posContent = strings.TrimPrefix(posContent, "● 词性:")
 			posContent = strings.TrimSpace(posContent)
-			
+
 			// Extract pronunciation embedded in 词性 line (e.g., "名词 /'kɑn,tekst/")
 			if slashIdx := strings.Index(posContent, "/"); slashIdx >= 0 {
 				partOfSpeech = strings.TrimSpace(posContent[:slashIdx])
@@ -613,28 +613,28 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 				partOfSpeech = posContent
 			}
 			currentSection = "pos"
-			
+
 		} else if strings.HasPrefix(line, "● 词根拆解：") || strings.HasPrefix(line, "● 词根拆解:") {
 			morphology = line
 			morphology = strings.TrimPrefix(morphology, "● 词根拆解：")
 			morphology = strings.TrimPrefix(morphology, "● 词根拆解:")
 			morphology = strings.TrimSpace(morphology)
 			currentSection = "morphology"
-			
+
 		} else if strings.HasPrefix(line, "● 释义：") || strings.HasPrefix(line, "● 释义:") {
 			meaning = line
 			meaning = strings.TrimPrefix(meaning, "● 释义：")
 			meaning = strings.TrimPrefix(meaning, "● 释义:")
 			meaning = strings.TrimSpace(meaning)
 			currentSection = "meaning"
-			
+
 		} else if strings.HasPrefix(line, "● 语境释义：") || strings.HasPrefix(line, "● 语境释义:") {
 			usageNote = line
 			usageNote = strings.TrimPrefix(usageNote, "● 语境释义：")
 			usageNote = strings.TrimPrefix(usageNote, "● 语境释义:")
 			usageNote = strings.TrimSpace(usageNote)
 			currentSection = "usage"
-			
+
 		} else if strings.HasPrefix(line, "● 常见搭配：") || strings.HasPrefix(line, "● 常见搭配:") {
 			exampleText := line
 			exampleText = strings.TrimPrefix(exampleText, "● 常见搭配：")
@@ -644,7 +644,7 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 				exampleLines = append(exampleLines, exampleText)
 			}
 			currentSection = "collocations"
-			
+
 		} else if currentSection == "meaning" && meaning != "" {
 			meaning += " " + line
 		} else if currentSection == "usage" && usageNote != "" {
