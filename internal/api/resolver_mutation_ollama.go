@@ -94,7 +94,6 @@ func (r *mutationResolver) OllamaExplainWord(ctx context.Context, input OllamaEx
 		Word:          entry.Word,
 		Pronunciation: &entry.Pronunciation,
 		Definitions:   definitions,
-		Etymology:     entry.Etymology,
 		Morphology:    &entry.Morphology,
 		AiSource:      &entry.AISource,
 	}, nil

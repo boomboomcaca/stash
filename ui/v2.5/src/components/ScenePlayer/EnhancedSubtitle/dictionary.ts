@@ -79,7 +79,6 @@ export class DictionaryService {
               meaning: def.meaning,
               examples: def.examples,
             })),
-            etymology: backendEntry.etymology,
             morphology: backendEntry.morphology,
             aiSource: backendEntry.aiSource,
           };

@@ -31,7 +31,6 @@ type OllamaDictionaryEntry {
   word: String!
   pronunciation: String
   definitions: [OllamaDictionaryDefinition!]!
-  etymology: String!
   morphology: String
   aiSource: String
 }

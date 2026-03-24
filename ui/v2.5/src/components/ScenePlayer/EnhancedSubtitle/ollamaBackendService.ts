@@ -43,7 +43,6 @@ const OLLAMA_EXPLAIN_WORD_MUTATION = gql`
         meaning
         examples
       }
-      etymology
       morphology
       aiSource
     }
@@ -81,7 +80,6 @@ export interface IBackendDictionaryEntry {
   word: string;
   pronunciation?: string;
   definitions: IBackendDictionaryDefinition[];
-  etymology: string;
   aiSource?: string;
   morphology?: string;
 }

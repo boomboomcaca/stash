@@ -19,7 +19,6 @@ export interface IDictionaryEntry {
     meaning: string;
     examples?: string[];
   }>;
-  etymology?: string;
   morphology?: string;
   frequency?: number;
   aiSource?: string;

@@ -176,7 +176,6 @@ type DictionaryEntry struct {
 	Word          string                 `json:"word"`
 	Pronunciation string                 `json:"pronunciation,omitempty"`
 	Definitions   []DictionaryDefinition `json:"definitions"`
-	Etymology     string                 `json:"etymology"`
 	Morphology    string                 `json:"morphology,omitempty"`
 	AISource      string                 `json:"aiSource,omitempty"`
 }
