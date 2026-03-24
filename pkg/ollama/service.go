@@ -23,6 +23,7 @@ type OllamaConfig struct {
 	Enabled                   bool   `json:"enabled"`
 	FallbackToTraditionalDict bool   `json:"fallbackToTraditionalDict"`
 	PromptTemplate            string `json:"promptTemplate"`
+	SystemPrompt              string `json:"systemPrompt"`
 	MistralAPIKey             string `json:"mistralApiKey"`
 }
 
@@ -41,14 +42,16 @@ func DefaultConfig() *OllamaConfig {
 		Enabled:                   true,
 		FallbackToTraditionalDict: true,
 		MistralAPIKey:             mistralKey,
-		PromptTemplate: `严格按以下格式回答，每项限一行，禁止展开解释：
+		PromptTemplate: `你是一个英语词典。解释单词 '<WORD>' 在以下语境中的含义。
+语境：<CONTEXT>
 
-**美音音标：** [IPA音标]
-**词性：** [词性：中文翻译，多个用顿号分隔]
-**含义：** [一句话说明<WORD>在此句中的意思：<CONTEXT>]
-**词根拆解：** [前缀+词根+后缀，如：un-(否定)+break(打破)+-able(可能)，无法拆分则写"基础词汇"]
-
-要求：直接回答，每项限一行，不要展开，不要前言总结，中文回答`,
+请用以下格式输出（纯文本）：
+● 词性：xxx /美式音标/（音标为必填项，必须给出美式英语 IPA 音标）
+● 词根拆解：用一行简洁列出，格式如 pre-(前缀,'之前') + dict(词根,'说') + -ion(后缀,名词)
+● 释义：xxx
+● 语境释义：在这个句子中表示...
+● 常见搭配：xxx`,
+		SystemPrompt: `你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。`,
 	}
 }
 
@@ -201,20 +204,25 @@ func (s *Service) GenerateMistral(ctx context.Context, prompt string) (string, e
 
 	urlStr := "https://api.mistral.ai/v1/chat/completions"
 
+	sysPrompt := s.config.SystemPrompt
+	if sysPrompt == "" {
+		sysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
+	}
+
 	requestData := map[string]interface{}{
 		"model": "mistral-large-latest",
 		"messages": []map[string]interface{}{
 			{
 				"role":    "system",
-				"content": "你是一个简洁的中英文词典助手。每项回答限一行，禁止展开解释。全程中文回答。",
+				"content": sysPrompt,
 			},
 			{
 				"role":    "user",
 				"content": prompt,
 			},
 		},
-		"temperature": 0.3,
-		"max_tokens":  300,
+		"temperature": 0,
+		"max_tokens":  800,
 	}
 
 	requestBody, err := json.Marshal(requestData)
@@ -375,9 +383,18 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 		return "", fmt.Errorf("failed to build chat URL: %w", err)
 	}
 
+	sysPrompt := s.config.SystemPrompt
+	if sysPrompt == "" {
+		sysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
+	}
+
 	requestData := OllamaChatRequest{
 		Model: model,
 		Messages: []OllamaChatMessage{
+			{
+				Role:    "system",
+				Content: sysPrompt,
+			},
 			{
 				Role:    "user",
 				Content: prompt,
@@ -386,7 +403,7 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 		Stream: false,
 		Think:  false, // Disable think mode
 		Options: map[string]interface{}{
-			"temperature": 0.3, // Lower temperature for more consistent explanations
+			"temperature": 0,
 			"top_k":       40,
 			"top_p":       0.9,
 		},
@@ -493,12 +510,15 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 	cleanExplanation := s.cleanExplanationText(explanation)
 
 	// Try to parse structured content
-	pronunciation, partOfSpeech, meaning, usageNote, morphology, _ := s.parseStructuredExplanation(cleanExplanation)
+	pronunciation, partOfSpeech, meaning, usageNote, morphology, examples := s.parseStructuredExplanation(cleanExplanation)
 
 	// Build the complete meaning text
 	completeMeaning := meaning
 	if usageNote != "" {
 		completeMeaning += "\n\n" + usageNote
+	}
+	if len(examples) > 0 {
+		completeMeaning += "\n\n" + strings.Join(examples, "\n")
 	}
 
 	entry := &DictionaryEntry{
@@ -576,53 +596,75 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 
 		// Parse structured sections
 		//nolint:gocritic
-		if strings.HasPrefix(line, "**美音音标：**") || strings.HasPrefix(line, "**美音音标:**") {
-			pronunciation = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**美音音标：**"), "**美音音标:**"))
-			pronunciation = strings.Trim(pronunciation, "[]")
-			pronunciation = strings.Trim(pronunciation, "/")
-			currentSection = "pronunciation"
-		} else if strings.HasPrefix(line, "**词性：**") || strings.HasPrefix(line, "**词性:**") {
-			partOfSpeech = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**词性：**"), "**词性:**"))
-			partOfSpeech = strings.Trim(partOfSpeech, "[]")
+		if strings.HasPrefix(line, "● 词性：") || strings.HasPrefix(line, "● 词性:") {
+			posContent := line
+			posContent = strings.TrimPrefix(posContent, "● 词性：")
+			posContent = strings.TrimPrefix(posContent, "● 词性:")
+			posContent = strings.TrimSpace(posContent)
+			
+			// Extract pronunciation embedded in 词性 line (e.g., "名词 /'kɑn,tekst/")
+			if slashIdx := strings.Index(posContent, "/"); slashIdx >= 0 {
+				partOfSpeech = strings.TrimSpace(posContent[:slashIdx])
+				lastSlashIdx := strings.LastIndex(posContent, "/")
+				if lastSlashIdx > slashIdx {
+					pronunciation = strings.TrimSpace(posContent[slashIdx+1 : lastSlashIdx])
+				}
+			} else {
+				partOfSpeech = posContent
+			}
 			currentSection = "pos"
-		} else if strings.HasPrefix(line, "**含义：**") || strings.HasPrefix(line, "**含义:**") {
-			meaning = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**含义：**"), "**含义:**"))
-			meaning = strings.Trim(meaning, "[]")
-			currentSection = "meaning"
-		} else if strings.HasPrefix(line, "**用法说明：**") || strings.HasPrefix(line, "**用法说明:**") {
-			usageNote = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**用法说明：**"), "**用法说明:**"))
-			usageNote = strings.Trim(usageNote, "[]")
-			currentSection = "usage"
-		} else if strings.HasPrefix(line, "**词根拆解：**") || strings.HasPrefix(line, "**词根拆解:**") {
-			morphology = strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**词根拆解：**"), "**词根拆解:**"))
-			morphology = strings.Trim(morphology, "[]")
+			
+		} else if strings.HasPrefix(line, "● 词根拆解：") || strings.HasPrefix(line, "● 词根拆解:") {
+			morphology = line
+			morphology = strings.TrimPrefix(morphology, "● 词根拆解：")
+			morphology = strings.TrimPrefix(morphology, "● 词根拆解:")
+			morphology = strings.TrimSpace(morphology)
 			currentSection = "morphology"
-		} else if strings.HasPrefix(line, "**例句：**") || strings.HasPrefix(line, "**例句:**") {
-			exampleText := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "**例句：**"), "**例句:**"))
-			if exampleText != "" && !strings.HasPrefix(exampleText, "[") {
+			
+		} else if strings.HasPrefix(line, "● 释义：") || strings.HasPrefix(line, "● 释义:") {
+			meaning = line
+			meaning = strings.TrimPrefix(meaning, "● 释义：")
+			meaning = strings.TrimPrefix(meaning, "● 释义:")
+			meaning = strings.TrimSpace(meaning)
+			currentSection = "meaning"
+			
+		} else if strings.HasPrefix(line, "● 语境释义：") || strings.HasPrefix(line, "● 语境释义:") {
+			usageNote = line
+			usageNote = strings.TrimPrefix(usageNote, "● 语境释义：")
+			usageNote = strings.TrimPrefix(usageNote, "● 语境释义:")
+			usageNote = strings.TrimSpace(usageNote)
+			currentSection = "usage"
+			
+		} else if strings.HasPrefix(line, "● 常见搭配：") || strings.HasPrefix(line, "● 常见搭配:") {
+			exampleText := line
+			exampleText = strings.TrimPrefix(exampleText, "● 常见搭配：")
+			exampleText = strings.TrimPrefix(exampleText, "● 常见搭配:")
+			exampleText = strings.TrimSpace(exampleText)
+			if exampleText != "" {
 				exampleLines = append(exampleLines, exampleText)
 			}
-			currentSection = "examples"
+			currentSection = "collocations"
+			
 		} else if currentSection == "meaning" && meaning != "" {
 			meaning += " " + line
 		} else if currentSection == "usage" && usageNote != "" {
 			usageNote += " " + line
-		} else if currentSection == "examples" {
-			// Handle example lines
+		} else if currentSection == "collocations" {
+			// Handle example/collocation lines
 			if strings.HasPrefix(line, "-") || strings.HasPrefix(line, "•") || strings.HasPrefix(line, "1.") || strings.HasPrefix(line, "2.") {
 				cleaned := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(line, "-"), "•"), "1."))
 				cleaned = strings.TrimSpace(strings.TrimPrefix(cleaned, "2."))
 				if cleaned != "" {
 					exampleLines = append(exampleLines, cleaned)
 				}
-			} else if line != "" && !strings.HasPrefix(line, "**") {
+			} else if line != "" && !strings.HasPrefix(line, "● ") {
 				exampleLines = append(exampleLines, line)
 			}
 		}
 
 		// Fallback: if no structured format detected, treat as meaning
 		if partOfSpeech == "" && meaning == "" && usageNote == "" && len(exampleLines) == 0 {
-			if !strings.HasPrefix(line, "**") && !strings.Contains(line, "###") && !strings.Contains(line, "---") {
+			if !strings.HasPrefix(line, "● ") && !strings.Contains(line, "###") && !strings.Contains(line, "---") {
 				if meaning == "" {
 					meaning = line
 				} else {

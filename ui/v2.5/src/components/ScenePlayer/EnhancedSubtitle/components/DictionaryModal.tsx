@@ -269,26 +269,11 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
           <div
             style={{
               display: "flex",
-              alignItems: "baseline",
+              alignItems: "center",
               gap: "10px",
-              whiteSpace: "nowrap",
             }}
           >
             <span className="word-text">{selectedWord}</span>
-            {dictionary?.pronunciation && (
-              <span
-                className="phonetic-text"
-                style={{
-                  fontSize: "1.1rem",
-                  color: "rgba(255, 255, 255, 0.6)",
-                  fontWeight: "normal",
-                  fontFamily: "sans-serif",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                [{dictionary.pronunciation}]
-              </span>
-            )}
           </div>
           <div
             className="dictionary-actions"
@@ -420,8 +405,23 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
           <div className="dictionary-content">
             {dictionary.definitions.map((def, index) => (
               <div key={index} className="definition">
-                <div className="pos-phonetic-line">
+                <div
+                  className="pos-phonetic-line"
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
                   <span className="pos-tag">{def.partOfSpeech}</span>
+                  {index === 0 && dictionary.pronunciation && (
+                    <span
+                      className="phonetic-text"
+                      style={{
+                        fontSize: "1rem",
+                        color: "rgba(255, 255, 255, 0.6)",
+                        fontFamily: "sans-serif",
+                      }}
+                    >
+                      [{dictionary.pronunciation}]
+                    </span>
+                  )}
                 </div>
                 {index === 0 && dictionary.morphology && (
                   <div className="meaning morphology-inline">
