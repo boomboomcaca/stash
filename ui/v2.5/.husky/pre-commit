@@ -1,2 +1,14 @@
+# Go: auto-format staged .go files
+STAGED_GO_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.go$' || true)
+if [ -n "$STAGED_GO_FILES" ]; then
+  for file in $STAGED_GO_FILES; do
+    if [ -f "$file" ]; then
+      gofmt -w "$file"
+      git add "$file"
+    fi
+  done
+fi
+
+# Frontend: lint-staged
 cd ui/v2.5
 node ./node_modules/lint-staged/bin/lint-staged.js
