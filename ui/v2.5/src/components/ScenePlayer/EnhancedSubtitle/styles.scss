@@ -170,6 +170,36 @@
           2px 2px 4px rgba(0, 0, 0, 1), 0 0 25px rgba(255, 140, 66, 0.5);
       }
     }
+
+    // Mouse drag selection highlight
+    &.drag-selected {
+      background-color: rgba(0, 200, 255, 0.35);
+      border-radius: 3px;
+      box-shadow: 0 0 6px rgba(0, 200, 255, 0.4);
+      color: #fff;
+      text-shadow: 0 0 8px rgba(0, 0, 0, 1), 2px 2px 4px rgba(0, 0, 0, 1);
+    }
+
+    // Copy success feedback (green flash)
+    &.just-copied {
+      animation: copiedFlash 0.8s ease-out;
+      background-color: rgba(34, 197, 94, 0.45);
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+    }
+  }
+
+  // Punctuation/space between words - highlighted during drag selection
+  .subtitle-between-text {
+    &.drag-selected {
+      background-color: rgba(0, 200, 255, 0.35);
+      border-radius: 2px;
+      color: #fff;
+    }
+
+    &.just-copied {
+      animation: copiedFlash 0.8s ease-out;
+      background-color: rgba(34, 197, 94, 0.45);
+    }
   }
 
   // Drag indicator with auto-pause toggle
@@ -680,6 +710,19 @@ body.subtitle-dragging {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+// Animation for copied flash feedback
+@keyframes copiedFlash {
+  0% {
+    background-color: rgba(34, 197, 94, 0.6);
+    box-shadow: 0 0 14px rgba(34, 197, 94, 0.7);
+  }
+
+  100% {
+    background-color: rgba(34, 197, 94, 0.2);
+    box-shadow: 0 0 4px rgba(34, 197, 94, 0.2);
   }
 }
 

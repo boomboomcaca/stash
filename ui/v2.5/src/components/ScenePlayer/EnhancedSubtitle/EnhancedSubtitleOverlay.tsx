@@ -8,6 +8,8 @@ import {
   useAutoPause,
   useWordNavigation,
   useDictionary,
+  useTextSelection,
+  ITextToken,
 } from "./hooks";
 import { DictionaryModal } from "./components/DictionaryModal";
 import "./styles.scss";
@@ -136,6 +138,61 @@ export const EnhancedSubtitleOverlay: React.FC<
     detectedLanguage,
     currentCue,
     onPausePlayer,
+  });
+
+  // Generate flat list of tokens (words and punctuation) for unified selection
+  const textTokens = useMemo(() => {
+    if (!currentCue || wordSegments.length === 0) return [];
+    const tokens: Array<ITextToken> = [];
+    let lastIndex = 0;
+
+    wordSegments.forEach((segment, index) => {
+      if (segment.startIndex > lastIndex) {
+        tokens.push({
+          id: `between-${index}`,
+          text: currentCue.text.slice(lastIndex, segment.startIndex),
+          startIndex: lastIndex,
+          endIndex: segment.startIndex,
+          isWord: false,
+          wordIndex: -1,
+        });
+      }
+      tokens.push({
+        id: `word-${index}`,
+        text: segment.word,
+        startIndex: segment.startIndex,
+        endIndex: segment.endIndex,
+        isWord: true,
+        wordIndex: index,
+      });
+      lastIndex = segment.endIndex;
+    });
+
+    if (lastIndex < currentCue.text.length) {
+      tokens.push({
+        id: `remaining`,
+        text: currentCue.text.slice(lastIndex),
+        startIndex: lastIndex,
+        endIndex: currentCue.text.length,
+        isWord: false,
+        wordIndex: -1,
+      });
+    }
+
+    return tokens;
+  }, [currentCue, wordSegments]);
+
+  // Text selection hook (mouse drag to select and copy)
+  const {
+    dragSelectedIndices,
+    isDragSelecting,
+    justCopied,
+    handleTokenMouseDown,
+    handleTokenMouseEnter,
+    clearSelection,
+  } = useTextSelection({
+    textTokens,
+    currentCueText: currentCue?.text ?? "",
   });
 
   // Bind handleWordClick to word navigation for keyboard selection
@@ -324,7 +381,7 @@ export const EnhancedSubtitleOverlay: React.FC<
 
   // Render segmented text with clickable words
   const renderSegmentedText = useMemo(() => {
-    if (!currentCue || wordSegments.length === 0) {
+    if (!currentCue || textTokens.length === 0) {
       return (
         currentCue?.text.split("\n").map((line, idx, arr) => (
           <React.Fragment key={idx}>
@@ -335,14 +392,23 @@ export const EnhancedSubtitleOverlay: React.FC<
       );
     }
 
-    const elements: React.ReactNode[] = [];
-    let lastIndex = 0;
-
-    const renderTextWithBreaks = (text: string, keyPrefix: string) => {
+    const renderTextWithBreaks = (
+      text: string,
+      keyPrefix: string,
+      highlightClass: string,
+      tokenIndex: number
+    ) => {
       const lines = text.split("\n");
       return lines.flatMap((line, idx) => {
         const parts: React.ReactNode[] = [
-          <span key={`${keyPrefix}-${idx}`}>{line}</span>,
+          <span
+            key={`${keyPrefix}-${idx}`}
+            className={highlightClass || ""}
+            onMouseDown={(e) => handleTokenMouseDown(tokenIndex, e)}
+            onMouseEnter={() => handleTokenMouseEnter(tokenIndex)}
+          >
+            {line}
+          </span>,
         ];
         if (idx < lines.length - 1) {
           parts.push(<br key={`${keyPrefix}-br-${idx}`} />);
@@ -351,54 +417,65 @@ export const EnhancedSubtitleOverlay: React.FC<
       });
     };
 
-    wordSegments.forEach((segment, index) => {
-      if (segment.startIndex > lastIndex) {
-        const betweenText = currentCue.text.slice(
-          lastIndex,
-          segment.startIndex
+    const elements = textTokens.map((token, tokenIndex) => {
+      const isDragSelected = dragSelectedIndices.has(tokenIndex);
+
+      if (token.isWord) {
+        const wordSegment = wordSegments[token.wordIndex];
+        const wordKey = `${token.text.toLowerCase()}:${detectedLanguage}`;
+        const isFavorited = favoriteWords.has(wordKey);
+        const isSelectedInNav =
+          isInWordNavigationMode && token.wordIndex === selectedWordIndex;
+
+        return (
+          <span
+            key={token.id}
+            className={`subtitle-word ${
+              wordSegment.isSelected ? "selected" : ""
+            } ${isSelectedInNav ? "navigation-selected" : ""} ${
+              isFavorited ? "favorited" : ""
+            } ${isDragSelected ? "drag-selected" : ""} ${
+              isDragSelected && justCopied ? "just-copied" : ""
+            }`}
+            onClick={() => {
+              // Only trigger dictionary lookup if not in drag-select mode
+              if (!isDragSelecting && dragSelectedIndices.size === 0) {
+                handleWordClick(token.text);
+                setSelectedWordIndex(token.wordIndex);
+              } else {
+                clearSelection();
+              }
+            }}
+            onMouseDown={(e) => handleTokenMouseDown(tokenIndex, e)}
+            onMouseEnter={() => handleTokenMouseEnter(tokenIndex)}
+            onTouchEnd={(e) => {
+              if (isDragging) return;
+              e.preventDefault();
+              e.stopPropagation();
+              handleWordClick(token.text);
+              setSelectedWordIndex(token.wordIndex);
+            }}
+          >
+            {token.text}
+          </span>
         );
-        elements.push(...renderTextWithBreaks(betweenText, `between-${index}`));
+      } else {
+        const highlightClass = `subtitle-between-text${
+          isDragSelected ? " drag-selected" : ""
+        }${isDragSelected && justCopied ? " just-copied" : ""}`;
+        return renderTextWithBreaks(
+          token.text,
+          token.id,
+          highlightClass,
+          tokenIndex
+        );
       }
-
-      const wordKey = `${segment.word.toLowerCase()}:${detectedLanguage}`;
-      const isFavorited = favoriteWords.has(wordKey);
-      const isSelectedInNav =
-        isInWordNavigationMode && index === selectedWordIndex;
-
-      elements.push(
-        <span
-          key={`word-${index}`}
-          className={`subtitle-word ${segment.isSelected ? "selected" : ""} ${
-            isSelectedInNav ? "navigation-selected" : ""
-          } ${isFavorited ? "favorited" : ""}`}
-          onClick={() => {
-            handleWordClick(segment.word);
-            setSelectedWordIndex(index);
-          }}
-          onTouchEnd={(e) => {
-            if (isDragging) return;
-            e.preventDefault();
-            e.stopPropagation();
-            handleWordClick(segment.word);
-            setSelectedWordIndex(index);
-          }}
-        >
-          {segment.word}
-        </span>
-      );
-
-      lastIndex = segment.endIndex;
     });
-
-    if (lastIndex < currentCue.text.length) {
-      elements.push(
-        ...renderTextWithBreaks(currentCue.text.slice(lastIndex), "remaining")
-      );
-    }
 
     return elements;
   }, [
     currentCue,
+    textTokens,
     wordSegments,
     handleWordClick,
     detectedLanguage,
@@ -406,6 +483,12 @@ export const EnhancedSubtitleOverlay: React.FC<
     isInWordNavigationMode,
     selectedWordIndex,
     isDragging,
+    isDragSelecting,
+    justCopied,
+    dragSelectedIndices,
+    handleTokenMouseDown,
+    handleTokenMouseEnter,
+    clearSelection,
     setSelectedWordIndex,
   ]);
 
