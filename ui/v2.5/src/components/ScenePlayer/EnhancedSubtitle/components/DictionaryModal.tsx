@@ -476,19 +476,23 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
                   <div className="meaning morphology-inline">
                     {dictionary.morphology
                       .split("\n")
+                      .filter((line) => line.trim() !== "")
                       .map((line, lineIndex) => (
                         <p key={lineIndex} className="meaning-line">
-                          {line}
+                          • {line}
                         </p>
                       ))}
                   </div>
                 )}
                 <div className="meaning">
-                  {def.meaning.split("\n").map((line, lineIndex) => (
-                    <p key={lineIndex} className="meaning-line">
-                      {line}
-                    </p>
-                  ))}
+                  {def.meaning
+                    .split("\n")
+                    .filter((line) => line.trim() !== "")
+                    .map((line, lineIndex) => (
+                      <p key={lineIndex} className="meaning-line">
+                        • {line}
+                      </p>
+                    ))}
                 </div>
               </div>
             ))}
