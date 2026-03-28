@@ -49,7 +49,7 @@ func (r *mutationResolver) OllamaGenerate(ctx context.Context, input OllamaGener
 		model = &ollamaService.GetConfig().Model
 	}
 
-	response, err := ollamaService.Generate(ctx, input.Prompt, *model)
+	response, err := ollamaService.Generate(ctx, input.Prompt, *model, "")
 	if err != nil {
 		return nil, err
 	}

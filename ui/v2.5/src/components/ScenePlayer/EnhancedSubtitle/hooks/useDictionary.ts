@@ -34,6 +34,8 @@ interface IUseDictionaryResult {
   setSelectedActionIndex: (index: number) => void;
   aiProvider: string;
   setAiProvider: (provider: string) => void;
+  targetLanguage: string;
+  setTargetLanguage: (lang: string) => void;
 }
 
 export function useDictionary({
@@ -64,26 +66,46 @@ export function useDictionary({
     }
   }, []);
 
+  const [targetLanguage, setTargetLanguage] = useState<string>("zh");
+
+  // Load language preference from local storage
+  useEffect(() => {
+    const savedLang = localStorage.getItem("stash_subtitle_dict_lang");
+    if (savedLang === "en" || savedLang === "zh") {
+      setTargetLanguage(savedLang);
+    }
+  }, []);
+
+  const handleSetTargetLanguage = useCallback((lang: string) => {
+    setTargetLanguage(lang);
+    localStorage.setItem("stash_subtitle_dict_lang", lang);
+  }, []);
+
   const handleSetAiProvider = useCallback((provider: string) => {
     setAiProvider(provider);
     localStorage.setItem("stash_subtitle_ai_provider", provider);
   }, []);
 
   const previousAiProvider = useRef(aiProvider);
+  const previousTargetLanguage = useRef(targetLanguage);
 
-  // Auto-fetch or load from cache when aiProvider changes
+  // Auto-fetch or load from cache when aiProvider or targetLanguage changes
   useEffect(() => {
     let ignore = false;
 
-    if (previousAiProvider.current !== aiProvider) {
+    if (
+      previousAiProvider.current !== aiProvider ||
+      previousTargetLanguage.current !== targetLanguage
+    ) {
       previousAiProvider.current = aiProvider;
+      previousTargetLanguage.current = targetLanguage;
 
       if (showDictionary && selectedWord) {
         const context = currentCue?.text || "";
         const cachedEntry = getCachedWord(
           selectedWord,
           context,
-          detectedLanguage,
+          targetLanguage,
           aiProvider
         );
 
@@ -98,10 +120,10 @@ export function useDictionary({
                 ? await lookupWordWithContext(
                     selectedWord,
                     context,
-                    detectedLanguage,
+                    targetLanguage,
                     aiProvider
                   )
-                : await lookupWord(selectedWord, detectedLanguage, aiProvider);
+                : await lookupWord(selectedWord, targetLanguage, aiProvider);
               if (!ignore) {
                 setDictionary(entry);
               }
@@ -121,7 +143,14 @@ export function useDictionary({
     return () => {
       ignore = true;
     };
-  }, [aiProvider, showDictionary, selectedWord, currentCue, detectedLanguage]);
+  }, [
+    aiProvider,
+    targetLanguage,
+    showDictionary,
+    selectedWord,
+    currentCue,
+    detectedLanguage,
+  ]);
 
   // Load favorites on mount
   useEffect(() => {
@@ -176,7 +205,7 @@ export function useDictionary({
       const cachedEntry = getCachedWord(
         word,
         context,
-        detectedLanguage,
+        targetLanguage,
         aiProvider
       );
 
@@ -194,10 +223,10 @@ export function useDictionary({
           ? await lookupWordWithContext(
               word,
               context,
-              detectedLanguage,
+              targetLanguage,
               aiProvider
             )
-          : await lookupWord(word, detectedLanguage, aiProvider);
+          : await lookupWord(word, targetLanguage, aiProvider);
 
         setDictionary(entry);
       } catch (error) {
@@ -207,7 +236,7 @@ export function useDictionary({
         setIsLoading(false);
       }
     },
-    [detectedLanguage, currentCue, onPausePlayer, aiProvider]
+    [targetLanguage, currentCue, onPausePlayer, aiProvider]
   );
 
   const toggleFavorite = useCallback(async () => {
@@ -252,5 +281,7 @@ export function useDictionary({
     setSelectedActionIndex,
     aiProvider,
     setAiProvider: handleSetAiProvider,
+    targetLanguage,
+    setTargetLanguage: handleSetTargetLanguage,
   };
 }

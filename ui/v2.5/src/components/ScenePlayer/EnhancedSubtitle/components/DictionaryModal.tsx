@@ -17,6 +17,8 @@ interface IDictionaryModalProps {
   toggleFavorite: () => Promise<void>;
   aiProvider: string;
   setAiProvider: (provider: string) => void;
+  targetLanguage: string;
+  setTargetLanguage: (language: string) => void;
 }
 
 export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
@@ -34,6 +36,8 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
   toggleFavorite,
   aiProvider,
   setAiProvider,
+  targetLanguage,
+  setTargetLanguage,
 }) => {
   const dictionaryTouchStartYRef = useRef<number | null>(null);
   const dictionaryTouchTriggeredRef = useRef<boolean>(false);
@@ -53,13 +57,25 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
   const setAiProviderRef = useRef(setAiProvider);
   setAiProviderRef.current = setAiProvider;
 
+  const setTargetLanguageRef = useRef(setTargetLanguage);
+  setTargetLanguageRef.current = setTargetLanguage;
+
   const [localAiProvider, setLocalAiProvider] = useState(aiProvider);
   useEffect(() => {
     setLocalAiProvider(aiProvider);
   }, [aiProvider]);
 
+  const [localTargetLanguage, setLocalTargetLanguage] =
+    useState(targetLanguage);
+  useEffect(() => {
+    setLocalTargetLanguage(targetLanguage);
+  }, [targetLanguage]);
+
   const localAiProviderRef = useRef(localAiProvider);
   localAiProviderRef.current = localAiProvider;
+
+  const localTargetLanguageRef = useRef(localTargetLanguage);
+  localTargetLanguageRef.current = localTargetLanguage;
 
   const handleDictionaryTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -189,13 +205,17 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
           setLocalAiProvider(nextProvider);
           setAiProviderRef.current(nextProvider);
         } else if (currentIndex === 1) {
+          const nextLang = targetLanguage === "en" ? "zh" : "en";
+          setLocalTargetLanguage(nextLang);
+          setTargetLanguageRef.current(nextLang);
+        } else if (currentIndex === 2) {
           const word = selectedWordRef.current;
           if (word) {
             handlePronunciationRef.current(word);
           }
-        } else if (currentIndex === 2) {
-          toggleFavoriteRef.current();
         } else if (currentIndex === 3) {
+          toggleFavoriteRef.current();
+        } else if (currentIndex === 4) {
           setShowDictionary(false);
         }
         return;
@@ -231,13 +251,19 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
       }
     };
 
-    setSelectedActionIndex(1); // 默认选在播放发音上
+    setSelectedActionIndex(2); // 默认选在播放发音上
     document.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [showDictionary, setShowDictionary, setSelectedActionIndex, aiProvider]);
+  }, [
+    showDictionary,
+    setShowDictionary,
+    setSelectedActionIndex,
+    aiProvider,
+    targetLanguage,
+  ]);
 
   return (
     <Modal
@@ -332,6 +358,36 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
               className={`dict-action-btn ${
                 selectedActionIndex === 1 ? "selected" : ""
               }`}
+              onClick={(e) => {
+                e.stopPropagation();
+                const nextLang = targetLanguage === "en" ? "zh" : "en";
+                setLocalTargetLanguage(nextLang);
+                setTargetLanguage(nextLang);
+              }}
+              title={
+                targetLanguage === "en"
+                  ? "切换为中文释义"
+                  : "Switch to English Definition"
+              }
+              style={{
+                fontSize: "0.85rem",
+                fontWeight: "bold",
+                width: "auto",
+                padding: "0 8px",
+                backgroundColor: "rgba(100, 100, 120, 0.3)",
+                border:
+                  selectedActionIndex === 1
+                    ? "2px solid #3b82f6"
+                    : "1px solid rgba(255, 255, 255, 0.2)",
+                color: targetLanguage === "en" ? "#fff" : "#fff",
+              }}
+            >
+              {localTargetLanguage === "en" ? "EN" : "中"}
+            </button>
+            <button
+              className={`dict-action-btn ${
+                selectedActionIndex === 2 ? "selected" : ""
+              }`}
               onClick={() => selectedWord && handlePronunciation(selectedWord)}
               title="播放发音"
             >
@@ -346,7 +402,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             </button>
             <button
               className={`dict-action-btn ${
-                selectedActionIndex === 2 ? "selected" : ""
+                selectedActionIndex === 3 ? "selected" : ""
               } ${isFavorite ? "favorited" : ""}`}
               onClick={toggleFavorite}
               title={isFavorite ? "取消收藏" : "添加到收藏"}
@@ -364,7 +420,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
             </button>
             <button
               className={`dict-action-btn ${
-                selectedActionIndex === 3 ? "selected" : ""
+                selectedActionIndex === 4 ? "selected" : ""
               }`}
               onClick={() => setShowDictionary(false)}
               title="关闭"

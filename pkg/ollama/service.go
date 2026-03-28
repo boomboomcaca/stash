@@ -195,7 +195,7 @@ type Service struct {
 }
 
 // GenerateMistral generates text using Mistral AI chat completions API
-func (s *Service) GenerateMistral(ctx context.Context, prompt string) (string, error) {
+func (s *Service) GenerateMistral(ctx context.Context, prompt string, sysPrompt string) (string, error) {
 	apiKey := s.config.MistralAPIKey
 	if apiKey == "" {
 		return "", fmt.Errorf("Mistral API key is not configured. Please configure it in settings")
@@ -203,7 +203,6 @@ func (s *Service) GenerateMistral(ctx context.Context, prompt string) (string, e
 
 	urlStr := "https://api.mistral.ai/v1/chat/completions"
 
-	sysPrompt := s.config.SystemPrompt
 	if sysPrompt == "" {
 		sysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
 	}
@@ -372,7 +371,7 @@ func (s *Service) GetModels(ctx context.Context) ([]string, error) {
 }
 
 // Generate generates text using Ollama chat API with think mode disabled
-func (s *Service) Generate(ctx context.Context, prompt string, model string) (string, error) {
+func (s *Service) Generate(ctx context.Context, prompt string, model string, sysPrompt string) (string, error) {
 	if model == "" {
 		model = s.config.Model
 	}
@@ -382,7 +381,6 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 		return "", fmt.Errorf("failed to build chat URL: %w", err)
 	}
 
-	sysPrompt := s.config.SystemPrompt
 	if sysPrompt == "" {
 		sysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
 	}
@@ -452,7 +450,8 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string) (st
 
 // ExplainWord explains a word in context using Mistral or Ollama
 func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, provider string) (*DictionaryEntry, error) {
-	prompt := s.buildPrompt(word, contextStr)
+	prompt := s.buildPrompt(word, contextStr, language)
+	sysPrompt := s.getSystemPrompt(language)
 
 	var explanation string
 	var err error
@@ -461,27 +460,27 @@ func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, p
 	switch provider {
 	case "ollama":
 		// User explicitly requested Ollama
-		explanation, err = s.Generate(ctx, prompt, "")
+		explanation, err = s.Generate(ctx, prompt, "", sysPrompt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to explain word with Ollama: %w", err)
 		}
 		aiSource = "ollama"
 	case "mistral":
 		// User explicitly requested Mistral
-		explanation, err = s.GenerateMistral(ctx, prompt)
+		explanation, err = s.GenerateMistral(ctx, prompt, sysPrompt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to explain word with Mistral: %w", err)
 		}
 		aiSource = "mistral"
 	default:
 		// Default behavior: Try Mistral first, fallback to Ollama
-		explanation, err = s.GenerateMistral(ctx, prompt)
+		explanation, err = s.GenerateMistral(ctx, prompt, sysPrompt)
 		if err == nil {
 			aiSource = "mistral"
 		} else {
 			// Log Mistral error and fallback to Ollama
 			s.logger.WithError(err).Warn("Mistral failed, falling back to Ollama")
-			explanation, err = s.Generate(ctx, prompt, "")
+			explanation, err = s.Generate(ctx, prompt, "", sysPrompt)
 			if err != nil {
 				return nil, fmt.Errorf("failed to explain word (both Mistral and Ollama failed): %w", err)
 			}
@@ -495,11 +494,46 @@ func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, p
 	return entry, nil
 }
 
+// getSystemPrompt returns the system prompt based on language
+func (s *Service) getSystemPrompt(language string) string {
+	if strings.ToLower(language) == "en" {
+		return "Output ONLY in English. Use plain text without Markdown formatting. Keep explanations concise."
+	}
+	sysPrompt := s.config.SystemPrompt
+	if sysPrompt == "" {
+		sysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
+	}
+	return sysPrompt
+}
+
 // buildPrompt builds a prompt from the template
-func (s *Service) buildPrompt(word, context string) string {
-	prompt := s.config.PromptTemplate
+func (s *Service) buildPrompt(word, contextStr, language string) string {
+	var promptTemplate string
+	if strings.ToLower(language) == "en" {
+		promptTemplate = `You are an English-English dictionary. Explain the word '<WORD>' entirely in simple English.
+Please explain its meaning in the following context:
+Context: <CONTEXT>
+
+Please output using the following format (plain text only):
+● Part of Speech: xxx /American English IPA/ (phonetics is REQUIRED, always provide American English IPA)
+● Word Roots: [One-line brief breakdown, e.g. pre-(before) + dict(speak) + -ion(noun suffix)]
+● Definition: [Simple English definition]
+● Context Meaning: [Explanation based on the given context]
+● Collocations: [Common collocations or examples]`
+	} else {
+		promptTemplate = s.config.PromptTemplate
+	}
+
+	if contextStr == "" {
+		promptTemplate = strings.ReplaceAll(promptTemplate, "语境：<CONTEXT>", "")
+		promptTemplate = strings.ReplaceAll(promptTemplate, "● 语境释义：在这个句子中表示...", "")
+		promptTemplate = strings.ReplaceAll(promptTemplate, "Please explain its meaning in the following context:\nContext: <CONTEXT>", "")
+		promptTemplate = strings.ReplaceAll(promptTemplate, "● Context Meaning: [Explanation based on the given context]", "")
+	}
+
+	prompt := promptTemplate
 	prompt = strings.ReplaceAll(prompt, "<WORD>", word)
-	prompt = strings.ReplaceAll(prompt, "<CONTEXT>", context)
+	prompt = strings.ReplaceAll(prompt, "<CONTEXT>", contextStr)
 	return prompt
 }
 
@@ -595,10 +629,11 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 
 		// Parse structured sections
 		//nolint:gocritic
-		if strings.HasPrefix(line, "● 词性：") || strings.HasPrefix(line, "● 词性:") {
+		if strings.HasPrefix(line, "● 词性：") || strings.HasPrefix(line, "● 词性:") || strings.HasPrefix(line, "● Part of Speech:") {
 			posContent := line
 			posContent = strings.TrimPrefix(posContent, "● 词性：")
 			posContent = strings.TrimPrefix(posContent, "● 词性:")
+			posContent = strings.TrimPrefix(posContent, "● Part of Speech:")
 			posContent = strings.TrimSpace(posContent)
 
 			// Extract pronunciation embedded in 词性 line (e.g., "名词 /'kɑn,tekst/")
@@ -613,31 +648,35 @@ func (s *Service) parseStructuredExplanation(text string) (pronunciation, partOf
 			}
 			currentSection = "pos"
 
-		} else if strings.HasPrefix(line, "● 词根拆解：") || strings.HasPrefix(line, "● 词根拆解:") {
+		} else if strings.HasPrefix(line, "● 词根拆解：") || strings.HasPrefix(line, "● 词根拆解:") || strings.HasPrefix(line, "● Word Roots:") {
 			morphology = line
 			morphology = strings.TrimPrefix(morphology, "● 词根拆解：")
 			morphology = strings.TrimPrefix(morphology, "● 词根拆解:")
+			morphology = strings.TrimPrefix(morphology, "● Word Roots:")
 			morphology = strings.TrimSpace(morphology)
 			currentSection = "morphology"
 
-		} else if strings.HasPrefix(line, "● 释义：") || strings.HasPrefix(line, "● 释义:") {
+		} else if strings.HasPrefix(line, "● 释义：") || strings.HasPrefix(line, "● 释义:") || strings.HasPrefix(line, "● Definition:") {
 			meaning = line
 			meaning = strings.TrimPrefix(meaning, "● 释义：")
 			meaning = strings.TrimPrefix(meaning, "● 释义:")
+			meaning = strings.TrimPrefix(meaning, "● Definition:")
 			meaning = strings.TrimSpace(meaning)
 			currentSection = "meaning"
 
-		} else if strings.HasPrefix(line, "● 语境释义：") || strings.HasPrefix(line, "● 语境释义:") {
+		} else if strings.HasPrefix(line, "● 语境释义：") || strings.HasPrefix(line, "● 语境释义:") || strings.HasPrefix(line, "● Context Meaning:") {
 			usageNote = line
 			usageNote = strings.TrimPrefix(usageNote, "● 语境释义：")
 			usageNote = strings.TrimPrefix(usageNote, "● 语境释义:")
+			usageNote = strings.TrimPrefix(usageNote, "● Context Meaning:")
 			usageNote = strings.TrimSpace(usageNote)
 			currentSection = "usage"
 
-		} else if strings.HasPrefix(line, "● 常见搭配：") || strings.HasPrefix(line, "● 常见搭配:") {
+		} else if strings.HasPrefix(line, "● 常见搭配：") || strings.HasPrefix(line, "● 常见搭配:") || strings.HasPrefix(line, "● Collocations:") {
 			exampleText := line
 			exampleText = strings.TrimPrefix(exampleText, "● 常见搭配：")
 			exampleText = strings.TrimPrefix(exampleText, "● 常见搭配:")
+			exampleText = strings.TrimPrefix(exampleText, "● Collocations:")
 			exampleText = strings.TrimSpace(exampleText)
 			if exampleText != "" {
 				exampleLines = append(exampleLines, exampleText)

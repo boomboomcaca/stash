@@ -136,6 +136,8 @@ export const EnhancedSubtitleOverlay: React.FC<
     setSelectedActionIndex,
     aiProvider,
     setAiProvider,
+    targetLanguage,
+    setTargetLanguage,
   } = useDictionary({
     detectedLanguage,
     currentCue,
@@ -551,6 +553,8 @@ export const EnhancedSubtitleOverlay: React.FC<
         toggleFavorite={toggleFavorite}
         aiProvider={aiProvider}
         setAiProvider={setAiProvider}
+        targetLanguage={targetLanguage}
+        setTargetLanguage={setTargetLanguage}
       />
     </div>
   );
