@@ -55,6 +55,16 @@ export function useTextSelection({
   // Ref to always have latest values in the mouseup closure
   const textTokensRef = useRef(textTokens);
   const currentCueTextRef = useRef(currentCueText);
+  // Ref to detect touch screens
+  const isTouchDeviceRef = useRef(false);
+
+  useEffect(() => {
+    const isTouch =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(pointer: coarse)").matches ||
+        "ontouchstart" in window);
+    isTouchDeviceRef.current = isTouch;
+  }, []);
 
   useEffect(() => {
     textTokensRef.current = textTokens;
@@ -93,15 +103,22 @@ export function useTextSelection({
       textarea.value = text;
       textarea.style.position = "fixed";
       textarea.style.opacity = "0";
+      textarea.style.pointerEvents = "none";
       document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
+      try {
+        textarea.select();
+        document.execCommand("copy");
+      } finally {
+        document.body.removeChild(textarea);
+      }
     });
   }, []);
 
   const handleTokenMouseDown = useCallback(
     (index: number, e: React.MouseEvent) => {
+      // Touch devices use standard dictionary taps; custom drag-select is mouse only
+      if (isTouchDeviceRef.current) return;
+
       // Only respond to left mouse button
       if (e.button !== 0) return;
 
