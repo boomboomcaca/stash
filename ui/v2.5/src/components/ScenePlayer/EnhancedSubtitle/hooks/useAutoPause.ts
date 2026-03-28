@@ -29,6 +29,7 @@ interface IUseAutoPauseResult {
   setIsAutoPaused: (paused: boolean) => void;
   isPlayerPaused: boolean;
   userResumedPlaybackRef: React.MutableRefObject<boolean>;
+  autoPauseTriggeredRef: React.MutableRefObject<boolean>;
   clearAutoPauseTimeout: () => void;
 }
 
@@ -150,6 +151,15 @@ export function useAutoPause({
         const timeUntilEnd = cue.endTime - pCurrentTime;
 
         if (timeUntilEnd <= 0) {
+          // Defensive: attempt pause even if slightly past endTime.
+          // This covers the race condition where a frame gap skips the
+          // (0, AUTO_PAUSE_THRESHOLD] window entirely.
+          if (
+            !autoPauseTriggeredRef.current &&
+            !userResumedPlaybackRef.current
+          ) {
+            attemptAutoPause();
+          }
           clearAutoPauseTimeout();
         } else if (timeUntilEnd <= AUTO_PAUSE_THRESHOLD) {
           if (
@@ -208,6 +218,7 @@ export function useAutoPause({
       clearAutoPauseTimeout();
       scheduledCueSignatureRef.current = cueSignature;
       autoPauseTimeoutRef.current = setTimeout(() => {
+        autoPauseTimeoutRef.current = null;
         if (scheduledCueSignatureRef.current !== cueSignature) return;
         attemptAutoPause();
       }, delayMs);
@@ -320,6 +331,7 @@ export function useAutoPause({
     setIsAutoPaused,
     isPlayerPaused,
     userResumedPlaybackRef,
+    autoPauseTriggeredRef,
     clearAutoPauseTimeout,
   };
 }

@@ -82,6 +82,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     setIsAutoPaused,
     isPlayerPaused,
     userResumedPlaybackRef,
+    autoPauseTriggeredRef,
     clearAutoPauseTimeout,
   } = useAutoPause({
     currentTime,
@@ -115,6 +116,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     clearAutoPauseTimeout,
     setIsAutoPaused,
     userResumedPlaybackRef,
+    autoPauseTriggeredRef,
   });
 
   // Dictionary hook
