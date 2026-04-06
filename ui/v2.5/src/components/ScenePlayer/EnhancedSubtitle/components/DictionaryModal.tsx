@@ -239,7 +239,9 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         keyLower === "s" ||
         keyCode === 83
       ) {
-        // 取消向下方向键切换AI引擎的功能，统一用回车
+        e.preventDefault();
+        e.stopPropagation();
+        setShowDictionary(false);
         return;
       }
 
