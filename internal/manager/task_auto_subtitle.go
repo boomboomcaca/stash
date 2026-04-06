@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/stashapp/stash/pkg/job"
 	"github.com/stashapp/stash/pkg/logger"
@@ -55,8 +56,16 @@ func (j *AutoSubtitleJob) Execute(ctx context.Context, progress *job.Progress) e
 			break
 		}
 
+		displayName := scene.Title
+		if displayName == "" && scene.Path != "" {
+			displayName = filepath.Base(scene.Path)
+		}
+		if displayName == "" {
+			displayName = fmt.Sprintf("scene %d", scene.ID)
+		}
+
 		progress.SetPercent(float64(i) / float64(len(scenes)))
-		progress.ExecuteTask(fmt.Sprintf("Generating subtitle for scene %d", scene.ID), func() {
+		progress.ExecuteTask(fmt.Sprintf("Generating subtitle for %s", displayName), func() {
 			result, genErr := j.SubtitleService.GenerateSubtitle(ctx, scene, j.Language)
 			if genErr != nil {
 				logger.Warnf("Failed to generate subtitle for scene %d: %v", scene.ID, genErr)
@@ -87,6 +96,10 @@ func (j *AutoSubtitleJob) getScenesByIDs(ctx context.Context, ids []int) ([]*mod
 				return err
 			}
 			if scene != nil {
+				// Load files to ensure we have the path available for display names and ffmpeg
+				if err := scene.LoadFiles(ctx, j.Repository.Scene); err != nil {
+					logger.Warnf("Failed to load files for scene %d: %v", scene.ID, err)
+				}
 				scenes = append(scenes, scene)
 			}
 		}

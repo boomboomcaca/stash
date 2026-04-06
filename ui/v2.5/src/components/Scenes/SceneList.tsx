@@ -1,10 +1,15 @@
 import React, { useCallback, useEffect, useMemo } from "react";
 import cloneDeep from "lodash-es/cloneDeep";
 import { FormattedMessage, useIntl } from "react-intl";
+import { useToast } from "src/hooks/Toast";
 import { useHistory, useLocation } from "react-router-dom";
 import Mousetrap from "mousetrap";
 import * as GQL from "src/core/generated-graphql";
-import { queryFindScenes, useFindScenes } from "src/core/StashService";
+import {
+  queryFindScenes,
+  useFindScenes,
+  useGenerateSubtitles,
+} from "src/core/StashService";
 import { ListFilterModel } from "src/models/list-filter/filter";
 import { DisplayMode } from "src/models/list-filter/types";
 import { Tagger } from "../Tagger/scenes/SceneTagger";
@@ -357,6 +362,7 @@ export const FilteredSceneList = PatchComponent(
   "FilteredSceneList",
   (props: IFilteredScenes) => {
     const intl = useIntl();
+    const Toast = useToast();
     const history = useHistory();
     const location = useLocation();
 
@@ -541,6 +547,25 @@ export const FilteredSceneList = PatchComponent(
       );
     }
 
+    const [generateSubtitlesMutation] = useGenerateSubtitles();
+
+    async function onGenerateSubtitles() {
+      if (selectedIds.size === 0) return;
+      try {
+        const res = await generateSubtitlesMutation({
+          variables: { scene_ids: Array.from(selectedIds.values()) },
+        });
+        if (res.data?.generateSubtitles) {
+          Toast.success("Started generating subtitles in the background.");
+          onSelectNone();
+        } else {
+          Toast.error("Failed to start subtitle generation.");
+        }
+      } catch (e) {
+        Toast.error(e);
+      }
+    }
+
     const otherOperations = [
       {
         text: intl.formatMessage({ id: "actions.play" }),
@@ -587,6 +612,14 @@ export const FilteredSceneList = PatchComponent(
               onClose={() => closeModal()}
             />
           ),
+        isDisplayed: () => hasSelection,
+      },
+      {
+        text: intl.formatMessage(
+          { id: "actions.generate_subtitles" },
+          { defaultMessage: "Generate Subtitles" }
+        ),
+        onClick: () => onGenerateSubtitles(),
         isDisplayed: () => hasSelection,
       },
       {

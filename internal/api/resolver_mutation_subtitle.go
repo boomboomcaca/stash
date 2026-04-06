@@ -6,55 +6,8 @@ import (
 	"strconv"
 
 	"github.com/stashapp/stash/internal/manager"
-	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/subtitle"
 )
-
-func (r *mutationResolver) GenerateSubtitle(ctx context.Context, sceneID string, language *string) (*GenerateSubtitleResult, error) {
-	mgr := manager.GetInstance()
-	subtitleService := mgr.SubtitleService
-	if subtitleService == nil {
-		return nil, fmt.Errorf("subtitle service not initialized")
-	}
-
-	id, err := strconv.Atoi(sceneID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid scene ID: %w", err)
-	}
-
-	var scene *models.Scene
-	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
-		var err error
-		scene, err = r.repository.Scene.Find(ctx, id)
-		return err
-	}); err != nil {
-		return nil, err
-	}
-
-	if scene == nil {
-		return nil, fmt.Errorf("scene not found: %d", id)
-	}
-
-	lang := ""
-	if language != nil {
-		lang = *language
-	}
-
-	result, err := subtitleService.GenerateSubtitle(ctx, scene, lang)
-	if err != nil {
-		return &GenerateSubtitleResult{
-			Success: false,
-			Message: stringPtr(err.Error()),
-		}, nil
-	}
-
-	return &GenerateSubtitleResult{
-		Success:      result.Success,
-		SubtitlePath: stringPtr(result.SubtitlePath),
-		Language:     stringPtr(result.Language),
-		Message:      stringPtr(result.Message),
-	}, nil
-}
 
 func (r *mutationResolver) GenerateSubtitles(ctx context.Context, sceneIds []string, language *string) (string, error) {
 	mgr := manager.GetInstance()
@@ -137,17 +90,6 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 	if input.Timeout != nil {
 		config.Timeout = *input.Timeout
 	}
-	if input.AutoGenerateOnScan != nil {
-		config.AutoGenerateOnScan = *input.AutoGenerateOnScan
-	}
-
-	// OpenSubtitles settings
-	if input.OpenSubtitlesEnabled != nil {
-		config.OpenSubtitlesEnabled = *input.OpenSubtitlesEnabled
-	}
-	if input.OpenSubtitlesAPIKey != nil {
-		config.OpenSubtitlesAPIKey = *input.OpenSubtitlesAPIKey
-	}
 
 	// Whisper settings
 	if input.WhisperEnabled != nil {
@@ -163,19 +105,12 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 	subtitleService.UpdateConfig(config)
 
 	return &SubtitleConfig{
-		Enabled:              config.Enabled,
-		DefaultLanguage:      config.DefaultLanguage,
-		SkipIfExists:         config.SkipIfExists,
-		Timeout:              config.Timeout,
-		AutoGenerateOnScan:   config.AutoGenerateOnScan,
-		OpenSubtitlesEnabled: config.OpenSubtitlesEnabled,
-		OpenSubtitlesAPIKey:  config.OpenSubtitlesAPIKey,
-		WhisperEnabled:       config.WhisperEnabled,
-		WhisperURL:           config.WhisperURL,
-		WhisperTranslate:     config.WhisperTranslate,
+		Enabled:          config.Enabled,
+		DefaultLanguage:  config.DefaultLanguage,
+		SkipIfExists:     config.SkipIfExists,
+		Timeout:          config.Timeout,
+		WhisperEnabled:   config.WhisperEnabled,
+		WhisperURL:       config.WhisperURL,
+		WhisperTranslate: config.WhisperTranslate,
 	}, nil
-}
-
-func stringPtr(s string) *string {
-	return &s
 }

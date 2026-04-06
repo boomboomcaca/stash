@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button, Alert } from "react-bootstrap";
 import { FormattedMessage, useIntl } from "react-intl";
+import { useApolloClient, gql } from "@apollo/client";
 import { useToast } from "src/hooks/Toast";
 import { SettingSection } from "./SettingSection";
 import { BooleanSetting, StringSetting, NumberSetting } from "./Inputs";
@@ -19,10 +20,6 @@ interface ISubtitleConfig {
   default_language: string;
   skip_if_exists: boolean;
   timeout: number;
-  auto_generate_on_scan: boolean;
-  // OpenSubtitles settings
-  opensubtitles_enabled: boolean;
-  opensubtitles_api_key: string;
   // Whisper settings
   whisper_enabled: boolean;
   whisper_url: string;
@@ -32,6 +29,7 @@ interface ISubtitleConfig {
 export const SettingsSubtitlePanel: React.FC = () => {
   const intl = useIntl();
   const Toast = useToast();
+  const client = useApolloClient();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -44,9 +42,6 @@ export const SettingsSubtitlePanel: React.FC = () => {
     default_language: "en",
     skip_if_exists: true,
     timeout: 300,
-    auto_generate_on_scan: true,
-    opensubtitles_enabled: false,
-    opensubtitles_api_key: "",
     whisper_enabled: true,
     whisper_url: "http://localhost:8000",
     whisper_translate: true,
@@ -54,21 +49,30 @@ export const SettingsSubtitlePanel: React.FC = () => {
 
   useEffect(() => {
     loadConfig();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadConfig() {
     setLoading(true);
     try {
-      const response = await fetch("/graphql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `query { subtitleConfig { enabled default_language skip_if_exists timeout auto_generate_on_scan opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate } }`,
-        }),
+      const response = await client.query({
+        query: gql`
+          query SubtitleConfig {
+            subtitleConfig {
+              enabled
+              default_language
+              skip_if_exists
+              timeout
+              whisper_enabled
+              whisper_url
+              whisper_translate
+            }
+          }
+        `,
+        fetchPolicy: "network-only",
       });
-      const data = await response.json();
-      if (data.data?.subtitleConfig) {
-        setConfig(data.data.subtitleConfig);
+      if (response.data?.subtitleConfig) {
+        setConfig(response.data.subtitleConfig);
       }
     } catch (e) {
       console.error("Failed to load subtitle config:", e);
@@ -80,34 +84,34 @@ export const SettingsSubtitlePanel: React.FC = () => {
   async function saveConfig() {
     setSaving(true);
     try {
-      const response = await fetch("/graphql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `mutation ConfigureSubtitle($input: SubtitleConfigInput!) {
+      const response = await client.mutate({
+        mutation: gql`
+          mutation ConfigureSubtitle($input: SubtitleConfigInput!) {
             configureSubtitle(input: $input) {
-              enabled default_language skip_if_exists timeout auto_generate_on_scan opensubtitles_enabled opensubtitles_api_key whisper_enabled whisper_url whisper_translate
+              enabled
+              default_language
+              skip_if_exists
+              timeout
+              whisper_enabled
+              whisper_url
+              whisper_translate
             }
-          }`,
-          variables: {
-            input: {
-              enabled: config.enabled,
-              default_language: config.default_language,
-              skip_if_exists: config.skip_if_exists,
-              timeout: config.timeout,
-              auto_generate_on_scan: config.auto_generate_on_scan,
-              opensubtitles_enabled: config.opensubtitles_enabled,
-              opensubtitles_api_key: config.opensubtitles_api_key,
-              whisper_enabled: config.whisper_enabled,
-              whisper_url: config.whisper_url,
-              whisper_translate: config.whisper_translate,
-            },
+          }
+        `,
+        variables: {
+          input: {
+            enabled: config.enabled,
+            default_language: config.default_language,
+            skip_if_exists: config.skip_if_exists,
+            timeout: config.timeout,
+            whisper_enabled: config.whisper_enabled,
+            whisper_url: config.whisper_url,
+            whisper_translate: config.whisper_translate,
           },
-        }),
+        },
       });
-      const data = await response.json();
-      if (data.data?.configureSubtitle) {
-        setConfig(data.data.configureSubtitle);
+      if (response.data?.configureSubtitle) {
+        setConfig(response.data.configureSubtitle);
         Toast.success(intl.formatMessage({ id: "toast.saved_settings" }));
       }
     } catch (e) {
@@ -121,15 +125,15 @@ export const SettingsSubtitlePanel: React.FC = () => {
     setTesting(true);
     setTestResult(null);
     try {
-      const response = await fetch("/graphql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `query { testSubtitleConnection }`,
-        }),
+      const response = await client.query({
+        query: gql`
+          query TestSubtitleConnection {
+            testSubtitleConnection
+          }
+        `,
+        fetchPolicy: "network-only",
       });
-      const data = await response.json();
-      setTestResult(data.data?.testSubtitleConnection ?? false);
+      setTestResult(response.data?.testSubtitleConnection ?? false);
     } catch (e) {
       setTestResult(false);
     } finally {
@@ -140,20 +144,17 @@ export const SettingsSubtitlePanel: React.FC = () => {
   async function generateAllSubtitles() {
     setGenerating(true);
     try {
-      const response = await fetch("/graphql", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: `mutation AutoGenerateSubtitles($language: String) {
+      const response = await client.mutate({
+        mutation: gql`
+          mutation AutoGenerateSubtitles($language: String) {
             autoGenerateSubtitles(language: $language)
-          }`,
-          variables: {
-            language: config.default_language,
-          },
-        }),
+          }
+        `,
+        variables: {
+          language: config.default_language,
+        },
       });
-      const data = await response.json();
-      if (data.data?.autoGenerateSubtitles) {
+      if (response.data?.autoGenerateSubtitles) {
         Toast.success(
           intl.formatMessage(
             { id: "config.subtitle.generation_started" },
@@ -213,41 +214,6 @@ export const SettingsSubtitlePanel: React.FC = () => {
           value={config.timeout}
           onChange={(v) => setConfig({ ...config, timeout: v })}
         />
-
-        <BooleanSetting
-          id="auto_generate_on_scan"
-          headingID="config.subtitle.auto_generate_on_scan"
-          subHeadingID="config.subtitle.auto_generate_on_scan_desc"
-          checked={config.auto_generate_on_scan}
-          onChange={(v) => setConfig({ ...config, auto_generate_on_scan: v })}
-        />
-      </SettingSection>
-
-      <SettingSection
-        headingID="config.subtitle.opensubtitles_settings"
-        subHeadingID=""
-      >
-        <Alert variant="info">
-          <FormattedMessage
-            id="config.subtitle.opensubtitles_info"
-            defaultMessage="OpenSubtitles fetches subtitles from online database. Get your free API key at opensubtitles.com. When enabled, it will try online first, then fall back to Whisper."
-          />
-        </Alert>
-
-        <BooleanSetting
-          id="opensubtitles_enabled"
-          headingID="config.subtitle.opensubtitles_enabled"
-          checked={config.opensubtitles_enabled}
-          onChange={(v) => setConfig({ ...config, opensubtitles_enabled: v })}
-        />
-
-        <StringSetting
-          id="opensubtitles_api_key"
-          headingID="config.subtitle.opensubtitles_api_key"
-          subHeadingID="config.subtitle.opensubtitles_api_key_desc"
-          value={config.opensubtitles_api_key}
-          onChange={(v) => setConfig({ ...config, opensubtitles_api_key: v })}
-        />
       </SettingSection>
 
       <SettingSection
@@ -257,7 +223,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
         <Alert variant="info">
           <FormattedMessage
             id="config.subtitle.whisper_info"
-            defaultMessage="Whisper generates subtitles locally using AI. Used as fallback when OpenSubtitles fails or is disabled."
+            defaultMessage="Whisper generates subtitles locally using AI."
           />
         </Alert>
 

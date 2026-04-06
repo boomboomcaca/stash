@@ -18,11 +18,10 @@ import (
 
 // Service provides subtitle generation functionality
 type Service struct {
-	config              *SubtitleConfig
-	whisperClient       *WhisperClient
-	openSubtitlesClient *OpenSubtitlesClient
-	ffmpegPath          string
-	mutex               sync.RWMutex
+	config        *SubtitleConfig
+	whisperClient *WhisperClient
+	ffmpegPath    string
+	mutex         sync.RWMutex
 }
 
 // NewService creates a new subtitle service
@@ -43,11 +42,6 @@ func (s *Service) initClients() {
 	// Initialize Whisper client
 	if s.config.WhisperEnabled && s.config.WhisperURL != "" {
 		s.whisperClient = NewWhisperClient(s.config.WhisperURL, timeout)
-	}
-
-	// Initialize OpenSubtitles client
-	if s.config.OpenSubtitlesEnabled && s.config.OpenSubtitlesAPIKey != "" {
-		s.openSubtitlesClient = NewOpenSubtitlesClient(s.config.OpenSubtitlesAPIKey, timeout)
 	}
 }
 
@@ -89,7 +83,6 @@ func (s *Service) GenerateSubtitle(ctx context.Context, scene *models.Scene, lan
 	s.mutex.RLock()
 	config := s.config
 	whisperClient := s.whisperClient
-	openSubtitlesClient := s.openSubtitlesClient
 	ffmpegPath := s.ffmpegPath
 	s.mutex.RUnlock()
 
@@ -120,66 +113,12 @@ func (s *Service) GenerateSubtitle(ctx context.Context, scene *models.Scene, lan
 		}
 	}
 
-	// Step 1: Try OpenSubtitles if enabled
-	if config.OpenSubtitlesEnabled && openSubtitlesClient != nil {
-		result, err := s.fetchFromOpenSubtitles(ctx, videoPath, subtitlePath, language, openSubtitlesClient)
-		if err == nil && result.Success {
-			return result, nil
-		}
-		if err != nil {
-			logger.Warnf("OpenSubtitles fetch failed: %v, falling back to Whisper", err)
-		}
-	}
-
-	// Step 2: Fall back to Whisper generation
+	// Generate with Whisper
 	if !config.WhisperEnabled || whisperClient == nil {
-		return nil, fmt.Errorf("no subtitle source available: OpenSubtitles failed and Whisper is disabled")
+		return nil, fmt.Errorf("no subtitle source available: Whisper is disabled")
 	}
 
 	return s.generateWithWhisper(ctx, videoPath, subtitlePath, language, config.WhisperTranslate, whisperClient, ffmpegPath)
-}
-
-// fetchFromOpenSubtitles tries to fetch subtitles from OpenSubtitles
-func (s *Service) fetchFromOpenSubtitles(ctx context.Context, videoPath, subtitlePath, language string, client *OpenSubtitlesClient) (*GenerateSubtitleResult, error) {
-	// Calculate video hash
-	hash, err := CalculateOSHash(videoPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to calculate video hash: %w", err)
-	}
-
-	logger.Infof("Searching OpenSubtitles with hash: %s, language: %s", hash, language)
-
-	// Search for subtitles
-	results, err := client.Search(ctx, hash, language)
-	if err != nil {
-		return nil, fmt.Errorf("OpenSubtitles search failed: %w", err)
-	}
-
-	if len(results) == 0 {
-		return nil, fmt.Errorf("no subtitles found on OpenSubtitles")
-	}
-
-	// Download the first (best) result
-	logger.Infof("Found %d subtitles, downloading: %s", len(results), results[0].FileName)
-
-	content, err := client.Download(ctx, results[0].ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download subtitle: %w", err)
-	}
-
-	// Save subtitle file
-	if err := os.WriteFile(subtitlePath, content, 0644); err != nil {
-		return nil, fmt.Errorf("failed to save subtitle: %w", err)
-	}
-
-	logger.Infof("Subtitle fetched from OpenSubtitles and saved to %s", subtitlePath)
-
-	return &GenerateSubtitleResult{
-		Success:      true,
-		SubtitlePath: subtitlePath,
-		Language:     language,
-		Message:      "subtitle fetched from OpenSubtitles",
-	}, nil
 }
 
 // generateWithWhisper generates subtitles using Whisper

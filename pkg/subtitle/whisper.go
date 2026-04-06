@@ -27,7 +27,7 @@ func NewWhisperClient(baseURL string, timeout time.Duration) *WhisperClient {
 	return &WhisperClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second, // 短超时用于提交和轮询
+			Timeout: timeout,
 		},
 	}
 }
@@ -241,7 +241,13 @@ func (c *WhisperClient) submitAsyncTask(ctx context.Context, audioPath string, t
 	}
 
 	// Use async endpoint
-	endpoint := "/v1/async/translations"
+	var endpoint string
+	if translate {
+		endpoint = "/v1/async/translations"
+	} else {
+		endpoint = "/v1/async/transcriptions"
+	}
+
 	requestURL, err := url.JoinPath(c.baseURL, endpoint)
 	if err != nil {
 		return "", fmt.Errorf("failed to build request URL: %w", err)

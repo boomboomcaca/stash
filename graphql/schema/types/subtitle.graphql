@@ -4,12 +4,6 @@ type SubtitleConfig {
   default_language: String!
   skip_if_exists: Boolean!
   timeout: Int!
-  auto_generate_on_scan: Boolean!
-
-  # OpenSubtitles settings
-  opensubtitles_enabled: Boolean!
-  opensubtitles_api_key: String!
-
   # Whisper settings
   whisper_enabled: Boolean!
   whisper_url: String!
@@ -22,31 +16,13 @@ input SubtitleConfigInput {
   default_language: String
   skip_if_exists: Boolean
   timeout: Int
-  auto_generate_on_scan: Boolean
-
-  # OpenSubtitles settings
-  opensubtitles_enabled: Boolean
-  opensubtitles_api_key: String
-
   # Whisper settings
   whisper_enabled: Boolean
   whisper_url: String
   whisper_translate: Boolean
 }
 
-type GenerateSubtitleResult {
-  success: Boolean!
-  subtitle_path: String
-  language: String
-  message: String
-}
-
 extend type Mutation {
-  """
-  Generate subtitle for a single scene
-  """
-  generateSubtitle(scene_id: ID!, language: String): GenerateSubtitleResult!
-
   """
   Generate subtitles for multiple scenes (returns job ID)
   """

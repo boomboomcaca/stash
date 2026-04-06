@@ -863,6 +863,8 @@ export const useSceneResetActivity = (
 export const useSceneGenerateScreenshot = () =>
   GQL.useSceneGenerateScreenshotMutation();
 
+export const useGenerateSubtitles = () => GQL.useGenerateSubtitlesMutation();
+
 export const mutateSceneSetPrimaryFile = (id: string, fileID: string) =>
   client.mutate<GQL.SceneUpdateMutation>({
     mutation: GQL.SceneUpdateDocument,

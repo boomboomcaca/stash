@@ -99,24 +99,6 @@ func (j *ScanJob) Execute(ctx context.Context, progress *job.Progress) error {
 	elapsed := time.Since(start)
 	logger.Info(fmt.Sprintf("Scan finished (%s)", elapsed))
 
-	// Auto-generate subtitles for new scenes if enabled
-	if !job.IsCancelled(ctx) {
-		mgr := GetInstance()
-		subtitleConfig := mgr.SubtitleService.GetConfig()
-		if subtitleConfig != nil && subtitleConfig.Enabled && subtitleConfig.AutoGenerateOnScan {
-			logger.Info("Starting auto-subtitle generation for new scenes...")
-			autoSubtitleJob := &AutoSubtitleJob{
-				SceneIDs:        nil, // nil means process all scenes without subtitles
-				Language:        subtitleConfig.DefaultLanguage,
-				SkipIfExists:    true,
-				SubtitleService: mgr.SubtitleService,
-				Repository:      mgr.Repository,
-			}
-			// Add to job manager to run in background
-			mgr.JobManager.Add(ctx, "Auto-generating subtitles for new scenes...", autoSubtitleJob)
-		}
-	}
-
 	j.subscriptions.notify()
 	return nil
 }

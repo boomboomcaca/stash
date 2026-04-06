@@ -131,3 +131,7 @@ mutation SceneMerge($input: SceneMergeInput!) {
 mutation SceneRotateVideo($id: ID!, $rotation: Int!) {
   sceneRotateVideo(id: $id, rotation: $rotation)
 }
+
+mutation GenerateSubtitles($scene_ids: [ID!]!, $language: String) {
+  generateSubtitles(scene_ids: $scene_ids, language: $language)
+}
