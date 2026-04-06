@@ -797,6 +797,7 @@ $sceneTabWidth: 450px;
     .scene-player-container {
       background: #000;
       height: 100vh;
+      height: 100dvh;
       left: 0;
       margin: 0;
       padding: 0;
@@ -807,11 +808,14 @@ $sceneTabWidth: 450px;
 
       .VideoPlayer {
         height: 100vh;
+        height: 100dvh;
         max-height: 100vh;
+        max-height: 100dvh;
         padding-bottom: 0;
 
         .video-container {
           height: 100vh;
+          height: 100dvh;
         }
       }
     }
@@ -819,7 +823,9 @@ $sceneTabWidth: 450px;
     .scene-tabs {
       background: var(--bs-body-bg);
       margin-top: 100vh;
+      margin-top: 100dvh;
       min-height: 100vh;
+      min-height: 100dvh;
       overflow-x: hidden;
       padding-top: 1rem;
 
@@ -917,6 +923,7 @@ $sceneTabWidth: 450px;
   /* stylelint-disable declaration-no-important */
   background: #000 !important;
   height: 100vh !important;
+  height: 100dvh !important;
   left: 0 !important;
   position: fixed !important;
   top: 0 !important;
@@ -1074,8 +1081,10 @@ body.vjs-pseudo-fullscreen {
     /* stylelint-disable declaration-no-important */
     background: #000 !important;
     height: 100vh !important;
+    height: 100dvh !important;
     left: 0 !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     position: fixed !important;
     top: 0 !important;
     width: 100vw !important;
@@ -1085,6 +1094,7 @@ body.vjs-pseudo-fullscreen {
     .video-container {
       /* stylelint-disable declaration-no-important */
       height: 100vh !important;
+      height: 100dvh !important;
       width: 100vw !important;
       /* stylelint-enable declaration-no-important */
     }

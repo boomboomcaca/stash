@@ -62,6 +62,13 @@ body {
       padding: 0.5rem 0 $navbar-height;
     }
   }
+
+  // 横屏伪全屏时清除 body padding-top，避免视频顶部被遮挡
+  @media (max-width: 1199px) {
+    @media (orientation: landscape) and (max-height: 1300px) {
+      padding-top: 0;
+    }
+  }
 }
 
 .main {
@@ -1047,10 +1054,12 @@ div.dropdown-menu {
     }
   }
 
-  // 移动设备横屏时隐藏导航栏（不受断点限制）
-  @media (orientation: landscape) and (max-width: 1024px) and (max-height: 768px) {
-    /* stylelint-disable-next-line declaration-no-important */
-    display: none !important;
+  // 移动设备横屏时隐藏导航栏，条件与伪全屏布局一致
+  @media (max-width: 1199px) {
+    @media (orientation: landscape) and (max-height: 1300px) {
+      /* stylelint-disable-next-line declaration-no-important */
+      display: none !important;
+    }
   }
 
   @include media-breakpoint-up(xl) {

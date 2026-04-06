@@ -456,7 +456,15 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 延迟检查触摸控制状态，确保屏幕尺寸已更新
       setTimeout(() => {
         this.updateTouchControlsState();
-      }, 150);
+
+        // 横屏时自动滚动页面，触发浏览器隐藏地址栏
+        // 移动浏览器在横屏时地址栏会占据顶部空间，遮挡视频
+        // 通过微小滚动触发浏览器自动收起地址栏
+        const isLandscape = window.innerWidth > window.innerHeight;
+        if (isLandscape) {
+          window.scrollTo(0, 1);
+        }
+      }, 300);
     };
     window.addEventListener("orientationchange", this.boundOrientationChange);
 
@@ -620,8 +628,17 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.state.longPressStartY = 0;
   }
 
+  // 检查触摸目标是否在视频控制栏内
+  private isTouchOnControlBar(event: TouchEvent): boolean {
+    const target = event.target as HTMLElement;
+    return !!target.closest(".vjs-control-bar");
+  }
+
   private handleTouchStart(event: TouchEvent): void {
     if (event.touches.length !== 1) return;
+
+    // 如果触摸目标在控制栏内，不拦截，让控制栏按钮正常响应
+    if (this.isTouchOnControlBar(event)) return;
 
     const touch = event.touches[0];
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -665,6 +682,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   private handleTouchEnd(event: TouchEvent): void {
     if (event.changedTouches.length !== 1) return;
+
+    // 如果触摸目标在控制栏内，不拦截
+    if (this.isTouchOnControlBar(event)) return;
 
     const touch = event.changedTouches[0];
     const rect = (event.target as HTMLElement).getBoundingClientRect();
@@ -870,6 +890,9 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   private handleTouchMove(event: TouchEvent): void {
     if (event.touches.length !== 1) return;
+
+    // 如果触摸目标在控制栏内，不拦截
+    if (this.isTouchOnControlBar(event)) return;
 
     const touch = event.touches[0];
     const rect = (event.target as HTMLElement).getBoundingClientRect();
