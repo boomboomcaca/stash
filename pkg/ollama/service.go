@@ -49,7 +49,7 @@ func DefaultConfig() *OllamaConfig {
 ● 词性：xxx /美式音标/（音标为必填项，必须给出美式英语 IPA 音标）
 ● 词根拆解：用一行简洁列出，格式如 pre-(前缀,'之前') + dict(词根,'说') + -ion(后缀,名词)
 ● 释义：xxx
-● 语境释义：在这个句子中表示...
+● 语境释义：
 ● 常见搭配：xxx`,
 		SystemPrompt: `你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。`,
 	}
@@ -497,7 +497,7 @@ func (s *Service) ExplainWord(ctx context.Context, word, contextStr, language, p
 // getSystemPrompt returns the system prompt based on language
 func (s *Service) getSystemPrompt(language string) string {
 	if strings.ToLower(language) == "en" {
-		return "Output ONLY in English. Use plain text without Markdown formatting. Keep explanations concise."
+		return "English only. Plain text, no Markdown. Keep each item to one sentence. Be concise."
 	}
 	sysPrompt := s.config.SystemPrompt
 	if sysPrompt == "" {
@@ -510,25 +510,24 @@ func (s *Service) getSystemPrompt(language string) string {
 func (s *Service) buildPrompt(word, contextStr, language string) string {
 	var promptTemplate string
 	if strings.ToLower(language) == "en" {
-		promptTemplate = `You are an English-English dictionary. Explain the word '<WORD>' entirely in simple English.
-Please explain its meaning in the following context:
+		promptTemplate = `Explain the word '<WORD>' concisely.
 Context: <CONTEXT>
 
-Please output using the following format (plain text only):
-● Part of Speech: xxx /American English IPA/ (phonetics is REQUIRED, always provide American English IPA)
-● Word Roots: [One-line brief breakdown, e.g. pre-(before) + dict(speak) + -ion(noun suffix)]
-● Definition: [Simple English definition]
-● Context Meaning: [Explanation based on the given context]
-● Collocations: [Common collocations or examples]`
+Format (plain text only):
+● Part of Speech: xxx /American English IPA/
+● Word Roots: xxx
+● Definition: xxx
+● Context Meaning:
+● Collocations: xxx`
 	} else {
 		promptTemplate = s.config.PromptTemplate
 	}
 
 	if contextStr == "" {
 		promptTemplate = strings.ReplaceAll(promptTemplate, "语境：<CONTEXT>", "")
-		promptTemplate = strings.ReplaceAll(promptTemplate, "● 语境释义：在这个句子中表示...", "")
-		promptTemplate = strings.ReplaceAll(promptTemplate, "Please explain its meaning in the following context:\nContext: <CONTEXT>", "")
-		promptTemplate = strings.ReplaceAll(promptTemplate, "● Context Meaning: [Explanation based on the given context]", "")
+		promptTemplate = strings.ReplaceAll(promptTemplate, "● 语境释义：", "")
+		promptTemplate = strings.ReplaceAll(promptTemplate, "\nContext: <CONTEXT>", "")
+		promptTemplate = strings.ReplaceAll(promptTemplate, "● Context Meaning:", "")
 	}
 
 	prompt := promptTemplate
@@ -548,10 +547,10 @@ func (s *Service) parseExplanation(word, explanation string) *DictionaryEntry {
 	// Build the complete meaning text
 	completeMeaning := meaning
 	if usageNote != "" {
-		completeMeaning += "\n\n" + usageNote
+		completeMeaning += "\n" + usageNote
 	}
 	if len(examples) > 0 {
-		completeMeaning += "\n\n" + strings.Join(examples, "\n")
+		completeMeaning += "\n" + strings.Join(examples, "\n")
 	}
 
 	entry := &DictionaryEntry{
