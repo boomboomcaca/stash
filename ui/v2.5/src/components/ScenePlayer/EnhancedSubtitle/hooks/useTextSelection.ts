@@ -52,6 +52,8 @@ export function useTextSelection({
   const dragStartIndexRef = useRef<number>(-1);
   const isDragSelectingRef = useRef(false);
   const hasDragMovedRef = useRef(false);
+  const dragStartXRef = useRef<number>(0);
+  const dragStartYRef = useRef<number>(0);
   // Ref to always have latest values in the mouseup closure
   const textTokensRef = useRef(textTokens);
   const currentCueTextRef = useRef(currentCueText);
@@ -125,6 +127,8 @@ export function useTextSelection({
       dragStartIndexRef.current = index;
       isDragSelectingRef.current = true;
       hasDragMovedRef.current = false;
+      dragStartXRef.current = e.clientX;
+      dragStartYRef.current = e.clientY;
 
       // Start with the anchor token selected
       setDragSelectedIndices(new Set([index]));
@@ -152,11 +156,20 @@ export function useTextSelection({
 
   // Global mouseup listener to finalize or cancel the drag
   useEffect(() => {
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
       if (!isDragSelectingRef.current) return;
 
       isDragSelectingRef.current = false;
       setIsDragSelecting(false);
+
+      if (!hasDragMovedRef.current) {
+        const deltaX = Math.abs(e.clientX - dragStartXRef.current);
+        const deltaY = Math.abs(e.clientY - dragStartYRef.current);
+        // 如果在同一个单词内偏移超过 3 像素，也认为是拖拽
+        if (deltaX > 3 || deltaY > 3) {
+          hasDragMovedRef.current = true;
+        }
+      }
 
       if (hasDragMovedRef.current) {
         // Use functional setState to read the latest drag-selected indices
