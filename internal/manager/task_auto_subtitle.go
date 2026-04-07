@@ -16,6 +16,7 @@ import (
 type AutoSubtitleJob struct {
 	SceneIDs        []int
 	Language        string
+	FolderPath      string
 	SkipIfExists    bool
 	SubtitleService *subtitle.Service
 	Repository      models.Repository
@@ -117,6 +118,16 @@ func (j *AutoSubtitleJob) getScenesWithoutSubtitles(ctx context.Context) ([]*mod
 	err := txn.WithReadTxn(ctx, j.Repository.TxnManager, func(ctx context.Context) error {
 		// Query all scenes - use PerPageAll to get all results
 		perPage := models.PerPageAll
+		sceneFilter := &models.SceneFilterType{}
+
+		// Apply folder path filter if specified
+		if j.FolderPath != "" {
+			sceneFilter.Path = &models.StringCriterionInput{
+				Value:    j.FolderPath,
+				Modifier: models.CriterionModifierIncludes,
+			}
+		}
+
 		result, err := j.Repository.Scene.Query(ctx, models.SceneQueryOptions{
 			QueryOptions: models.QueryOptions{
 				FindFilter: &models.FindFilterType{
@@ -124,7 +135,7 @@ func (j *AutoSubtitleJob) getScenesWithoutSubtitles(ctx context.Context) ([]*mod
 				},
 				Count: false,
 			},
-			SceneFilter: &models.SceneFilterType{},
+			SceneFilter: sceneFilter,
 		})
 		if err != nil {
 			return err

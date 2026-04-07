@@ -19,6 +19,7 @@ func (r *queryResolver) SubtitleConfig(ctx context.Context) (*SubtitleConfig, er
 			DefaultLanguage: config.DefaultLanguage,
 			SkipIfExists:    config.SkipIfExists,
 			Timeout:         config.Timeout,
+			FolderPath:      config.FolderPath,
 
 			WhisperEnabled:     config.WhisperEnabled,
 			WhisperURL:         config.WhisperURL,
@@ -37,6 +38,7 @@ func (r *queryResolver) SubtitleConfig(ctx context.Context) (*SubtitleConfig, er
 		DefaultLanguage: config.DefaultLanguage,
 		SkipIfExists:    config.SkipIfExists,
 		Timeout:         config.Timeout,
+		FolderPath:      config.FolderPath,
 
 		WhisperEnabled:     config.WhisperEnabled,
 		WhisperURL:         config.WhisperURL,

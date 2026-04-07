@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Alert } from "react-bootstrap";
+import { Button, Alert, Form } from "react-bootstrap";
 import { FormattedMessage, useIntl } from "react-intl";
 import { useApolloClient, gql } from "@apollo/client";
 import { useToast } from "src/hooks/Toast";
@@ -20,6 +20,7 @@ interface ISubtitleConfig {
   default_language: string;
   skip_if_exists: boolean;
   timeout: number;
+  folder_path: string;
   // Whisper settings
   whisper_enabled: boolean;
   whisper_url: string;
@@ -43,6 +44,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
     default_language: "en",
     skip_if_exists: true,
     timeout: 300,
+    folder_path: "",
     whisper_enabled: true,
     whisper_url: "http://localhost:8000",
     whisper_translate: true,
@@ -65,6 +67,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
               default_language
               skip_if_exists
               timeout
+              folder_path
               whisper_enabled
               whisper_url
               whisper_translate
@@ -95,6 +98,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
               default_language
               skip_if_exists
               timeout
+              folder_path
               whisper_enabled
               whisper_url
               whisper_translate
@@ -108,6 +112,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
             default_language: config.default_language,
             skip_if_exists: config.skip_if_exists,
             timeout: config.timeout,
+            folder_path: config.folder_path,
             whisper_enabled: config.whisper_enabled,
             whisper_url: config.whisper_url,
             whisper_translate: config.whisper_translate,
@@ -151,12 +156,16 @@ export const SettingsSubtitlePanel: React.FC = () => {
     try {
       const response = await client.mutate({
         mutation: gql`
-          mutation AutoGenerateSubtitles($language: String) {
-            autoGenerateSubtitles(language: $language)
+          mutation AutoGenerateSubtitles(
+            $language: String
+            $folderPath: String
+          ) {
+            autoGenerateSubtitles(language: $language, folderPath: $folderPath)
           }
         `,
         variables: {
           language: config.default_language,
+          folderPath: config.folder_path || undefined,
         },
       });
       if (response.data?.autoGenerateSubtitles) {
@@ -310,24 +319,43 @@ export const SettingsSubtitlePanel: React.FC = () => {
               <FormattedMessage id="actions.save" defaultMessage="Save" />
             )}
           </Button>
-          <Button
-            variant="secondary"
-            className="ml-2"
-            onClick={generateAllSubtitles}
-            disabled={generating || !config.enabled}
+        </div>
+        <div className="setting-row mt-3">
+          <div
+            className="d-flex align-items-center flex-wrap"
+            style={{ gap: "0.5rem" }}
           >
-            {generating ? (
-              <LoadingIndicator inline small />
-            ) : (
-              <>
-                <Icon icon={faSync} className="mr-1" />
-                <FormattedMessage
-                  id="config.subtitle.generate_all"
-                  defaultMessage="Generate Subtitles for All Scenes"
-                />
-              </>
-            )}
-          </Button>
+            <Form.Control
+              type="text"
+              placeholder={intl.formatMessage({
+                id: "config.subtitle.folder_path_placeholder",
+                defaultMessage:
+                  "Folder path filter (optional, e.g. /media/videos)",
+              })}
+              value={config.folder_path}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setConfig({ ...config, folder_path: e.currentTarget.value })
+              }
+              style={{ maxWidth: "400px" }}
+            />
+            <Button
+              variant="secondary"
+              onClick={generateAllSubtitles}
+              disabled={generating || !config.enabled}
+            >
+              {generating ? (
+                <LoadingIndicator inline small />
+              ) : (
+                <>
+                  <Icon icon={faSync} className="mr-1" />
+                  <FormattedMessage
+                    id="config.subtitle.generate_all"
+                    defaultMessage="Generate Subtitles for All Scenes"
+                  />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </SettingSection>
     </>

@@ -7,6 +7,7 @@ type SubtitleConfig struct {
 	DefaultLanguage string `json:"default_language"`
 	SkipIfExists    bool   `json:"skip_if_exists"`
 	Timeout         int    `json:"timeout"`
+	FolderPath      string `json:"folder_path"`
 	// Whisper settings
 	WhisperEnabled     bool   `json:"whisper_enabled"`
 	WhisperURL         string `json:"whisper_url"`
@@ -21,6 +22,7 @@ type SubtitleConfigInput struct {
 	DefaultLanguage *string `json:"default_language"`
 	SkipIfExists    *bool   `json:"skip_if_exists"`
 	Timeout         *int    `json:"timeout"`
+	FolderPath      *string `json:"folder_path"`
 	// Whisper settings
 	WhisperEnabled     *bool   `json:"whisper_enabled"`
 	WhisperURL         *string `json:"whisper_url"`

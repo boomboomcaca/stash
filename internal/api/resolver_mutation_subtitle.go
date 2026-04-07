@@ -41,7 +41,7 @@ func (r *mutationResolver) GenerateSubtitles(ctx context.Context, sceneIds []str
 	return strconv.Itoa(jobID), nil
 }
 
-func (r *mutationResolver) AutoGenerateSubtitles(ctx context.Context, language *string) (string, error) {
+func (r *mutationResolver) AutoGenerateSubtitles(ctx context.Context, language *string, folderPath *string) (string, error) {
 	mgr := manager.GetInstance()
 	subtitleService := mgr.SubtitleService
 	if subtitleService == nil {
@@ -53,14 +53,31 @@ func (r *mutationResolver) AutoGenerateSubtitles(ctx context.Context, language *
 		lang = *language
 	}
 
+	// Use the mutation parameter if provided, otherwise fall back to saved config
+	fp := ""
+	if folderPath != nil {
+		fp = *folderPath
+	} else {
+		config := subtitleService.GetConfig()
+		if config != nil {
+			fp = config.FolderPath
+		}
+	}
+
 	job := &manager.AutoSubtitleJob{
 		SceneIDs:        nil, // Process all scenes without subtitles
 		Language:        lang,
+		FolderPath:      fp,
 		SubtitleService: subtitleService,
 		Repository:      mgr.Repository,
 	}
 
-	jobID := mgr.JobManager.Add(ctx, "Auto-generating subtitles for all scenes...", job)
+	jobDesc := "Auto-generating subtitles for all scenes..."
+	if fp != "" {
+		jobDesc = fmt.Sprintf("Auto-generating subtitles for scenes in %s...", fp)
+	}
+
+	jobID := mgr.JobManager.Add(ctx, jobDesc, job)
 	return strconv.Itoa(jobID), nil
 }
 
@@ -90,6 +107,9 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 	if input.Timeout != nil {
 		config.Timeout = *input.Timeout
 	}
+	if input.FolderPath != nil {
+		config.FolderPath = *input.FolderPath
+	}
 
 	// Whisper settings
 	if input.WhisperEnabled != nil {
@@ -112,6 +132,7 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 		DefaultLanguage:    config.DefaultLanguage,
 		SkipIfExists:       config.SkipIfExists,
 		Timeout:            config.Timeout,
+		FolderPath:         config.FolderPath,
 		WhisperEnabled:     config.WhisperEnabled,
 		WhisperURL:         config.WhisperURL,
 		WhisperTranslate:   config.WhisperTranslate,

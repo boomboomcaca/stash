@@ -16,6 +16,7 @@ type SubtitleConfig struct {
 	DefaultLanguage string `json:"default_language"`
 	SkipIfExists    bool   `json:"skip_if_exists"`
 	Timeout         int    `json:"timeout"` // in seconds
+	FolderPath      string `json:"folder_path"`
 
 	// Whisper settings (local generation as fallback)
 	WhisperEnabled     bool   `json:"whisper_enabled"`

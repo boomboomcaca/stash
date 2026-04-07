@@ -4,6 +4,7 @@ type SubtitleConfig {
   default_language: String!
   skip_if_exists: Boolean!
   timeout: Int!
+  folder_path: String!
   # Whisper settings
   whisper_enabled: Boolean!
   whisper_url: String!
@@ -17,6 +18,7 @@ input SubtitleConfigInput {
   default_language: String
   skip_if_exists: Boolean
   timeout: Int
+  folder_path: String
   # Whisper settings
   whisper_enabled: Boolean
   whisper_url: String
@@ -31,9 +33,10 @@ extend type Mutation {
   generateSubtitles(scene_ids: [ID!]!, language: String): ID!
 
   """
-  Generate subtitles for all scenes without subtitles (returns job ID)
+  Generate subtitles for all scenes without subtitles (returns job ID).
+  If folderPath is provided, only scenes whose file path contains the given string will be processed.
   """
-  autoGenerateSubtitles(language: String): ID!
+  autoGenerateSubtitles(language: String, folderPath: String): ID!
 
   """
   Configure subtitle settings
