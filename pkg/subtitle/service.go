@@ -141,13 +141,9 @@ func (s *Service) generateWithWhisper(ctx context.Context, videoPath, subtitlePa
 	}
 	logger.Infof("Extracted audio to %s, sending to Whisper (%s)...", audioPath, mode)
 
-	reqFormat := "srt"
-	if s.config.WhisperAINormalize {
-		reqFormat = "json"
-	}
-
 	// Transcribe/translate audio using async API
-	result, err := client.TranscribeAsync(ctx, audioPath, language, translate, reqFormat)
+	// Notice: Always request JSON and handle formatting inside Go
+	result, err := client.TranscribeAsync(ctx, audioPath, language, translate, "json")
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrTranscribeFailed, err)
 	}
@@ -158,9 +154,12 @@ func (s *Service) generateWithWhisper(ctx context.Context, videoPath, subtitlePa
 		alignedSrt, alignErr := generateAIAlignedSRT(ctx, result.Content)
 		if alignErr != nil {
 			logger.Warnf("AI Alignment pipeline failed: %v", alignErr)
+			finalContent = generateBasicSRT(result.Content)
 		} else {
 			finalContent = alignedSrt
 		}
+	} else {
+		finalContent = generateBasicSRT(result.Content)
 	}
 
 	// Save subtitle file

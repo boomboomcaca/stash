@@ -181,6 +181,16 @@ func alignTextToWordsChunk(words []WhisperWord, aiChunkedText string, startLineO
 	return srtOutput.String(), lineIndex
 }
 
+// generateBasicSRT parses Whisper JSON and generates basic SRT word by word or segment by segment natively
+func generateBasicSRT(whisperJSON string) string {
+	var resp WhisperJSONResponse
+	if err := json.Unmarshal([]byte(whisperJSON), &resp); err != nil {
+		return ""
+	}
+	res, _ := fallbackToBasicSRTChunk(resp.Segments, 1)
+	return res
+}
+
 func fallbackToBasicSRTChunk(segs []WhisperSegment, startLineOffset int) (string, int) {
 	var srtOutput strings.Builder
 	idx := startLineOffset
