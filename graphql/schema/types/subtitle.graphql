@@ -8,6 +8,7 @@ type SubtitleConfig {
   whisper_enabled: Boolean!
   whisper_url: String!
   whisper_translate: Boolean!
+  whisper_ai_normalize: Boolean!
 }
 
 input SubtitleConfigInput {
@@ -20,6 +21,7 @@ input SubtitleConfigInput {
   whisper_enabled: Boolean
   whisper_url: String
   whisper_translate: Boolean
+  whisper_ai_normalize: Boolean
 }
 
 extend type Mutation {

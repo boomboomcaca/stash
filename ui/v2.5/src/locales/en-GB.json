@@ -296,6 +296,8 @@
       "whisper_info": "Whisper generates subtitles locally using AI.",
       "whisper_translate": "Translate to English",
       "whisper_translate_desc": "When enabled, Whisper will translate non-English audio to English subtitles. Recommended for mixed language video libraries.",
+      "whisper_ai_normalize": "AI Semantic Sentence Breaking",
+      "whisper_ai_normalize_desc": "Uses AI (Mistral) to segment Whisper subtitles based on grammar and phrasing naturally, replacing punctuation or length cuts.",
       "actions": "Actions",
       "save": "Save",
       "generate_all": "Generate Subtitles for All Scenes",

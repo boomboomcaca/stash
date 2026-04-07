@@ -8,9 +8,10 @@ type SubtitleConfig struct {
 	SkipIfExists    bool   `json:"skip_if_exists"`
 	Timeout         int    `json:"timeout"`
 	// Whisper settings
-	WhisperEnabled   bool   `json:"whisper_enabled"`
-	WhisperURL       string `json:"whisper_url"`
-	WhisperTranslate bool   `json:"whisper_translate"`
+	WhisperEnabled     bool   `json:"whisper_enabled"`
+	WhisperURL         string `json:"whisper_url"`
+	WhisperTranslate   bool   `json:"whisper_translate"`
+	WhisperAiNormalize bool   `json:"whisper_ai_normalize"`
 }
 
 // SubtitleConfigInput represents input for configuring subtitle settings
@@ -21,7 +22,8 @@ type SubtitleConfigInput struct {
 	SkipIfExists    *bool   `json:"skip_if_exists"`
 	Timeout         *int    `json:"timeout"`
 	// Whisper settings
-	WhisperEnabled   *bool   `json:"whisper_enabled"`
-	WhisperURL       *string `json:"whisper_url"`
-	WhisperTranslate *bool   `json:"whisper_translate"`
+	WhisperEnabled     *bool   `json:"whisper_enabled"`
+	WhisperURL         *string `json:"whisper_url"`
+	WhisperTranslate   *bool   `json:"whisper_translate"`
+	WhisperAiNormalize *bool   `json:"whisper_ai_normalize"`
 }

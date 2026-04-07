@@ -18,9 +18,10 @@ type SubtitleConfig struct {
 	Timeout         int    `json:"timeout"` // in seconds
 
 	// Whisper settings (local generation as fallback)
-	WhisperEnabled   bool   `json:"whisper_enabled"`
-	WhisperURL       string `json:"whisper_url"`
-	WhisperTranslate bool   `json:"whisper_translate"` // If true, translate non-English audio to English
+	WhisperEnabled     bool   `json:"whisper_enabled"`
+	WhisperURL         string `json:"whisper_url"`
+	WhisperTranslate   bool   `json:"whisper_translate"`    // If true, translate non-English audio to English
+	WhisperAINormalize bool   `json:"whisper_ai_normalize"` // Use LLM to smartly chunk subtitles
 }
 
 // DefaultConfig returns the default subtitle configuration
@@ -35,9 +36,10 @@ func DefaultConfig() *SubtitleConfig {
 		SkipIfExists:    true,
 		Timeout:         300, // 5 minutes
 		// Whisper (enabled)
-		WhisperEnabled:   true,
-		WhisperURL:       whisperURL,
-		WhisperTranslate: true, // Default to translate mode for mixed language videos
+		WhisperEnabled:     true,
+		WhisperURL:         whisperURL,
+		WhisperTranslate:   true, // Default to translate mode for mixed language videos
+		WhisperAINormalize: true, // Default to true as AI chunking is robust
 	}
 }
 

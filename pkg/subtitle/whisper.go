@@ -49,7 +49,7 @@ type TranscribeResult struct {
 
 // Transcribe sends an audio file to the Whisper API and returns the transcription
 // If translate is true, it will translate non-English audio to English
-func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, language string, translate bool) (*TranscribeResult, error) {
+func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, language string, translate bool, requestFormat string) (*TranscribeResult, error) {
 	// Open the audio file
 	file, err := os.Open(audioPath)
 	if err != nil {
@@ -72,7 +72,10 @@ func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, langua
 	}
 
 	// Add response_format field
-	if err := writer.WriteField("response_format", "srt"); err != nil {
+	if requestFormat == "" {
+		requestFormat = "srt"
+	}
+	if err := writer.WriteField("response_format", requestFormat); err != nil {
 		return nil, fmt.Errorf("failed to write response_format field: %w", err)
 	}
 
@@ -132,7 +135,7 @@ func (c *WhisperClient) Transcribe(ctx context.Context, audioPath string, langua
 	return &TranscribeResult{
 		Content:  string(body),
 		Language: resultLang,
-		Format:   "srt",
+		Format:   requestFormat,
 	}, nil
 }
 
@@ -163,13 +166,13 @@ func (c *WhisperClient) HealthCheck(ctx context.Context) error {
 
 // TranscribeAsync sends an audio file to the Whisper API asynchronously
 // It submits the task and polls for completion, avoiding long HTTP timeouts
-func (c *WhisperClient) TranscribeAsync(ctx context.Context, audioPath string, language string, translate bool) (*TranscribeResult, error) {
+func (c *WhisperClient) TranscribeAsync(ctx context.Context, audioPath string, language string, translate bool, requestFormat string) (*TranscribeResult, error) {
 	// Step 1: Submit the task
-	taskID, err := c.submitAsyncTask(ctx, audioPath, translate)
+	taskID, err := c.submitAsyncTask(ctx, audioPath, translate, requestFormat)
 	if err != nil {
 		// Fallback to sync API if async not available
 		logger.Debugf("Async API not available, falling back to sync: %v", err)
-		return c.Transcribe(ctx, audioPath, language, translate)
+		return c.Transcribe(ctx, audioPath, language, translate, requestFormat)
 	}
 
 	logger.Infof("Submitted async task %s for %s", taskID, filepath.Base(audioPath))
@@ -199,10 +202,13 @@ func (c *WhisperClient) TranscribeAsync(ctx context.Context, audioPath string, l
 				if translate {
 					resultLang = "en"
 				}
+				if requestFormat == "" {
+					requestFormat = "srt"
+				}
 				return &TranscribeResult{
 					Content:  result,
 					Language: resultLang,
-					Format:   "srt",
+					Format:   requestFormat,
 				}, nil
 			case "failed":
 				return nil, fmt.Errorf("task failed: %s", result)
@@ -218,7 +224,7 @@ func (c *WhisperClient) TranscribeAsync(ctx context.Context, audioPath string, l
 }
 
 // submitAsyncTask submits an async translation task
-func (c *WhisperClient) submitAsyncTask(ctx context.Context, audioPath string, translate bool) (string, error) {
+func (c *WhisperClient) submitAsyncTask(ctx context.Context, audioPath string, translate bool, requestFormat string) (string, error) {
 	file, err := os.Open(audioPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open audio file: %w", err)
@@ -237,7 +243,10 @@ func (c *WhisperClient) submitAsyncTask(ctx context.Context, audioPath string, t
 		return "", fmt.Errorf("failed to copy file content: %w", err)
 	}
 
-	if err := writer.WriteField("response_format", "srt"); err != nil {
+	if requestFormat == "" {
+		requestFormat = "srt"
+	}
+	if err := writer.WriteField("response_format", requestFormat); err != nil {
 		return "", fmt.Errorf("failed to write response_format field: %w", err)
 	}
 

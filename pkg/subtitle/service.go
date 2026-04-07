@@ -141,14 +141,30 @@ func (s *Service) generateWithWhisper(ctx context.Context, videoPath, subtitlePa
 	}
 	logger.Infof("Extracted audio to %s, sending to Whisper (%s)...", audioPath, mode)
 
+	reqFormat := "srt"
+	if s.config.WhisperAINormalize {
+		reqFormat = "json"
+	}
+
 	// Transcribe/translate audio using async API
-	result, err := client.TranscribeAsync(ctx, audioPath, language, translate)
+	result, err := client.TranscribeAsync(ctx, audioPath, language, translate, reqFormat)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrTranscribeFailed, err)
 	}
 
+	finalContent := result.Content
+	if s.config.WhisperAINormalize {
+		logger.Infof("Using Mistral AI to smartly normalize subtitle chunks for %s", filepath.Base(videoPath))
+		alignedSrt, alignErr := generateAIAlignedSRT(ctx, result.Content)
+		if alignErr != nil {
+			logger.Warnf("AI Alignment pipeline failed: %v", alignErr)
+		} else {
+			finalContent = alignedSrt
+		}
+	}
+
 	// Save subtitle file
-	if err := os.WriteFile(subtitlePath, []byte(result.Content), 0644); err != nil {
+	if err := os.WriteFile(subtitlePath, []byte(finalContent), 0644); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrSaveSubtitleFailed, err)
 	}
 

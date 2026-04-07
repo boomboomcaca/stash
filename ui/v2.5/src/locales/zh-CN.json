@@ -288,6 +288,8 @@
             "whisper_info": "Whisper 使用 AI 本地生成字幕。",
             "whisper_translate": "翻译为英文",
             "whisper_translate_desc": "启用后，Whisper 会将非英语音频翻译成英文字幕。推荐用于多语言视频库。",
+            "whisper_ai_normalize": "AI 智能语义断句",
+            "whisper_ai_normalize_desc": "利用客户端 AI (Mistral) 根据语法、从句和语气重新优化和切分整段字幕的内容。彻底解决生硬死板的断句问题。",
             "actions": "操作",
             "save": "保存",
             "generate_all": "为所有场景生成字幕",

@@ -24,6 +24,7 @@ interface ISubtitleConfig {
   whisper_enabled: boolean;
   whisper_url: string;
   whisper_translate: boolean;
+  whisper_ai_normalize: boolean;
 }
 
 export const SettingsSubtitlePanel: React.FC = () => {
@@ -45,6 +46,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
     whisper_enabled: true,
     whisper_url: "http://localhost:8000",
     whisper_translate: true,
+    whisper_ai_normalize: false,
   });
 
   useEffect(() => {
@@ -66,6 +68,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
               whisper_enabled
               whisper_url
               whisper_translate
+              whisper_ai_normalize
             }
           }
         `,
@@ -95,6 +98,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
               whisper_enabled
               whisper_url
               whisper_translate
+              whisper_ai_normalize
             }
           }
         `,
@@ -107,6 +111,7 @@ export const SettingsSubtitlePanel: React.FC = () => {
             whisper_enabled: config.whisper_enabled,
             whisper_url: config.whisper_url,
             whisper_translate: config.whisper_translate,
+            whisper_ai_normalize: config.whisper_ai_normalize,
           },
         },
       });
@@ -248,6 +253,14 @@ export const SettingsSubtitlePanel: React.FC = () => {
           subHeadingID="config.subtitle.whisper_translate_desc"
           checked={config.whisper_translate}
           onChange={(v) => setConfig({ ...config, whisper_translate: v })}
+        />
+
+        <BooleanSetting
+          id="whisper_ai_normalize"
+          headingID="config.subtitle.whisper_ai_normalize"
+          subHeadingID="config.subtitle.whisper_ai_normalize_desc"
+          checked={config.whisper_ai_normalize}
+          onChange={(v) => setConfig({ ...config, whisper_ai_normalize: v })}
         />
 
         <div className="setting-row">

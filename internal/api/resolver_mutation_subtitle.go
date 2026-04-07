@@ -101,16 +101,20 @@ func (r *mutationResolver) ConfigureSubtitle(ctx context.Context, input Subtitle
 	if input.WhisperTranslate != nil {
 		config.WhisperTranslate = *input.WhisperTranslate
 	}
+	if input.WhisperAiNormalize != nil {
+		config.WhisperAINormalize = *input.WhisperAiNormalize
+	}
 
 	subtitleService.UpdateConfig(config)
 
 	return &SubtitleConfig{
-		Enabled:          config.Enabled,
-		DefaultLanguage:  config.DefaultLanguage,
-		SkipIfExists:     config.SkipIfExists,
-		Timeout:          config.Timeout,
-		WhisperEnabled:   config.WhisperEnabled,
-		WhisperURL:       config.WhisperURL,
-		WhisperTranslate: config.WhisperTranslate,
+		Enabled:            config.Enabled,
+		DefaultLanguage:    config.DefaultLanguage,
+		SkipIfExists:       config.SkipIfExists,
+		Timeout:            config.Timeout,
+		WhisperEnabled:     config.WhisperEnabled,
+		WhisperURL:         config.WhisperURL,
+		WhisperTranslate:   config.WhisperTranslate,
+		WhisperAiNormalize: config.WhisperAINormalize,
 	}, nil
 }

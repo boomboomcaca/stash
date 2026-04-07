@@ -20,9 +20,10 @@ func (r *queryResolver) SubtitleConfig(ctx context.Context) (*SubtitleConfig, er
 			SkipIfExists:    config.SkipIfExists,
 			Timeout:         config.Timeout,
 
-			WhisperEnabled:   config.WhisperEnabled,
-			WhisperURL:       config.WhisperURL,
-			WhisperTranslate: config.WhisperTranslate,
+			WhisperEnabled:     config.WhisperEnabled,
+			WhisperURL:         config.WhisperURL,
+			WhisperTranslate:   config.WhisperTranslate,
+			WhisperAiNormalize: config.WhisperAINormalize,
 		}, nil
 	}
 
@@ -37,9 +38,10 @@ func (r *queryResolver) SubtitleConfig(ctx context.Context) (*SubtitleConfig, er
 		SkipIfExists:    config.SkipIfExists,
 		Timeout:         config.Timeout,
 
-		WhisperEnabled:   config.WhisperEnabled,
-		WhisperURL:       config.WhisperURL,
-		WhisperTranslate: config.WhisperTranslate,
+		WhisperEnabled:     config.WhisperEnabled,
+		WhisperURL:         config.WhisperURL,
+		WhisperTranslate:   config.WhisperTranslate,
+		WhisperAiNormalize: config.WhisperAINormalize,
 	}, nil
 }
 
