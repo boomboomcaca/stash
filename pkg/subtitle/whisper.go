@@ -180,6 +180,11 @@ func (c *WhisperClient) TranscribeAsync(ctx context.Context, audioPath string, l
 	for {
 		select {
 		case <-ctx.Done():
+			logger.Infof("Whisper task %s cancelled by user, notifying remote server...", taskID)
+			// Ping the server to cancel the task using a fresh context
+			if cancelErr := c.cancelTask(taskID); cancelErr != nil {
+				logger.Warnf("Failed to cancel Whisper task %s on server: %v", taskID, cancelErr)
+			}
 			return nil, ctx.Err()
 		case <-time.After(pollInterval):
 			status, result, err := c.getTaskStatus(ctx, taskID)
@@ -315,4 +320,34 @@ func (c *WhisperClient) getTaskStatus(ctx context.Context, taskID string) (statu
 		return taskResp.Status, taskResp.Error, nil
 	}
 	return taskResp.Status, taskResp.Result, nil
+}
+
+// cancelTask explicitly requests the server to cancel a pending/processing task.
+func (c *WhisperClient) cancelTask(taskID string) error {
+	taskURL, err := url.JoinPath(c.baseURL, "/v1/tasks/", taskID, "/cancel")
+	if err != nil {
+		return fmt.Errorf("failed to build task cancel URL: %w", err)
+	}
+
+	// Use a new background context with a short timeout, since the parent context is already cancelled
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "POST", taskURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create cancel request: %w", err)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send cancel request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("cancel API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
 }

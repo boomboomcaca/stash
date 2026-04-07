@@ -3,14 +3,13 @@ package manager
 import (
 	"context"
 	"fmt"
-	"path/filepath"
-
 	"github.com/stashapp/stash/pkg/file/video"
 	"github.com/stashapp/stash/pkg/job"
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/subtitle"
 	"github.com/stashapp/stash/pkg/txn"
+	"path/filepath"
 )
 
 // AutoSubtitleJob is a job that generates subtitles for scenes
