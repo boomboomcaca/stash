@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/stashapp/stash/pkg/file/video"
 	"github.com/stashapp/stash/pkg/job"
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
@@ -75,6 +76,8 @@ func (j *AutoSubtitleJob) Execute(ctx context.Context, progress *job.Progress) e
 
 			if result.Success {
 				logger.Infof("Generated subtitle for scene %d: %s", scene.ID, result.SubtitlePath)
+				// Instantly associate the newly generated subtitle with the video file in the DB
+				video.AssociateCaptions(ctx, result.SubtitlePath, j.Repository.TxnManager, j.Repository.File, j.Repository.File)
 				successCount++
 			}
 		})
