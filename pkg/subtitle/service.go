@@ -148,7 +148,7 @@ func (s *Service) generateWithWhisper(ctx context.Context, videoPath, subtitlePa
 		return nil, fmt.Errorf("%w: %v", ErrTranscribeFailed, err)
 	}
 
-	finalContent := result.Content
+	var finalContent string
 	if s.config.WhisperAINormalize {
 		logger.Infof("Using Mistral AI to smartly normalize subtitle chunks for %s", filepath.Base(videoPath))
 		alignedSrt, alignErr := generateAIAlignedSRT(ctx, result.Content)
