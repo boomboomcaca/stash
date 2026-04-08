@@ -150,16 +150,47 @@ export const EnhancedSubtitleOverlay: React.FC<
     const tokens: Array<ITextToken> = [];
     let lastIndex = 0;
 
+    const addNonWordTokens = (
+      text: string,
+      startIdx: number,
+      baseId: string
+    ) => {
+      let currentStart = startIdx;
+      const lines = text.split("\n");
+      lines.forEach((lineText, idx) => {
+        if (lineText.length > 0) {
+          tokens.push({
+            id: `${baseId}-line-${idx}`,
+            text: lineText,
+            startIndex: currentStart,
+            endIndex: currentStart + lineText.length,
+            isWord: false,
+            wordIndex: -1,
+          });
+        }
+        currentStart += lineText.length;
+
+        if (idx < lines.length - 1) {
+          tokens.push({
+            id: `${baseId}-br-${idx}`,
+            text: "\n",
+            startIndex: currentStart,
+            endIndex: currentStart + 1,
+            isWord: false,
+            wordIndex: -1,
+          });
+          currentStart += 1;
+        }
+      });
+    };
+
     wordSegments.forEach((segment, index) => {
       if (segment.startIndex > lastIndex) {
-        tokens.push({
-          id: `between-${index}`,
-          text: currentCue.text.slice(lastIndex, segment.startIndex),
-          startIndex: lastIndex,
-          endIndex: segment.startIndex,
-          isWord: false,
-          wordIndex: -1,
-        });
+        addNonWordTokens(
+          currentCue.text.slice(lastIndex, segment.startIndex),
+          lastIndex,
+          `between-${index}`
+        );
       }
       tokens.push({
         id: `word-${index}`,
@@ -173,14 +204,11 @@ export const EnhancedSubtitleOverlay: React.FC<
     });
 
     if (lastIndex < currentCue.text.length) {
-      tokens.push({
-        id: `remaining`,
-        text: currentCue.text.slice(lastIndex),
-        startIndex: lastIndex,
-        endIndex: currentCue.text.length,
-        isWord: false,
-        wordIndex: -1,
-      });
+      addNonWordTokens(
+        currentCue.text.slice(lastIndex),
+        lastIndex,
+        `remaining`
+      );
     }
 
     return tokens;
@@ -396,31 +424,6 @@ export const EnhancedSubtitleOverlay: React.FC<
       );
     }
 
-    const renderTextWithBreaks = (
-      text: string,
-      keyPrefix: string,
-      highlightClass: string,
-      tokenIndex: number
-    ) => {
-      const lines = text.split("\n");
-      return lines.flatMap((line, idx) => {
-        const parts: React.ReactNode[] = [
-          <span
-            key={`${keyPrefix}-${idx}`}
-            className={highlightClass || ""}
-            onMouseDown={(e) => handleTokenMouseDown(tokenIndex, e)}
-            onMouseEnter={() => handleTokenMouseEnter(tokenIndex)}
-          >
-            {line}
-          </span>,
-        ];
-        if (idx < lines.length - 1) {
-          parts.push(<br key={`${keyPrefix}-br-${idx}`} />);
-        }
-        return parts;
-      });
-    };
-
     const elements = textTokens.map((token, tokenIndex) => {
       const isDragSelected = dragSelectedIndices.has(tokenIndex);
 
@@ -464,14 +467,23 @@ export const EnhancedSubtitleOverlay: React.FC<
           </span>
         );
       } else {
+        if (token.text === "\n") {
+          return <br key={token.id} />;
+        }
+
         const highlightClass = `subtitle-between-text${
           isDragSelected ? " drag-selected" : ""
         }${isDragSelected && justCopied ? " just-copied" : ""}`;
-        return renderTextWithBreaks(
-          token.text,
-          token.id,
-          highlightClass,
-          tokenIndex
+
+        return (
+          <span
+            key={token.id}
+            className={highlightClass}
+            onMouseDown={(e) => handleTokenMouseDown(tokenIndex, e)}
+            onMouseEnter={() => handleTokenMouseEnter(tokenIndex)}
+          >
+            {token.text}
+          </span>
         );
       }
     });

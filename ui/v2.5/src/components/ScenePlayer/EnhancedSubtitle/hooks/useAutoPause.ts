@@ -244,6 +244,23 @@ export function useAutoPause({
     }
 
     const { cues } = parsedSubtitles;
+
+    // Retain current cue if auto-paused to prevent subtitle disappearance
+    // due to a slight player pause overshoot (e.g. paused at endTime + 0.05s).
+    if (isAutoPaused && currentCueRef.current) {
+      const c = currentCueRef.current;
+      // Allow up to 0.5s overshoot to keep the subtitle visible
+      if (currentTime >= c.startTime && currentTime <= c.endTime + 0.5) {
+        const cueIndex = cues.findIndex(
+          (cue) =>
+            cue.startTime === c.startTime &&
+            cue.endTime === c.endTime &&
+            cue.text === c.text
+        );
+        return { cue: c, cueIndex };
+      }
+    }
+
     let cue: ISubtitleCue | null = null;
     let cueIndex = -1;
 
@@ -260,7 +277,7 @@ export function useAutoPause({
     }
 
     return { cue, cueIndex };
-  }, [currentTime, parsedSubtitles]);
+  }, [currentTime, parsedSubtitles, isAutoPaused]);
 
   useEffect(() => {
     if (!parsedSubtitles) {

@@ -300,10 +300,7 @@ export function handleHotkeys(
 
           player._upArrowTimer = setTimeout(() => {
             // Only execute if this is still a single press (not a double press)
-            const checkTime = Date.now();
-            const timeSincePress = checkTime - (player._lastUpArrowPress || 0);
-
-            if (timeSincePress >= 400 && player._lastUpArrowPress !== 0) {
+            if (player._lastUpArrowPress !== 0) {
               // This was a single press, not a double press
               if (player.paused()) {
                 player.play();
@@ -382,11 +379,7 @@ export function handleHotkeys(
 
           player._downArrowTimer = setTimeout(() => {
             // Only execute if this is still a single press (not a double press)
-            const checkTime = Date.now();
-            const timeSincePress =
-              checkTime - (player._lastDownArrowPress || 0);
-
-            if (timeSincePress >= 400 && player._lastDownArrowPress !== 0) {
+            if (player._lastDownArrowPress !== 0) {
               // This was a single press, not a double press
               const currentCueIndex =
                 enhancedSubtitleNavigation?.getCurrentCueIndex?.() ?? -1;
