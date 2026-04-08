@@ -66,6 +66,8 @@
     "generate_thumb_default": "Generate default thumbnail",
     "generate_thumb_from_current": "Generate thumbnail from current",
     "generate_subtitles": "Generate subtitles",
+    "generate_subtitle": "Generate Subtitle",
+    "generating": "Generating...",
     "hash_migration": "hash migration",
     "hide": "Hide",
     "hide_configuration": "Hide Configuration",
@@ -304,7 +306,10 @@
       "test_connection": "Test Whisper Connection",
       "connected": "Connected",
       "connection_failed": "Connection Failed",
-      "generation_started": "Subtitle generation started"
+      "generation_started": "Subtitle generation started",
+      "generation_failed": "Failed to start subtitle generation",
+      "generation_background": "Started generating subtitles in the background",
+      "folder_path_placeholder": "Folder path filter (optional, e.g. /media/videos)"
     },
     "changelog": {
       "header": "Changelog"

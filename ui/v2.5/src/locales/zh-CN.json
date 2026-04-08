@@ -156,7 +156,10 @@
         "load": "加载",
         "load_filter": "加载过滤器",
         "add_stash_id": "添加Stash编号",
-        "create_new": "新建"
+        "create_new": "新建",
+        "generate_subtitle": "生成字幕",
+        "generating": "生成中...",
+        "invert_selection": "反选"
     },
     "actions_name": "操作",
     "age": "年龄",
@@ -296,7 +299,10 @@
             "test_connection": "测试 Whisper 连接",
             "connected": "已连接",
             "connection_failed": "连接失败",
-            "generation_started": "字幕生成已启动"
+            "generation_started": "字幕生成已启动",
+            "generation_failed": "字幕生成启动失败",
+            "generation_background": "已在后台启动字幕生成任务",
+            "folder_path_placeholder": "文件夹路径过滤（可选，如 /media/videos）"
         },
         "dlna": {
             "allow_temp_ip": "允许 {tempIP}",

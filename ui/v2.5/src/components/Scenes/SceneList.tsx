@@ -556,10 +556,20 @@ export const FilteredSceneList = PatchComponent(
           variables: { scene_ids: Array.from(selectedIds.values()) },
         });
         if (res.data?.generateSubtitles) {
-          Toast.success("Started generating subtitles in the background.");
+          Toast.success(
+            intl.formatMessage({
+              id: "config.subtitle.generation_background",
+              defaultMessage: "Started generating subtitles in the background",
+            })
+          );
           onSelectNone();
         } else {
-          Toast.error("Failed to start subtitle generation.");
+          Toast.error(
+            intl.formatMessage({
+              id: "config.subtitle.generation_failed",
+              defaultMessage: "Failed to start subtitle generation",
+            })
+          );
         }
       } catch (e) {
         Toast.error(e);
