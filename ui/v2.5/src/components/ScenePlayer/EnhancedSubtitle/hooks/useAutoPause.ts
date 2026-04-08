@@ -141,6 +141,18 @@ export function useAutoPause({
         lastPausedStateRef.current = isPaused;
       }
 
+      // Detect time jump (seek) within the same cue or any seek that doesn't trigger cue change
+      if (lastCurrentTimeRef.current > 0) {
+        const timeDiff = pCurrentTime - lastCurrentTimeRef.current;
+        // If time goes backwards by > 100ms, or jumps forward by > 500ms, it's a seek
+        if (timeDiff < -0.1 || timeDiff > 0.5) {
+          autoPauseTriggeredRef.current = false;
+          userResumedPlaybackRef.current = false;
+          if (isAutoPaused) setIsAutoPaused(false);
+          clearAutoPauseTimeout();
+        }
+      }
+
       // Auto-pause logic
       const isInWordMode = isInWordNavigationModeRef?.current ?? false;
       const shouldRunAutoPause =
