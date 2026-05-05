@@ -198,7 +198,7 @@ type Service struct {
 func (s *Service) GenerateMistral(ctx context.Context, prompt string, sysPrompt string) (string, error) {
 	apiKey := s.config.MistralAPIKey
 	if apiKey == "" {
-		return "", fmt.Errorf("Mistral API key is not configured. Please configure it in settings")
+		return "", fmt.Errorf("mistral API key is not configured. Please configure it in settings")
 	}
 
 	urlStr := "https://api.mistral.ai/v1/chat/completions"

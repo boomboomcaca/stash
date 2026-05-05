@@ -171,8 +171,8 @@ func alignTextToWordsChunk(words []WhisperWord, aiChunkedText string, startLineO
 		}
 
 		if startTs != -1 && endTs != -1 && startTs <= endTs {
-			srtOutput.WriteString(fmt.Sprintf("%d\n", lineIndex))
-			srtOutput.WriteString(fmt.Sprintf("%s --> %s\n", formatTimestamp(startTs), formatTimestamp(endTs)))
+			fmt.Fprintf(&srtOutput, "%d\n", lineIndex)
+			fmt.Fprintf(&srtOutput, "%s --> %s\n", formatTimestamp(startTs), formatTimestamp(endTs))
 			srtOutput.WriteString(line + "\n\n")
 			lineIndex++
 		}
@@ -199,8 +199,8 @@ func fallbackToBasicSRTChunk(segs []WhisperSegment, startLineOffset int) (string
 		endTs := formatTimestamp(seg.End)
 		text := strings.TrimSpace(seg.Text)
 		if text != "" {
-			srtOutput.WriteString(fmt.Sprintf("%d\n", idx))
-			srtOutput.WriteString(fmt.Sprintf("%s --> %s\n", startTs, endTs))
+			fmt.Fprintf(&srtOutput, "%d\n", idx)
+			fmt.Fprintf(&srtOutput, "%s --> %s\n", startTs, endTs)
 			srtOutput.WriteString(text + "\n\n")
 			idx++
 		}
