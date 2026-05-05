@@ -29,11 +29,6 @@ export default defineConfig(() => {
     );
   }
 
-  // Tauri 模式下不需要 legacy 支持
-  if (!nolegacy && !isTauri) {
-    plugins = [...plugins, legacy()];
-  }
-
   return {
     base: "",
     build: {
