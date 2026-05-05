@@ -66,6 +66,7 @@ import { Button } from "react-bootstrap";
 import { OrganizedCriterionOption } from "src/models/list-filter/criteria/organized";
 import { SidebarAgeFilter } from "../List/Filters/SidebarAgeFilter";
 import { PerformerAgeCriterionOption } from "src/models/list-filter/images";
+import { SidebarFolderFilter } from "../List/Filters/FolderFilter";
 
 interface IImageWallProps {
   images: GQL.SlimImageDataFragment[];
@@ -430,6 +431,12 @@ const SidebarContent: React.FC<{
           filterHook={filterHook}
         />
         <SidebarRatingFilter filter={filter} setFilter={setFilter} />
+        <SidebarFolderFilter
+          text={<FormattedMessage id="folder" />}
+          filter={filter}
+          setFilter={setFilter}
+          sectionID="folder"
+        />
         <SidebarBooleanFilter
           title={<FormattedMessage id="organized" />}
           data-type={OrganizedCriterionOption.type}
@@ -587,6 +594,46 @@ export const FilteredImageList = PatchComponent(
       setShowSidebar,
     });
 
+    const onCloseEditDelete = useCloseEditDelete({
+      closeModal,
+      onSelectNone,
+      result,
+    });
+
+    const viewRandom = useViewRandom(effectiveFilter, totalCount);
+
+    function onExport(all: boolean) {
+      showModal(
+        <ExportDialog
+          exportInput={{
+            images: {
+              ids: Array.from(selectedIds.values()),
+              all: all,
+            },
+          }}
+          onClose={() => closeModal()}
+        />
+      );
+    }
+
+    const onEdit = useCallback(() => {
+      showModal(
+        <EditImagesDialog
+          selected={selectedItems}
+          onClose={onCloseEditDelete}
+        />
+      );
+    }, [showModal, selectedItems, onCloseEditDelete]);
+
+    const onDelete = useCallback(() => {
+      showModal(
+        <DeleteImagesDialog
+          selected={selectedItems}
+          onClose={onCloseEditDelete}
+        />
+      );
+    }, [showModal, selectedItems, onCloseEditDelete]);
+
     useEffect(() => {
       Mousetrap.bind("e", () => {
         if (hasSelection) {
@@ -604,47 +651,7 @@ export const FilteredImageList = PatchComponent(
         Mousetrap.unbind("e");
         Mousetrap.unbind("d d");
       };
-    });
-
-    const onCloseEditDelete = useCloseEditDelete({
-      closeModal,
-      onSelectNone,
-      result,
-    });
-
-    const viewRandom = useViewRandom(effectiveFilter, totalCount);
-
-    function onExport(all: boolean) {
-      showModal(
-        <ExportDialog
-          exportInput={{
-            groups: {
-              ids: Array.from(selectedIds.values()),
-              all: all,
-            },
-          }}
-          onClose={() => closeModal()}
-        />
-      );
-    }
-
-    function onEdit() {
-      showModal(
-        <EditImagesDialog
-          selected={selectedItems}
-          onClose={onCloseEditDelete}
-        />
-      );
-    }
-
-    function onDelete() {
-      showModal(
-        <DeleteImagesDialog
-          selected={selectedItems}
-          onClose={onCloseEditDelete}
-        />
-      );
-    }
+    }, [hasSelection, onEdit, onDelete]);
 
     const convertedExtraOperations: IListFilterOperation[] =
       providedOperations.map((o) => ({
@@ -744,7 +751,7 @@ export const FilteredImageList = PatchComponent(
             currentPage={filter.currentPage}
             itemsPerPage={filter.itemsPerPage}
             totalItems={totalCount}
-            onChangePage={(page) => setFilter(filter.changePage(page))}
+            onChangePage={setPage}
           />
           <PaginationIndex
             loading={cachedResult.loading}
@@ -759,7 +766,7 @@ export const FilteredImageList = PatchComponent(
           <ImageList
             filter={filter}
             images={items}
-            onChangePage={(page) => setFilter(filter.changePage(page))}
+            onChangePage={setPage}
             onSelectChange={onSelectChange}
             pageCount={pageCount}
             selectedIds={selectedIds}
@@ -786,41 +793,47 @@ export const FilteredImageList = PatchComponent(
       </>
     );
 
-    if (!withSidebar) {
-      return content;
-    }
-
     return (
-      <div
-        className={cx("item-list-container image-list", {
-          "hide-sidebar": !showSidebar,
-        })}
-      >
+      <>
         {modal}
-
-        <SidebarStateContext.Provider value={{ sectionOpen, setSectionOpen }}>
-          <SidebarPane hideSidebar={!showSidebar}>
-            <Sidebar hide={!showSidebar} onHide={() => setShowSidebar(false)}>
-              <SidebarContent
-                filter={filter}
-                setFilter={setFilter}
-                filterHook={filterHook}
-                showEditFilter={showEditFilter}
-                view={view}
-                sidebarOpen={showSidebar}
-                onClose={() => setShowSidebar(false)}
-                count={cachedResult.loading ? undefined : totalCount}
-                focus={searchFocus}
-              />
-            </Sidebar>
-            <SidebarPaneContent
-              onSidebarToggle={() => setShowSidebar(!showSidebar)}
+        {!withSidebar ? (
+          <div className="item-list-container image-list">{content}</div>
+        ) : (
+          <div
+            className={cx("item-list-container image-list", {
+              "hide-sidebar": !showSidebar,
+            })}
+          >
+            <SidebarStateContext.Provider
+              value={{ sectionOpen, setSectionOpen }}
             >
-              {content}
-            </SidebarPaneContent>
-          </SidebarPane>
-        </SidebarStateContext.Provider>
-      </div>
+              <SidebarPane hideSidebar={!showSidebar}>
+                <Sidebar
+                  hide={!showSidebar}
+                  onHide={() => setShowSidebar(false)}
+                >
+                  <SidebarContent
+                    filter={filter}
+                    setFilter={setFilter}
+                    filterHook={filterHook}
+                    showEditFilter={showEditFilter}
+                    view={view}
+                    sidebarOpen={showSidebar}
+                    onClose={() => setShowSidebar(false)}
+                    count={cachedResult.loading ? undefined : totalCount}
+                    focus={searchFocus}
+                  />
+                </Sidebar>
+                <SidebarPaneContent
+                  onSidebarToggle={() => setShowSidebar(!showSidebar)}
+                >
+                  {content}
+                </SidebarPaneContent>
+              </SidebarPane>
+            </SidebarStateContext.Provider>
+          </div>
+        )}
+      </>
     );
   }
 );

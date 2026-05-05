@@ -24,7 +24,6 @@ type ScanCreatorUpdater interface {
 
 type ScanSceneFinderUpdater interface {
 	FindByPath(ctx context.Context, p string) ([]*models.Scene, error)
-	Update(ctx context.Context, updatedScene *models.Scene) error
 	AddGalleryIDs(ctx context.Context, sceneID int, galleryIDs []int) error
 }
 
@@ -135,13 +134,14 @@ func (h *ScanHandler) associateExisting(ctx context.Context, existing []*models.
 			if err := h.CreatorUpdater.AddFileID(ctx, i.ID, f.Base().ID); err != nil {
 				return fmt.Errorf("adding file to gallery: %w", err)
 			}
-			// update updated_at time
-			if _, err := h.CreatorUpdater.UpdatePartial(ctx, i.ID, models.NewGalleryPartial()); err != nil {
-				return fmt.Errorf("updating gallery: %w", err)
-			}
 		}
 
 		if !found || updateExisting {
+			// update updated_at time when file association or content changes
+			if _, err := h.CreatorUpdater.UpdatePartial(ctx, i.ID, models.NewGalleryPartial()); err != nil {
+				return fmt.Errorf("updating gallery: %w", err)
+			}
+
 			h.PluginCache.RegisterPostHooks(ctx, i.ID, hook.GalleryUpdatePost, nil, nil)
 		}
 	}

@@ -63,6 +63,7 @@ import useFocus from "src/utils/focus";
 import { useZoomKeybinds } from "../List/ZoomSlider";
 import { FilteredListToolbar } from "../List/FilteredListToolbar";
 import { FilterTags } from "../List/FilterTags";
+import { SidebarFolderFilter } from "../List/Filters/FolderFilter";
 
 function renderMetadataByline(result: GQL.FindScenesQueryResult) {
   const duration = result?.data?.findScenes?.duration;
@@ -310,6 +311,12 @@ const SidebarContent: React.FC<{
         />
         <SidebarRatingFilter filter={filter} setFilter={setFilter} />
         <SidebarDurationFilter filter={filter} setFilter={setFilter} />
+        <SidebarFolderFilter
+          text={<FormattedMessage id="folder" />}
+          filter={filter}
+          setFilter={setFilter}
+          sectionID="folder"
+        />
         <SidebarBooleanFilter
           title={<FormattedMessage id="hasMarkers" />}
           data-type={HasMarkersCriterionOption.type}

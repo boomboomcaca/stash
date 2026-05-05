@@ -1,8 +1,7 @@
 import {
   ApolloClient,
   InMemoryCache,
-  split,
-  from,
+  ApolloLink,
   ServerError,
   TypePolicies,
 } from "@apollo/client";
@@ -243,7 +242,7 @@ Please disable it on the server and refresh the page.`);
     }
   });
 
-  const splitLink = split(
+  const splitLink = ApolloLink.split(
     ({ query }) => {
       const definition = getMainDefinition(query);
       return (
@@ -255,7 +254,7 @@ Please disable it on the server and refresh the page.`);
     httpLink
   );
 
-  const link = from([errorLink, splitLink]);
+  const link = ApolloLink.from([errorLink, splitLink]);
 
   const cache = new InMemoryCache({
     typePolicies,

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/stashapp/stash/pkg/file/video"
 	"github.com/stashapp/stash/pkg/logger"
@@ -33,13 +35,19 @@ type ScanCreatorUpdater interface {
 	GetGroups(ctx context.Context, id int) ([]models.GroupsScenes, error)
 }
 
+type ScanGalleryFinderUpdater interface {
+	FindByPath(ctx context.Context, p string) ([]*models.Gallery, error)
+	AddSceneIDs(ctx context.Context, galleryID int, sceneIDs []int) error
+}
+
 type ScanGenerator interface {
 	Generate(ctx context.Context, s *models.Scene, f *models.VideoFile) error
 }
 
 type ScanHandler struct {
-	CreatorUpdater ScanCreatorUpdater
-	GroupUpdater   GroupRepository
+	CreatorUpdater       ScanCreatorUpdater
+	GroupUpdater         GroupRepository
+	GalleryFinderUpdater ScanGalleryFinderUpdater
 
 	ScanGenerator  ScanGenerator
 	CaptionUpdater video.CaptionUpdater
@@ -51,19 +59,19 @@ type ScanHandler struct {
 
 func (h *ScanHandler) validate() error {
 	if h.CreatorUpdater == nil {
-		return errors.New("CreatorUpdater is required")
+		return errors.New("internal error: CreatorUpdater is required")
 	}
 	if h.ScanGenerator == nil {
-		return errors.New("ScanGenerator is required")
+		return errors.New("internal error: ScanGenerator is required")
 	}
 	if h.CaptionUpdater == nil {
-		return errors.New("CaptionUpdater is required")
+		return errors.New("internal error: CaptionUpdater is required")
 	}
 	if !h.FileNamingAlgorithm.IsValid() {
-		return errors.New("FileNamingAlgorithm is required")
+		return errors.New("internal error: FileNamingAlgorithm is required")
 	}
 	if h.Paths == nil {
-		return errors.New("paths is required")
+		return errors.New("internal error: Paths is required")
 	}
 
 	return nil
@@ -135,6 +143,10 @@ func (h *ScanHandler) Handle(ctx context.Context, f models.File, oldFile models.
 		}
 	}
 
+	if err := h.associateGallery(ctx, existing, f); err != nil {
+		return err
+	}
+
 	// do this after the commit so that cover generation doesn't hold up the transaction
 	txn.AddPostCommitHook(ctx, func(ctx context.Context) {
 		for _, s := range existing {
@@ -168,15 +180,15 @@ func (h *ScanHandler) associateExisting(ctx context.Context, existing []*models.
 			if err := h.CreatorUpdater.AddFileID(ctx, s.ID, f.ID); err != nil {
 				return fmt.Errorf("adding file to scene: %w", err)
 			}
+		}
 
-			// update updated_at time
+		if !found || updateExisting {
+			// update updated_at time when file association or content changes
 			scenePartial := models.NewScenePartial()
 			if _, err := h.CreatorUpdater.UpdatePartial(ctx, s.ID, scenePartial); err != nil {
 				return fmt.Errorf("updating scene: %w", err)
 			}
-		}
 
-		if !found || updateExisting {
 			h.PluginCache.RegisterPostHooks(ctx, s.ID, hook.SceneUpdatePost, nil, nil)
 		}
 
@@ -187,6 +199,32 @@ func (h *ScanHandler) associateExisting(ctx context.Context, existing []*models.
 					logger.Errorf("Failed to auto-group existing scene: %v", err)
 				}
 			}
+		}
+	}
+
+	return nil
+}
+
+func (h *ScanHandler) associateGallery(ctx context.Context, existing []*models.Scene, f models.File) error {
+	sceneIDs := make([]int, len(existing))
+	for i, s := range existing {
+		sceneIDs[i] = s.ID
+	}
+
+	path := f.Base().Path
+	zipPath := strings.TrimSuffix(path, filepath.Ext(path)) + ".zip"
+
+	// find galleries with a file that matches
+	galleries, err := h.GalleryFinderUpdater.FindByPath(ctx, zipPath)
+	if err != nil {
+		return err
+	}
+
+	for _, gallery := range galleries {
+		// found related Scene
+		logger.Infof("associate: Scene %s is related to gallery: %d", path, gallery.ID)
+		if err := h.GalleryFinderUpdater.AddSceneIDs(ctx, gallery.ID, sceneIDs); err != nil {
+			return err
 		}
 	}
 

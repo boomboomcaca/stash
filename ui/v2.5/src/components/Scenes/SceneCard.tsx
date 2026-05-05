@@ -32,12 +32,14 @@ import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
 import { GroupTag } from "../Groups/GroupTag";
 import { FileSize } from "../Shared/FileSize";
 import { OCounterButton } from "../Shared/CountButton";
+import { defaultPreviewVolume } from "src/core/config";
 
 interface IScenePreviewProps {
   isPortrait: boolean;
   image?: string;
   video?: string;
   soundActive: boolean;
+  volume?: number;
   vttPath?: string;
   onScrubberClick?: (timestamp: number) => void;
   disabled?: boolean;
@@ -51,6 +53,7 @@ export const ScenePreview: React.FC<IScenePreviewProps> = ({
   vttPath,
   onScrubberClick,
   disabled,
+  volume,
 }) => {
   const videoEl = useRef<HTMLVideoElement>(null);
 
@@ -69,8 +72,8 @@ export const ScenePreview: React.FC<IScenePreviewProps> = ({
 
   useEffect(() => {
     if (videoEl?.current?.volume)
-      videoEl.current.volume = soundActive ? 0.05 : 0;
-  }, [soundActive]);
+      videoEl.current.volume = soundActive ? (volume ?? 0) / 100 : 0;
+  }, [volume, soundActive]);
 
   return (
     <div className={cx("scene-card-preview", { portrait: isPortrait })}>
@@ -373,6 +376,39 @@ const SceneCardOverlays = PatchComponent(
   }
 );
 
+interface ISceneSpecsOverlay {
+  scene: GQL.SlimSceneDataFragment;
+}
+
+export const SceneSpecsOverlay: React.FC<ISceneSpecsOverlay> = PatchComponent(
+  "SceneCard.SceneSpecs",
+  ({ scene }) => {
+    const file = scene.files?.[0];
+    if (!file) return null;
+    return (
+      <div className="scene-specs-overlay">
+        <span className="overlay-filesize extra-scene-info">
+          <FileSize size={file.size} />
+        </span>
+        {file.width && file.height ? (
+          <span className="overlay-resolution">
+            {TextUtils.resolution(file.width, file.height)}
+          </span>
+        ) : (
+          ""
+        )}
+        {file.duration > 0 ? (
+          <span className="overlay-duration">
+            {TextUtils.secondsToTimestamp(file.duration)}
+          </span>
+        ) : (
+          ""
+        )}
+      </div>
+    );
+  }
+);
+
 const SceneCardImage = PatchComponent(
   "SceneCard.Image",
   (props: ISceneCardProps) => {
@@ -384,35 +420,6 @@ const SceneCardImage = PatchComponent(
       () => (props.scene.files.length > 0 ? props.scene.files[0] : undefined),
       [props.scene]
     );
-
-    function maybeRenderSceneSpecsOverlay() {
-      return (
-        <div className="scene-specs-overlay">
-          {file?.size !== undefined ? (
-            <span className="overlay-filesize extra-scene-info">
-              <FileSize size={file.size} />
-            </span>
-          ) : (
-            ""
-          )}
-          {file?.width && file?.height ? (
-            <span className="overlay-resolution">
-              {" "}
-              {TextUtils.resolution(file?.width, file?.height)}
-            </span>
-          ) : (
-            ""
-          )}
-          {(file?.duration ?? 0) >= 1 ? (
-            <span className="overlay-duration">
-              {TextUtils.secondsToTimestamp(file?.duration ?? 0)}
-            </span>
-          ) : (
-            ""
-          )}
-        </div>
-      );
-    }
 
     function maybeRenderInteractiveSpeedOverlay() {
       return (
@@ -449,11 +456,12 @@ const SceneCardImage = PatchComponent(
           isPortrait={isPortrait()}
           soundActive={configuration?.interface?.soundOnPreview ?? false}
           vttPath={withApiKey(props.scene.paths.vtt)}
+          volume={configuration?.ui.previewVolume ?? defaultPreviewVolume}
           onScrubberClick={onScrubberClick}
           disabled={props.selecting}
         />
         <RatingBanner rating={props.scene.rating100} />
-        {maybeRenderSceneSpecsOverlay()}
+        <SceneSpecsOverlay scene={props.scene} />
         {maybeRenderInteractiveSpeedOverlay()}
       </>
     );

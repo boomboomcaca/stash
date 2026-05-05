@@ -1,10 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import legacy from "@vitejs/plugin-legacy";
 import tsconfigPaths from "vite-tsconfig-paths";
 import viteCompression from "vite-plugin-compression";
 
-const nolegacy = process.env.VITE_APP_NOLEGACY === "true";
 const sourcemap = process.env.VITE_APP_SOURCEMAPS === "true";
 const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
 

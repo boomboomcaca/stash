@@ -10,10 +10,12 @@ ifdef IS_WIN_SHELL
   RM := del /s /q
   RMDIR := rmdir /s /q
   NOOP := @@
+  PREFIX := $(USERPROFILE)\\bin
 else
   RM := rm -f
   RMDIR := rm -rf
   NOOP := @:
+  PREFIX := $(HOME)/.local
 endif
 
 # set LDFLAGS environment variable to any extra ldflags required
@@ -40,9 +42,6 @@ GO_BUILD_FLAGS := $(GO_BUILD_FLAGS)
 GO_BUILD_TAGS := $(GO_BUILD_TAGS)
 GO_BUILD_TAGS += sqlite_stat4 sqlite_math_functions
 
-# set STASH_NOLEGACY environment variable or uncomment to disable legacy browser support
-# STASH_NOLEGACY := true
-
 # set STASH_SOURCEMAPS environment variable or uncomment to enable UI sourcemaps
 # STASH_SOURCEMAPS := true
 
@@ -50,7 +49,7 @@ export CGO_ENABLED := 1
 
 # define COMPILER_IMAGE for cross-compilation docker container
 ifndef COMPILER_IMAGE
-  COMPILER_IMAGE := stashapp/compiler:latest
+  COMPILER_IMAGE := ghcr.io/stashapp/compiler:latest
 endif
 
 .PHONY: release
@@ -129,7 +128,7 @@ phasher: build-flags
 
 # builds dynamically-linked debug binaries
 .PHONY: build
-build: stash phasher
+build: stash
 
 # builds dynamically-linked PIE release binaries
 .PHONY: build-release
@@ -187,8 +186,6 @@ build-cc-macos:
 	# Combine into universal binaries
 	lipo -create -output dist/stash-macos dist/stash-macos-intel dist/stash-macos-arm
 	rm dist/stash-macos-intel dist/stash-macos-arm
-	lipo -create -output dist/phasher-macos dist/phasher-macos-intel dist/phasher-macos-arm
-	rm dist/phasher-macos-intel dist/phasher-macos-arm
 
 	# Place into bundle and zip up
 	rm -rf dist/Stash.app
@@ -197,6 +194,16 @@ build-cc-macos:
 	cp dist/stash-macos dist/Stash.app/Contents/MacOS/stash
 	cd dist && rm -f Stash.app.zip && zip -r Stash.app.zip Stash.app
 	rm -rf dist/Stash.app
+
+.PHONY: build-cc-macos-phasher
+build-cc-macos-phasher:
+	make build-cc-macos-arm
+	make build-cc-macos-intel
+
+	# Combine into universal binaries
+	lipo -create -output dist/phasher-macos dist/phasher-macos-intel dist/phasher-macos-arm
+	rm dist/phasher-macos-intel dist/phasher-macos-arm
+	# do not bundle phasher
 
 .PHONY: build-cc-freebsd
 build-cc-freebsd: export GOOS := freebsd
@@ -274,7 +281,7 @@ endif
 generate: generate-backend generate-ui
 
 .PHONY: generate-ui
-generate-ui:
+generate-ui: pre-ui
 	cd ui/v2.5 && npm run gqlgen
 
 .PHONY: generate-backend
@@ -357,18 +364,15 @@ ui-env: build-info
 	$(eval export VITE_APP_DATE := $(BUILD_DATE))
 	$(eval export VITE_APP_GITHASH := $(GITHASH))
 	$(eval export VITE_APP_STASH_VERSION := $(STASH_VERSION))
-ifdef STASH_NOLEGACY
-	$(eval export VITE_APP_NOLEGACY := true)
-endif
 ifdef STASH_SOURCEMAPS
 	$(eval export VITE_APP_SOURCEMAPS := true)
 endif
 
 .PHONY: ui
-ui: ui-only generate-login-locale
+ui: pre-ui generate ui-only generate-login-locale
 
 .PHONY: ui-only
-ui-only: ui-env
+ui-only: ui-env generate ui
 	cd ui/v2.5 && npm run build
 
 .PHONY: zip-ui
@@ -386,7 +390,7 @@ fmt-ui:
 
 # runs all of the frontend PR-acceptance steps
 .PHONY: validate-ui
-validate-ui:
+validate-ui: pre-ui generate
 	cd ui/v2.5 && npm run validate
 
 # these targets run the same steps as fmt-ui and validate-ui, but only on files that have changed
@@ -437,3 +441,13 @@ start-compiler-container:
 .PHONY: remove-compiler-container
 remove-compiler-container:
 	docker rm -f -v build
+
+.PHONY: install
+install: build-release
+ifdef IS_WIN_SHELL
+	@if not exist "$(PREFIX)" mkdir $(PREFIX)
+	@copy "dist\\stash-win.exe" "$(PREFIX)\\stash-win.exe"
+else
+	@mkdir -p $(PREFIX)/bin
+	@install -m 755 $(STASH_OUTPUT) $(PREFIX)/bin/stash
+endif
