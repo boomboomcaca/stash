@@ -353,11 +353,7 @@ server-clean:
 # building.
 .PHONY: pre-ui
 pre-ui:
-ifdef CI
-	cd ui/v2.5 && pnpm config set store-dir ~/.pnpm-store && pnpm install --frozen-lockfile
-else
 	cd ui/v2.5 && pnpm install --frozen-lockfile
-endif
 
 .PHONY: ui-env
 ui-env: build-info
