@@ -249,6 +249,18 @@ export const EnhancedSubtitleOverlay: React.FC<
     setOnWordSelect(handleWordClick);
   }, [setOnWordSelect, handleWordClick]);
 
+  // Ref to avoid handleWordClick as a dependency of the auto-show effect
+  const handleWordClickRef = useRef(handleWordClick);
+  useEffect(() => {
+    handleWordClickRef.current = handleWordClick;
+  }, [handleWordClick]);
+
+  // Ref to track selectedWord without adding it as a dependency
+  const selectedWordRef = useRef(selectedWord);
+  useEffect(() => {
+    selectedWordRef.current = selectedWord;
+  }, [selectedWord]);
+
   // Auto-show/update dictionary when navigating
   useEffect(() => {
     if (
@@ -262,8 +274,8 @@ export const EnhancedSubtitleOverlay: React.FC<
       // Auto-show if favorited OR update if dictionary is already open
       if (favoriteWords.has(wordKey) || showDictionaryRef.current) {
         // Avoid redundant calls if the word is already selected in dictionary
-        if (selectedWord !== word) {
-          handleWordClick(word);
+        if (selectedWordRef.current !== word) {
+          handleWordClickRef.current(word);
         }
       }
     }
@@ -273,8 +285,6 @@ export const EnhancedSubtitleOverlay: React.FC<
     wordSegments,
     detectedLanguage,
     favoriteWords,
-    handleWordClick,
-    selectedWord,
     showDictionaryRef,
   ]);
 

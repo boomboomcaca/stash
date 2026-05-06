@@ -90,6 +90,8 @@ export class DictionaryService {
             language,
             `${providerName}服务暂时不可用`
           );
+          // Don't cache error entries - allow retry on next click
+          return entry;
         }
       } else {
         const providerName = provider === "mistral" ? "Mistral" : "Ollama";
@@ -98,9 +100,11 @@ export class DictionaryService {
           language,
           `${providerName}服务未启用`
         );
+        // Don't cache error entries
+        return entry;
       }
 
-      // ✅ Cache the result with size limit
+      // ✅ Cache the result with size limit (only successful entries)
       if (entry) {
         // 检查缓存大小，如果超过限制则清理最旧的条目（保留常用词）
         if (this.cache.size >= this.MAX_CACHE_SIZE) {

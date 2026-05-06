@@ -89,6 +89,9 @@ export function useDictionary({
   const previousAiProvider = useRef(aiProvider);
   const previousTargetLanguage = useRef(targetLanguage);
 
+  // Counter to cancel stale async lookups
+  const lookupIdRef = useRef(0);
+
   // Auto-fetch or load from cache when aiProvider or targetLanguage changes
   useEffect(() => {
     let ignore = false;
@@ -198,6 +201,9 @@ export function useDictionary({
         onPausePlayer();
       }
 
+      // Increment lookup ID to cancel any in-flight requests
+      const currentLookupId = ++lookupIdRef.current;
+
       setSelectedWord(word);
       setShowDictionary(true);
 
@@ -228,12 +234,19 @@ export function useDictionary({
             )
           : await lookupWord(word, targetLanguage, aiProvider);
 
-        setDictionary(entry);
+        // Only apply result if this is still the latest lookup
+        if (lookupIdRef.current === currentLookupId) {
+          setDictionary(entry);
+        }
       } catch (error) {
-        console.error("Dictionary lookup failed:", error);
-        setDictionary(null);
+        if (lookupIdRef.current === currentLookupId) {
+          console.error("Dictionary lookup failed:", error);
+          setDictionary(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (lookupIdRef.current === currentLookupId) {
+          setIsLoading(false);
+        }
       }
     },
     [targetLanguage, currentCue, onPausePlayer, aiProvider]
