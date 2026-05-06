@@ -1,4 +1,8 @@
-export { useSubtitleSettings, loadConfig } from "./useSubtitleSettings";
+export {
+  useSubtitleSettings,
+  loadConfig,
+  type AutoPauseMode,
+} from "./useSubtitleSettings";
 export { useSubtitleDrag } from "./useSubtitleDrag";
 export { useSubtitleParser } from "./useSubtitleParser";
 export { useAutoPause } from "./useAutoPause";

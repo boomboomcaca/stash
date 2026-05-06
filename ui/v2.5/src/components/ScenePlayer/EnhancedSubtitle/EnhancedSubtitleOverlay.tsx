@@ -64,8 +64,8 @@ export const EnhancedSubtitleOverlay: React.FC<
     setFontSize,
     dragPosition,
     setDragPosition,
-    autoPauseEnabled,
-    setAutoPauseEnabled,
+    autoPauseMode,
+    setAutoPauseMode,
     isPortrait,
   } = useSubtitleSettings();
 
@@ -74,6 +74,13 @@ export const EnhancedSubtitleOverlay: React.FC<
     subtitleTrack,
     onSubtitlesLoaded,
   });
+
+  // Pre-initialize values for useAutoPause (synced from useDictionary/useWordNavigation below)
+  const [favoriteWordsForAutoPause, setFavoriteWordsForAutoPause] = useState<
+    Set<string>
+  >(new Set());
+  const [detectedLanguageForAutoPause, setDetectedLanguageForAutoPause] =
+    useState<string>(language);
 
   // Auto-pause hook
   const {
@@ -87,7 +94,9 @@ export const EnhancedSubtitleOverlay: React.FC<
   } = useAutoPause({
     currentTime,
     parsedSubtitles,
-    autoPauseEnabled,
+    autoPauseMode,
+    favoriteWords: favoriteWordsForAutoPause,
+    detectedLanguage: detectedLanguageForAutoPause,
     onPausePlayer,
     getPlayerPaused,
     onCurrentCueChange,
@@ -112,7 +121,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     currentCue,
     language,
     isInWordNavigationModeRef,
-    autoPauseEnabled,
+    autoPauseMode,
     clearAutoPauseTimeout,
     setIsAutoPaused,
     userResumedPlaybackRef,
@@ -227,6 +236,14 @@ export const EnhancedSubtitleOverlay: React.FC<
     currentCueText: currentCue?.text ?? "",
   });
 
+  // Sync favoriteWords and detectedLanguage to useAutoPause
+  useEffect(() => {
+    setFavoriteWordsForAutoPause(favoriteWords);
+  }, [favoriteWords]);
+  useEffect(() => {
+    setDetectedLanguageForAutoPause(detectedLanguage);
+  }, [detectedLanguage]);
+
   // Bind handleWordClick to word navigation for keyboard selection
   useEffect(() => {
     setOnWordSelect(handleWordClick);
@@ -273,8 +290,8 @@ export const EnhancedSubtitleOverlay: React.FC<
     setDragPosition,
     fontSize,
     setFontSize,
-    autoPauseEnabled,
-    setAutoPauseEnabled,
+    autoPauseMode,
+    setAutoPauseMode,
     setIsAutoPaused,
     onAPDoubleClick,
   });
@@ -532,7 +549,11 @@ export const EnhancedSubtitleOverlay: React.FC<
       >
         <div
           className={`drag-indicator ${
-            autoPauseEnabled ? "auto-pause-active" : ""
+            autoPauseMode === "all"
+              ? "auto-pause-active"
+              : autoPauseMode === "favorites"
+              ? "auto-pause-favorites"
+              : ""
           } ${isAutoPaused ? "auto-pause-paused" : ""} ${
             isPlayerPaused && !isAutoPaused ? "manual-paused" : ""
           }`}

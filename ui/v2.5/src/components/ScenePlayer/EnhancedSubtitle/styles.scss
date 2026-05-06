@@ -249,6 +249,26 @@
       }
     }
 
+    // Auto-pause favorites mode - only pause on cues with favorited words
+    &.auto-pause-favorites {
+      background: rgba(0, 0, 0, 0.75);
+      border-color: rgba(
+        168,
+        85,
+        247,
+        0.9
+      ); // 紫色边框 (purple-500) - 收藏词模式
+
+      &:hover {
+        border-color: rgba(168, 85, 247, 1);
+        box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+      }
+
+      .drag-dots {
+        color: rgba(168, 85, 247, 1); // 紫色文字
+      }
+    }
+
     // Auto-paused state (currently paused by auto-pause or manually)
     &.manual-paused {
       background: rgba(0, 0, 0, 0.75);
@@ -257,10 +277,6 @@
       &:hover {
         border-color: rgba(239, 68, 68, 1);
         box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
-      }
-
-      .drag-dots {
-        color: rgba(239, 68, 68, 1); // 红色文字
       }
     }
 
@@ -276,10 +292,6 @@
       &:hover {
         border-color: rgba(255, 255, 0, 1);
         box-shadow: 0 0 12px rgba(255, 255, 0, 0.6);
-      }
-
-      .drag-dots {
-        color: #ff0; // 黄色文字，与字幕一致
       }
     }
 

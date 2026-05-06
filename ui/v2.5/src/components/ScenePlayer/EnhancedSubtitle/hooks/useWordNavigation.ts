@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { IWordSegment, ISubtitleCue } from "../types";
 import { createSegmenter, detectLanguage } from "../segmentation";
+import { AutoPauseMode } from "./useSubtitleSettings";
 
 interface IUseWordNavigationProps {
   currentCue: ISubtitleCue | null;
@@ -9,7 +10,7 @@ interface IUseWordNavigationProps {
   // Ref to update when entering/exiting word navigation mode
   isInWordNavigationModeRef?: React.MutableRefObject<boolean>;
   // Whether manual auto-pause is enabled (for determining behavior on exit)
-  autoPauseEnabled?: boolean;
+  autoPauseMode?: AutoPauseMode;
   // Callback to clear auto-pause timer
   clearAutoPauseTimeout?: () => void;
   // Callback to reset auto-pause state
@@ -39,7 +40,7 @@ export function useWordNavigation({
   language,
   onWordSelect,
   isInWordNavigationModeRef,
-  autoPauseEnabled,
+  autoPauseMode,
   clearAutoPauseTimeout,
   setIsAutoPaused,
   userResumedPlaybackRef,
@@ -111,7 +112,8 @@ export function useWordNavigation({
     (selectLastWord: boolean = false) => {
       if (wordSegments.length > 0) {
         // Record whether manual auto-pause was enabled when entering word navigation mode
-        autoPauseWasEnabledOnEnterRef.current = autoPauseEnabled ?? false;
+        autoPauseWasEnabledOnEnterRef.current =
+          (autoPauseMode ?? "off") !== "off";
         setIsInWordNavigationMode(true);
         const initialIndex = selectLastWord ? wordSegments.length - 1 : 0;
         setSelectedWordIndex(initialIndex);
@@ -143,7 +145,7 @@ export function useWordNavigation({
     [
       wordSegments,
       currentCue,
-      autoPauseEnabled,
+      autoPauseMode,
       isInWordNavigationModeRef,
       userResumedPlaybackRef,
       autoPauseTriggeredRef,

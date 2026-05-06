@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { AutoPauseMode } from "./useSubtitleSettings";
 
 interface IDragState {
   y: number;
@@ -16,8 +17,8 @@ interface IUseDragProps {
   setDragPosition: (pos: { y: number }) => void;
   fontSize: number;
   setFontSize: (size: number) => void;
-  autoPauseEnabled: boolean;
-  setAutoPauseEnabled: (enabled: boolean) => void;
+  autoPauseMode: AutoPauseMode;
+  setAutoPauseMode: (mode: AutoPauseMode) => void;
   setIsAutoPaused: (paused: boolean) => void;
   onAPDoubleClick?: () => void;
 }
@@ -36,8 +37,8 @@ export function useSubtitleDrag({
   setDragPosition,
   fontSize,
   setFontSize,
-  autoPauseEnabled,
-  setAutoPauseEnabled,
+  autoPauseMode,
+  setAutoPauseMode,
   setIsAutoPaused,
   onAPDoubleClick,
 }: IUseDragProps): IUseDragResult {
@@ -261,13 +262,16 @@ export function useSubtitleDrag({
         }
 
         APDoubleClickTimeoutRef.current = window.setTimeout(() => {
-          if (autoPauseEnabled) {
-            setAutoPauseEnabled(false);
+          // Cycle: off → favorites → all → off
+          const nextMode: AutoPauseMode =
+            autoPauseMode === "off"
+              ? "favorites"
+              : autoPauseMode === "favorites"
+              ? "all"
+              : "off";
+          setAutoPauseMode(nextMode);
+          if (nextMode === "off") {
             setIsAutoPaused(false);
-            localStorage.setItem("enhancedSubtitleAutoPause", "false");
-          } else {
-            setAutoPauseEnabled(true);
-            localStorage.setItem("enhancedSubtitleAutoPause", "true");
           }
 
           APDoubleClickTimeoutRef.current = null;
@@ -275,10 +279,10 @@ export function useSubtitleDrag({
       }
     },
     [
-      autoPauseEnabled,
+      autoPauseMode,
       dragStartTime,
       onAPDoubleClick,
-      setAutoPauseEnabled,
+      setAutoPauseMode,
       setIsAutoPaused,
     ]
   );

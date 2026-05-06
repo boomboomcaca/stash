@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 
+export type AutoPauseMode = "off" | "favorites" | "all";
+
 interface ISubtitleSettings {
   fontSize: number;
   setFontSize: (size: number) => void;
   dragPosition: { y: number };
   setDragPosition: (pos: { y: number }) => void;
-  autoPauseEnabled: boolean;
-  setAutoPauseEnabled: (enabled: boolean) => void;
+  autoPauseMode: AutoPauseMode;
+  setAutoPauseMode: (mode: AutoPauseMode) => void;
   isPortrait: boolean;
 }
 
@@ -33,7 +35,7 @@ export function useSubtitleSettings(): ISubtitleSettings {
   const [lastSavedFontSize, setLastSavedFontSize] = useState(1.0);
   const [dragPosition, setDragPosition] = useState({ y: 0 });
   const [lastSavedPosition, setLastSavedPosition] = useState({ y: 0 });
-  const [autoPauseEnabled, setAutoPauseEnabled] = useState(false);
+  const [autoPauseMode, setAutoPauseMode] = useState<AutoPauseMode>("off");
   const [isPortrait, setIsPortrait] = useState<boolean>(computeIsPortrait());
 
   // Load font size and auto-pause setting from localStorage
@@ -44,7 +46,18 @@ export function useSubtitleSettings(): ISubtitleSettings {
       setLastSavedFontSize(size);
     }
     const autoPause = loadConfig("enhancedSubtitleAutoPause", "", (v) => v);
-    setAutoPauseEnabled(autoPause === "true");
+    // Migrate legacy boolean values to tri-state mode
+    if (autoPause === "true") {
+      setAutoPauseMode("all");
+    } else if (
+      autoPause === "favorites" ||
+      autoPause === "all" ||
+      autoPause === "off"
+    ) {
+      setAutoPauseMode(autoPause as AutoPauseMode);
+    } else {
+      setAutoPauseMode("off");
+    }
   }, []);
 
   // Orientation-aware load of saved position, with migration from legacy key
@@ -113,19 +126,16 @@ export function useSubtitleSettings(): ISubtitleSettings {
 
   // Save auto-pause setting to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem(
-      "enhancedSubtitleAutoPause",
-      autoPauseEnabled.toString()
-    );
-  }, [autoPauseEnabled]);
+    localStorage.setItem("enhancedSubtitleAutoPause", autoPauseMode);
+  }, [autoPauseMode]);
 
   return {
     fontSize,
     setFontSize,
     dragPosition,
     setDragPosition,
-    autoPauseEnabled,
-    setAutoPauseEnabled,
+    autoPauseMode,
+    setAutoPauseMode,
     isPortrait,
   };
 }

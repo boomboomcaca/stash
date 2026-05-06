@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { ISubtitleCue } from "../types";
+import { AutoPauseMode } from "./useSubtitleSettings";
+import { createSegmenter } from "../segmentation";
 
 const AUTO_PAUSE_THRESHOLD = 0.02;
 
@@ -13,7 +15,9 @@ interface IParsedSubtitle {
 interface IUseAutoPauseProps {
   currentTime: number;
   parsedSubtitles: IParsedSubtitle | null;
-  autoPauseEnabled: boolean;
+  autoPauseMode: AutoPauseMode;
+  favoriteWords: Set<string>;
+  detectedLanguage: string;
   onPausePlayer?: () => void;
   getPlayerPaused?: () => boolean;
   onCurrentCueChange?: (index: number) => void;
@@ -33,10 +37,32 @@ interface IUseAutoPauseResult {
   clearAutoPauseTimeout: () => void;
 }
 
+// Check if a cue contains any favorited words
+function cueHasFavoriteWord(
+  cueText: string,
+  favoriteWords: Set<string>,
+  lang: string
+): boolean {
+  if (favoriteWords.size === 0) return false;
+  const segmenter = createSegmenter({
+    language: lang,
+    enablePunctuation: false,
+    minWordLength: 1,
+  });
+  const segments = segmenter.segmentText(cueText);
+  for (const seg of segments) {
+    const key = `${seg.word.toLowerCase()}:${lang}`;
+    if (favoriteWords.has(key)) return true;
+  }
+  return false;
+}
+
 export function useAutoPause({
   currentTime,
   parsedSubtitles,
-  autoPauseEnabled,
+  autoPauseMode,
+  favoriteWords,
+  detectedLanguage,
   onPausePlayer,
   getPlayerPaused,
   onCurrentCueChange,
@@ -55,7 +81,8 @@ export function useAutoPause({
   const autoPauseTimeoutRef = useRef<number | null>(null);
   const scheduledCueSignatureRef = useRef<string | null>(null);
   const currentCueRef = useRef<ISubtitleCue | null>(null);
-  const autoPauseEnabledRef = useRef<boolean>(autoPauseEnabled);
+  const cueHasFavoriteRef = useRef<boolean>(false);
+  const autoPauseModeRef = useRef<AutoPauseMode>(autoPauseMode);
   const getPlayerPausedRef = useRef<typeof getPlayerPaused>(getPlayerPaused);
   const onPausePlayerRef = useRef<typeof onPausePlayer>(onPausePlayer);
   const onGetPlayerRef = useRef<typeof onGetPlayer>(onGetPlayer);
@@ -72,7 +99,11 @@ export function useAutoPause({
 
   const attemptAutoPause = useCallback(() => {
     const isInWordMode = isInWordNavigationModeRef?.current ?? false;
-    const shouldAutoPause = autoPauseEnabledRef.current || isInWordMode;
+    const mode = autoPauseModeRef.current;
+    const shouldAutoPause =
+      mode === "all" ||
+      (mode === "favorites" && cueHasFavoriteRef.current) ||
+      isInWordMode;
     if (!shouldAutoPause) return;
 
     const pausePlayer = onPausePlayerRef.current;
@@ -155,8 +186,12 @@ export function useAutoPause({
 
       // Auto-pause logic
       const isInWordMode = isInWordNavigationModeRef?.current ?? false;
+      const mode = autoPauseModeRef.current;
       const shouldRunAutoPause =
-        (autoPauseEnabledRef.current || isInWordMode) && !isPaused;
+        (mode === "all" ||
+          (mode === "favorites" && cueHasFavoriteRef.current) ||
+          isInWordMode) &&
+        !isPaused;
 
       if (shouldRunAutoPause && currentCueRef.current) {
         const cue = currentCueRef.current;
@@ -304,7 +339,12 @@ export function useAutoPause({
       const isPaused = getPlayerPausedRef.current
         ? getPlayerPausedRef.current()
         : true;
+      // Only schedule auto-pause if the mode allows it for this cue
+      const mode = autoPauseModeRef.current;
+      const shouldSchedule =
+        mode === "all" || (mode === "favorites" && cueHasFavoriteRef.current);
       if (
+        shouldSchedule &&
         !autoPauseTriggeredRef.current &&
         !userResumedPlaybackRef.current &&
         !isPaused
@@ -330,7 +370,7 @@ export function useAutoPause({
     }
   }, [
     currentCueData,
-    autoPauseEnabled,
+    autoPauseMode,
     onCurrentCueChange,
     currentCue,
     currentTime,
@@ -342,9 +382,22 @@ export function useAutoPause({
     currentCueRef.current = currentCue;
   }, [currentCue]);
 
+  // Update cueHasFavorite when cue or favorites change
   useEffect(() => {
-    autoPauseEnabledRef.current = autoPauseEnabled;
-  }, [autoPauseEnabled]);
+    if (currentCue && autoPauseMode === "favorites") {
+      cueHasFavoriteRef.current = cueHasFavoriteWord(
+        currentCue.text,
+        favoriteWords,
+        detectedLanguage
+      );
+    } else {
+      cueHasFavoriteRef.current = false;
+    }
+  }, [currentCue, favoriteWords, detectedLanguage, autoPauseMode]);
+
+  useEffect(() => {
+    autoPauseModeRef.current = autoPauseMode;
+  }, [autoPauseMode]);
 
   useEffect(() => {
     onPausePlayerRef.current = onPausePlayer;
