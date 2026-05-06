@@ -157,6 +157,9 @@ export function handleHotkeys(
           }
           // Toggle play/pause after exiting word navigation mode
           if (player.paused()) {
+            // Mark user resumed to prevent auto-pause from re-triggering
+            enhancedSubtitleNavigation.markUserResumedPlayback?.();
+            enhancedSubtitleNavigation.clearScheduledAutoPause?.();
             player.play();
           } else {
             player.pause();

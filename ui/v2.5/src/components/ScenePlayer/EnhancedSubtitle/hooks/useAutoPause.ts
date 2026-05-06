@@ -165,7 +165,9 @@ export function useAutoPause({
             clearAutoPauseTimeout();
           } else if (autoPauseTriggeredRef.current && !isAutoPaused) {
             autoPauseTriggeredRef.current = false;
-            userResumedPlaybackRef.current = false;
+            // Don't reset userResumedPlaybackRef - it may have been set to true
+            // by resumePlayback() and resetting it here causes a race condition
+            // where auto-pause re-triggers on the same cue
             clearAutoPauseTimeout();
           }
         }
