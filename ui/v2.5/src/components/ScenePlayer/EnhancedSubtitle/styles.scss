@@ -252,20 +252,15 @@
     // Auto-pause favorites mode - only pause on cues with favorited words
     &.auto-pause-favorites {
       background: rgba(0, 0, 0, 0.75);
-      border-color: rgba(
-        168,
-        85,
-        247,
-        0.9
-      ); // 紫色边框 (purple-500) - 收藏词模式
+      border-color: rgba(59, 130, 246, 0.9); // 蓝色边框 (blue-500) - 收藏词模式
 
       &:hover {
-        border-color: rgba(168, 85, 247, 1);
-        box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+        border-color: rgba(59, 130, 246, 1);
+        box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
       }
 
       .drag-dots {
-        color: rgba(168, 85, 247, 1); // 紫色文字
+        color: rgba(59, 130, 246, 1); // 蓝色文字
       }
     }
 

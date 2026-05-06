@@ -83,6 +83,18 @@ export function handleHotkeys(
 
   // Handle enhanced subtitle navigation
   if (enhancedSubtitleNavigation && !controlBarVisible) {
+    // When auto-paused and not in word navigation mode, up arrow/W resumes playback
+    if (
+      !enhancedSubtitleNavigation.isInWordNavigationMode &&
+      enhancedSubtitleNavigation.isAutoPaused &&
+      (event.which === 38 || event.which === 87) // up arrow or W
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      enhancedSubtitleNavigation.resumePlayback?.();
+      return;
+    }
+
     // Enter word navigation mode with left/right arrows when enhanced subtitles are active
     // and control bar is not visible
     if (
