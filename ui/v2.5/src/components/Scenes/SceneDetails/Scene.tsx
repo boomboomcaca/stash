@@ -19,7 +19,6 @@ import {
   queryFindScenes,
   queryFindScenesByID,
   useSceneIncrementPlayCount,
-  useGenerateSubtitles,
 } from "src/core/StashService";
 
 import { SceneEditPanel } from "./SceneEditPanel";
@@ -191,7 +190,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
   const history = useHistory();
   const [updateScene] = useSceneUpdate();
   const [generateScreenshot] = useSceneGenerateScreenshot();
-  const [generateSubtitlesMutation] = useGenerateSubtitles();
   const { configuration } = useConfigurationContext();
   const { showStudioText } = configuration?.ui ?? {};
 
@@ -217,7 +215,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
   const [isMerging, setIsMerging] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState<boolean>(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
-  const [generatingSubtitle, setGeneratingSubtitle] = useState(false);
 
   const onIncrementOClick = async () => {
     try {
@@ -399,34 +396,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
     Toast.success(intl.formatMessage({ id: "toast.generating_screenshot" }));
   }
 
-  async function onGenerateSubtitle() {
-    try {
-      setGeneratingSubtitle(true);
-      const res = await generateSubtitlesMutation({
-        variables: { scene_ids: [scene.id] },
-      });
-      if (res.data?.generateSubtitles) {
-        Toast.success(
-          intl.formatMessage({
-            id: "config.subtitle.generation_background",
-            defaultMessage: "Started generating subtitles in the background",
-          })
-        );
-      } else {
-        Toast.error(
-          intl.formatMessage({
-            id: "config.subtitle.generation_failed",
-            defaultMessage: "Failed to start subtitle generation",
-          })
-        );
-      }
-    } catch (e) {
-      Toast.error(e);
-    } finally {
-      setGeneratingSubtitle(false);
-    }
-  }
-
   function onDeleteDialogClosed(deleted: boolean) {
     setIsDeleteAlertOpen(false);
     if (deleted) {
@@ -500,27 +469,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
           onClick={() => setIsGenerateDialogOpen(true)}
         >
           <FormattedMessage id="actions.generate" />…
-        </Dropdown.Item>
-        <Dropdown.Item
-          key="generate-subtitle"
-          className="bg-secondary text-white"
-          onClick={() => onGenerateSubtitle()}
-          disabled={generatingSubtitle}
-        >
-          {generatingSubtitle ? (
-            <span>
-              <LoadingIndicator inline small />{" "}
-              <FormattedMessage
-                id="actions.generating"
-                defaultMessage="Generating..."
-              />
-            </span>
-          ) : (
-            <FormattedMessage
-              id="actions.generate_subtitle"
-              defaultMessage="Generate Subtitle"
-            />
-          )}
         </Dropdown.Item>
         <Dropdown.Item
           key="generate-screenshot"

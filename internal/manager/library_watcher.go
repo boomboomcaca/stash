@@ -171,8 +171,7 @@ func (lw *LibraryWatcher) shouldProcessEvent(event fsnotify.Event) bool {
 		return false
 	}
 
-	// Ignore subtitle files to prevent circular triggering
-	// (subtitle generation creates .srt files which would trigger another scan)
+	// Ignore subtitle files; they are not media files and should not trigger scans.
 	if fsutil.MatchExtension(event.Name, video.SubtitleExts) {
 		return false
 	}

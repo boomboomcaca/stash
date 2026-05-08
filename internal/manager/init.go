@@ -27,7 +27,6 @@ import (
 	"github.com/stashapp/stash/pkg/scraper"
 	"github.com/stashapp/stash/pkg/session"
 	"github.com/stashapp/stash/pkg/sqlite"
-	"github.com/stashapp/stash/pkg/subtitle"
 	"github.com/stashapp/stash/pkg/utils"
 	"github.com/stashapp/stash/ui"
 )
@@ -81,10 +80,6 @@ func Initialize(cfg *config.Config, l *log.Logger) (*Manager, error) {
 	dlnaRepository := dlna.NewRepository(repo)
 	dlnaService := dlna.NewService(dlnaRepository, cfg, sceneServer, repo.Scene, cfg.GetMinimumPlayPercent())
 
-	// Initialize subtitle service
-	subtitleConfig := subtitle.DefaultConfig()
-	subtitleService := subtitle.NewService(subtitleConfig)
-
 	mgr := &Manager{
 		Config: cfg,
 		Logger: l,
@@ -101,8 +96,7 @@ func Initialize(cfg *config.Config, l *log.Logger) (*Manager, error) {
 		PluginCache:  pluginCache,
 		ScraperCache: scraperCache,
 
-		DLNAService:     dlnaService,
-		SubtitleService: subtitleService,
+		DLNAService: dlnaService,
 
 		Database:   db,
 		Repository: repo,
