@@ -1,5 +1,5 @@
 import { VideoJsPlayer } from "video.js";
-import { togglePseudoFullscreen, isPseudoFullscreen } from "./util";
+import { togglePseudoFullscreen } from "./util";
 import { IEnhancedSubtitleNavigation } from "./types";
 
 export function handleHotkeys(
@@ -169,9 +169,8 @@ export function handleHotkeys(
     }
   }
 
-  // Handle Alt + Left/Right to seek by subtitles in fullscreen mode
-  const isFullscreen = player.isFullscreen?.() || isPseudoFullscreen();
-  if (isFullscreen && event.altKey && enhancedSubtitleNavigation) {
+  // Handle Alt + Left/Right to seek by subtitles
+  if (event.altKey && enhancedSubtitleNavigation) {
     if (event.which === 37) {
       // Alt + Left Arrow
       event.preventDefault();
