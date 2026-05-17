@@ -571,30 +571,7 @@ export const EnhancedSubtitleOverlay: React.FC<
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
         >
-          <svg
-            className="pulse-energy-ring"
-            viewBox="0 0 100 100"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <circle cx="50" cy="50" r="40" className="energy-ring-outer" />
-            <circle cx="50" cy="50" r="30" className="energy-ring-inner" />
-            <rect
-              x="36"
-              y="32"
-              width="8"
-              height="36"
-              rx="3.5"
-              className="pause-bar"
-            />
-            <rect
-              x="56"
-              y="32"
-              width="8"
-              height="36"
-              rx="3.5"
-              className="pause-bar"
-            />
-          </svg>
+          <span className="drag-dots">AP</span>
         </div>
 
         {currentCue && renderSegmentedText}
