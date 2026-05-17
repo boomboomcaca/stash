@@ -208,6 +208,7 @@
     background: rgba(0, 0, 0, 0.75); // 半透明黑色背景，确保在浅色背景中可见
     border: 2px solid rgba(156, 163, 175, 0.7); // 灰色边框 (gray-400) - 未启用
     border-radius: 50%; // 圆形
+    color: rgba(156, 163, 175, 0.9); // 默认灰色继承
     cursor: pointer;
     display: flex;
     height: 40px;
@@ -217,7 +218,7 @@
     pointer-events: auto; // 允许点击
     position: absolute;
     top: 50%; // 相对于父元素（.subtitle-text）垂直居中
-    // 🚀 性能优化：禁用触摸滚动
+    // 性能优化：禁用触摸滚动
     touch-action: none;
     transform: translateY(-50%); // 垂直居中偏移
 
@@ -238,14 +239,11 @@
     &.auto-pause-active {
       background: rgba(0, 0, 0, 0.75); // 保持一致的黑色背景
       border-color: rgba(34, 197, 94, 0.9); // 绿色边框 (green-500) - 已启用
+      color: rgba(34, 197, 94, 1); // 绿色状态继承
 
       &:hover {
         border-color: rgba(34, 197, 94, 1);
         box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
-      }
-
-      .drag-dots {
-        color: rgba(34, 197, 94, 1); // 绿色文字
       }
     }
 
@@ -253,14 +251,11 @@
     &.auto-pause-favorites {
       background: rgba(0, 0, 0, 0.75);
       border-color: rgba(59, 130, 246, 0.9); // 蓝色边框 (blue-500) - 收藏词模式
+      color: rgba(59, 130, 246, 1); // 蓝色状态继承
 
       &:hover {
         border-color: rgba(59, 130, 246, 1);
         box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
-      }
-
-      .drag-dots {
-        color: rgba(59, 130, 246, 1); // 蓝色文字
       }
     }
 
@@ -268,6 +263,7 @@
     &.manual-paused {
       background: rgba(0, 0, 0, 0.75);
       border-color: rgba(239, 68, 68, 0.9); // 红色边框 (red-500) - 手动暂停
+      color: rgba(239, 68, 68, 1); // 红色状态继承
 
       &:hover {
         border-color: rgba(239, 68, 68, 1);
@@ -283,6 +279,7 @@
         0,
         0.9
       ); // 黄色边框 - 自动暂停生效，与字幕一致
+      color: rgba(255, 255, 0, 1); // 黄色状态继承
 
       &:hover {
         border-color: rgba(255, 255, 0, 1);
@@ -290,14 +287,74 @@
       }
     }
 
-    .drag-dots {
-      color: rgba(156, 163, 175, 0.9); // 灰色文字 - 未启用
-      display: inline-block;
-      font-size: 1rem;
-      font-weight: bold;
-      letter-spacing: -1px;
-      text-shadow: none;
-      user-select: none;
+    // 律动能量环核心样式
+    .pulse-energy-ring {
+      display: block;
+      height: 24px;
+      pointer-events: none;
+      width: 24px;
+
+      .energy-ring-outer {
+        animation: ringRotate 10s linear infinite; // 外能量圈缓慢旋转
+        fill: none;
+        opacity: 0.25;
+        stroke: currentColor;
+        stroke-dasharray: 12 18; // 精美星环轨道虚线
+        stroke-width: 4;
+        transform-origin: center;
+        transition: stroke 0.3s ease, opacity 0.3s ease;
+      }
+
+      .energy-ring-inner {
+        fill: none;
+        opacity: 0.55;
+        stroke: currentColor;
+        stroke-width: 4;
+        transform-origin: center;
+        transition: stroke 0.3s ease, opacity 0.3s ease;
+      }
+
+      .pause-bar {
+        fill: currentColor;
+        transition: fill 0.3s ease;
+      }
+    }
+
+    // 状态特定的呼吸律动微调
+    &.auto-pause-active {
+      .energy-ring-outer {
+        opacity: 0.45;
+      }
+    }
+
+    &.auto-pause-favorites {
+      .energy-ring-outer {
+        opacity: 0.45;
+      }
+    }
+
+    &.auto-pause-paused {
+      .energy-ring-outer {
+        animation: ringRotate 4s linear infinite,
+          energyPulse 1.8s infinite ease-in-out;
+        opacity: 0.85;
+      }
+
+      .energy-ring-inner {
+        opacity: 0.8;
+      }
+    }
+
+    &.manual-paused {
+      .energy-ring-outer {
+        animation: ringRotate 4s linear infinite,
+          energyPulse 1.8s infinite ease-in-out;
+        opacity: 0.85;
+      }
+
+      .energy-ring-inner {
+        opacity: 0.8;
+      }
     }
   }
 
@@ -678,6 +735,33 @@ body.subtitle-dragging {
   50% {
     opacity: 0.9;
     transform: scale(1.15);
+  }
+}
+
+// 律动能量环旋转动画
+@keyframes ringRotate {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// 自动暂停挂起时的能量呼吸发光动画
+@keyframes energyPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    stroke-width: 4;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.95;
+    stroke-width: 6;
+    transform: scale(1.08);
   }
 }
 
