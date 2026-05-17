@@ -208,6 +208,7 @@
     background: rgba(0, 0, 0, 0.75); // 半透明黑色背景，确保在浅色背景中可见
     border: 2px solid rgba(156, 163, 175, 0.7); // 灰色边框 (gray-400) - 未启用
     border-radius: 50%; // 圆形
+    color: rgba(156, 163, 175, 0.9); // 默认灰色
     cursor: pointer;
     display: flex;
     height: 40px;
@@ -238,14 +239,11 @@
     &.auto-pause-active {
       background: rgba(0, 0, 0, 0.75); // 保持一致的黑色背景
       border-color: rgba(34, 197, 94, 0.9); // 绿色边框 (green-500) - 已启用
+      color: rgba(34, 197, 94, 1); // 绿色图标
 
       &:hover {
         border-color: rgba(34, 197, 94, 1);
         box-shadow: 0 0 12px rgba(34, 197, 94, 0.6);
-      }
-
-      .drag-dots {
-        color: rgba(34, 197, 94, 1); // 绿色文字
       }
     }
 
@@ -253,14 +251,11 @@
     &.auto-pause-favorites {
       background: rgba(0, 0, 0, 0.75);
       border-color: rgba(59, 130, 246, 0.9); // 蓝色边框 (blue-500) - 收藏词模式
+      color: rgba(59, 130, 246, 1); // 蓝色图标
 
       &:hover {
         border-color: rgba(59, 130, 246, 1);
         box-shadow: 0 0 12px rgba(59, 130, 246, 0.6);
-      }
-
-      .drag-dots {
-        color: rgba(59, 130, 246, 1); // 蓝色文字
       }
     }
 
@@ -290,14 +285,11 @@
       }
     }
 
-    .drag-dots {
-      color: rgba(156, 163, 175, 0.9); // 灰色文字 - 未启用
-      display: inline-block;
-      font-size: 1rem;
-      font-weight: bold;
-      letter-spacing: -1px;
-      text-shadow: none;
-      user-select: none;
+    .pause-icon {
+      display: block;
+      height: 18px;
+      pointer-events: none;
+      width: 18px;
     }
   }
 

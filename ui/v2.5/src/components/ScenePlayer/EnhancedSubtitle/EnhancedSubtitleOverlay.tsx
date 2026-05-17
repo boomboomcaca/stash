@@ -571,7 +571,28 @@ export const EnhancedSubtitleOverlay: React.FC<
           onTouchStart={handleAPTouchStart}
           onClick={handleAPClick}
         >
-          <span className="drag-dots">AP</span>
+          <svg
+            className="pause-icon"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="6"
+              y="4"
+              width="4"
+              height="16"
+              rx="1"
+              fill="currentColor"
+            />
+            <rect
+              x="14"
+              y="4"
+              width="4"
+              height="16"
+              rx="1"
+              fill="currentColor"
+            />
+          </svg>
         </div>
 
         {currentCue && renderSegmentedText}
