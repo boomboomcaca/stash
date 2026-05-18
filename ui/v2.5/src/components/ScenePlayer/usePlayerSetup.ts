@@ -273,9 +273,16 @@ export function usePlayerSetup({
     // 立即尝试拦截
     interceptFullscreenButton();
 
+    // 隐藏音量控件的无障碍标签，防止 UIA/OCR 取词时拾取 "Volume Level"
+    const hideVolumeA11y = () => {
+      const vol = vjs.el()?.querySelector(".vjs-volume-panel");
+      if (vol) vol.setAttribute("aria-hidden", "true");
+    };
+
     // 如果控制栏还未初始化，等待ready事件
     vjs.ready(() => {
       interceptFullscreenButton();
+      hideVolumeA11y();
     });
 
     // Video player destructor
