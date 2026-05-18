@@ -438,20 +438,68 @@ export const EnhancedSubtitleOverlay: React.FC<
     handlePronunciation,
   ]);
 
-  // Render segmented text with clickable words
+  // Render segmented text with clickable words, grouped by line with per-line language class
   const renderSegmentedText = useMemo(() => {
-    if (!currentCue || textTokens.length === 0) {
-      return (
-        currentCue?.text.split("\n").map((line, idx, arr) => (
-          <React.Fragment key={idx}>
-            {line}
-            {idx < arr.length - 1 && <br />}
-          </React.Fragment>
-        )) || ""
-      );
+    if (!currentCue) return null;
+
+    // Detect each line's language by CJK character ratio
+    const detectLineLang = (text: string): "en" | "zh" => {
+      const cleaned = text.replace(/\s/g, "");
+      if (cleaned.length === 0) return "en";
+      const cjkCount = (cleaned.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || [])
+        .length;
+      return cjkCount / cleaned.length > 0.3 ? "zh" : "en";
+    };
+
+    const cueLines = currentCue.text.split("\n");
+    const lineLangs = cueLines.map(detectLineLang);
+
+    // Fallback when no tokens (e.g. word segmentation not yet ready)
+    if (textTokens.length === 0) {
+      return cueLines.map((line, idx) => (
+        <div
+          key={`line-${idx}`}
+          className={`subtitle-line lang-${lineLangs[idx]}`}
+        >
+          {line}
+        </div>
+      ));
     }
 
-    const elements = textTokens.map((token, tokenIndex) => {
+    // Group tokens into lines (split at \n tokens). Chinese lines are rendered
+    // as plain text so word selection/click only works on English lines.
+    const lineElements: React.ReactNode[] = [];
+    let lineBuffer: React.ReactNode[] = [];
+    let lineIdx = 0;
+
+    const flushLine = () => {
+      const lang = lineLangs[lineIdx] ?? "en";
+      const content =
+        lang === "zh"
+          ? cueLines[lineIdx] || "\u00A0"
+          : lineBuffer.length > 0
+          ? lineBuffer
+          : "\u00A0";
+      lineElements.push(
+        <div key={`line-${lineIdx}`} className={`subtitle-line lang-${lang}`}>
+          {content}
+        </div>
+      );
+      lineBuffer = [];
+      lineIdx++;
+    };
+
+    textTokens.forEach((token, tokenIndex) => {
+      if (token.text === "\n") {
+        flushLine();
+        return;
+      }
+
+      // Skip token rendering for Chinese lines - they render as plain text
+      if ((lineLangs[lineIdx] ?? "en") === "zh") {
+        return;
+      }
+
       const isDragSelected = dragSelectedIndices.has(tokenIndex);
 
       if (token.isWord) {
@@ -461,7 +509,7 @@ export const EnhancedSubtitleOverlay: React.FC<
         const isSelectedInNav =
           isInWordNavigationMode && token.wordIndex === selectedWordIndex;
 
-        return (
+        lineBuffer.push(
           <span
             key={token.id}
             className={`subtitle-word ${
@@ -494,15 +542,11 @@ export const EnhancedSubtitleOverlay: React.FC<
           </span>
         );
       } else {
-        if (token.text === "\n") {
-          return <br key={token.id} />;
-        }
-
         const highlightClass = `subtitle-between-text${
           isDragSelected ? " drag-selected" : ""
         }${isDragSelected && justCopied ? " just-copied" : ""}`;
 
-        return (
+        lineBuffer.push(
           <span
             key={token.id}
             className={highlightClass}
@@ -515,7 +559,10 @@ export const EnhancedSubtitleOverlay: React.FC<
       }
     });
 
-    return elements;
+    // Flush the trailing line
+    flushLine();
+
+    return lineElements;
   }, [
     currentCue,
     textTokens,

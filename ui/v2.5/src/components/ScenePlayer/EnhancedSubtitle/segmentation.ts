@@ -27,9 +27,15 @@ export class WordSegmenter {
   // Latin-based languages (English, Spanish, French, etc.)
   private segmentLatin(text: string): IWordSegment[] {
     const segments: IWordSegment[] = [];
-    // Use Unicode property escapes to match letters (including accented ones like é, à) and numbers,
-    // optionally followed by apostrophes/hyphens inside the word.
-    const wordRegex = /[\p{L}\p{M}\p{N}]+(?:['\-][\p{L}\p{M}\p{N}]+)*/gu;
+    // Match Latin/Greek/Cyrillic letters and numbers (with diacritic marks),
+    // explicitly excluding CJK ideographs so bilingual subtitles do not
+    // produce Chinese "words" when the cue is segmented as Latin.
+    const letterClass =
+      "[A-Za-z\\u00C0-\\u024F\\u0370-\\u03FF\\u0400-\\u04FF\\p{M}\\p{N}]";
+    const wordRegex = new RegExp(
+      `${letterClass}+(?:['\\-]${letterClass}+)*`,
+      "gu"
+    );
     let match;
 
     while ((match = wordRegex.exec(text)) !== null) {
@@ -159,8 +165,21 @@ export function createSegmenter(
 
 // Utility function to detect language from text
 export function detectLanguage(text: string): string {
-  // Simple language detection based on character ranges
-  if (/[\u4e00-\u9fff]/.test(text)) {
+  const hasCjk = /[\u4e00-\u9fff]/.test(text);
+  const hasLatin = /[A-Za-z]/.test(text);
+
+  // Bilingual subtitle (e.g. English + Chinese): prefer the Latin language so
+  // word segmentation/selection still works on the English line. The Chinese
+  // line is rendered separately as plain text.
+  if (hasCjk && hasLatin) {
+    if (/[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/i.test(text)) return "fr";
+    if (/[äöüß]/i.test(text)) return "de";
+    if (/[ñ¿¡]/i.test(text)) return "es";
+    return "en";
+  }
+
+  // Pure CJK / other scripts
+  if (hasCjk) {
     return "zh";
   } else if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) {
     return "ja";
