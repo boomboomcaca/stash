@@ -159,15 +159,12 @@ export function useAutoPause({
         }
 
         if (lastPausedStateRef.current === true && isPaused === false) {
-          if (autoPauseTriggeredRef.current && isAutoPaused) {
+          if (autoPauseTriggeredRef.current) {
+            // Use ref (synchronous) instead of isAutoPaused (async React state)
+            // to avoid race condition where stale closure misses the correct branch
             userResumedPlaybackRef.current = true;
-            setIsAutoPaused(false);
-            clearAutoPauseTimeout();
-          } else if (autoPauseTriggeredRef.current && !isAutoPaused) {
             autoPauseTriggeredRef.current = false;
-            // Don't reset userResumedPlaybackRef - it may have been set to true
-            // by resumePlayback() and resetting it here causes a race condition
-            // where auto-pause re-triggers on the same cue
+            setIsAutoPaused(false);
             clearAutoPauseTimeout();
           }
         }

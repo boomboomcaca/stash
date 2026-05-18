@@ -564,8 +564,6 @@ export const EnhancedSubtitleOverlay: React.FC<
               : autoPauseMode === "favorites"
               ? "auto-pause-favorites"
               : ""
-          } ${isAutoPaused ? "auto-pause-paused" : ""} ${
-            isPlayerPaused && !isAutoPaused ? "manual-paused" : ""
           }`}
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}
@@ -576,22 +574,28 @@ export const EnhancedSubtitleOverlay: React.FC<
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <rect
-              x="6"
-              y="4"
-              width="4"
-              height="16"
-              rx="1"
-              fill="currentColor"
-            />
-            <rect
-              x="14"
-              y="4"
-              width="4"
-              height="16"
-              rx="1"
-              fill="currentColor"
-            />
+            {isPlayerPaused || isAutoPaused ? (
+              <>
+                <rect
+                  x="6"
+                  y="4"
+                  width="4"
+                  height="16"
+                  rx="1"
+                  fill="currentColor"
+                />
+                <rect
+                  x="14"
+                  y="4"
+                  width="4"
+                  height="16"
+                  rx="1"
+                  fill="currentColor"
+                />
+              </>
+            ) : (
+              <polygon points="8,4 20,12 8,20" fill="currentColor" />
+            )}
           </svg>
         </div>
 

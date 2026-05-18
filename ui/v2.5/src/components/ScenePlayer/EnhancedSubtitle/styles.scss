@@ -259,32 +259,6 @@
       }
     }
 
-    // Auto-paused state (currently paused by auto-pause or manually)
-    &.manual-paused {
-      background: rgba(0, 0, 0, 0.75);
-      border-color: rgba(239, 68, 68, 0.9); // 红色边框 (red-500) - 手动暂停
-
-      &:hover {
-        border-color: rgba(239, 68, 68, 1);
-        box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
-      }
-    }
-
-    &.auto-pause-paused {
-      background: rgba(0, 0, 0, 0.75);
-      border-color: rgba(
-        255,
-        255,
-        0,
-        0.9
-      ); // 黄色边框 - 自动暂停生效，与字幕一致
-
-      &:hover {
-        border-color: rgba(255, 255, 0, 1);
-        box-shadow: 0 0 12px rgba(255, 255, 0, 0.6);
-      }
-    }
-
     .pause-icon {
       display: block;
       height: 18px;
