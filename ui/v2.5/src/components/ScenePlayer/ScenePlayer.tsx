@@ -2,6 +2,7 @@ import React, {
   KeyboardEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -35,6 +36,7 @@ import {
 } from "src/core/StashService";
 
 import { ScenePlayerScrubber } from "./ScenePlayerScrubber";
+import { addPseudoFullscreenListener } from "./util";
 import { useConfigurationContext } from "src/hooks/Config";
 import {
   ConnectionState,
@@ -209,7 +211,24 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       hideControlBarRef.current = hideControlBar;
     }, [hideControlBar]);
 
+    // 直接订阅伪全屏状态：监听器在 togglePseudoFullscreen() 的同步调用栈内被调用，
+    // 此时 DOM class 刚刚切换、浏览器尚未绘制。在这里同步设置 fullscreen 与
+    // showScrubber，React 会批处理为单次渲染，从根源避免 scrubber 残留一帧的闪现。
     useEffect(() => {
+      return addPseudoFullscreenListener((isFullscreen) => {
+        setFullscreen(isFullscreen);
+        if (isFullscreen) {
+          // 进入伪全屏：同步隐藏 scrubber，与 fullscreen=true 在同一批次内 commit。
+          setShowScrubber(false);
+        }
+        // 退出伪全屏的 showScrubber 重新计算交给下方 useLayoutEffect 处理，
+        // 它会在同一帧内根据当前窗口尺寸恢复 scrubber。
+      });
+    }, []);
+
+    // 处理 hideScrubberOverride / 窗口尺寸变化 / 退出全屏后的 scrubber 显示。
+    // 使用 useLayoutEffect 确保状态更新在浏览器绘制前完成。
+    useLayoutEffect(() => {
       if (hideScrubberOverride || fullscreen) {
         setShowScrubber(false);
         return;
