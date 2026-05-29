@@ -143,6 +143,17 @@ const (
 	NoProxy        = "no_proxy"
 	noProxyDefault = "localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12"
 
+	// subtitle (caption) generation via an external ASR service (parakeet-api).
+	// SubtitleGenerationURL is the base URL of the service exposing
+	// POST /v1/audio/transcriptions. SubtitleGenerationLanguage is the
+	// language code sent as the "prompt" field and stored as the caption
+	// language. parakeet does not support Chinese, so this targets
+	// non-Chinese (English/Japanese/European) audio.
+	SubtitleGenerationURL         = "subtitle_generation_url"
+	subtitleGenerationURLDefault  = "http://192.168.1.113:5092"
+	SubtitleGenerationLanguage    = "subtitle_generation_language"
+	subtitleGenerationLangDefault = "en"
+
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
 
@@ -861,6 +872,26 @@ func (i *Config) GetScrapersPath() string {
 
 func (i *Config) GetScraperUserAgent() string {
 	return i.getString(ScraperUserAgent)
+}
+
+// GetSubtitleGenerationURL returns the base URL of the external ASR service
+// (parakeet-api) used to generate captions for videos without subtitles.
+func (i *Config) GetSubtitleGenerationURL() string {
+	ret := i.getString(SubtitleGenerationURL)
+	if ret == "" {
+		return subtitleGenerationURLDefault
+	}
+	return strings.TrimRight(ret, "/")
+}
+
+// GetSubtitleGenerationLanguage returns the language code sent to the ASR
+// service and stored as the generated caption's language.
+func (i *Config) GetSubtitleGenerationLanguage() string {
+	ret := i.getString(SubtitleGenerationLanguage)
+	if ret == "" {
+		return subtitleGenerationLangDefault
+	}
+	return ret
 }
 
 // GetScraperCDPPath gets the path to the Chrome executable or remote address
@@ -1960,6 +1991,10 @@ func (i *Config) setDefaultValues() {
 
 	// Set NoProxy default
 	i.setDefault(NoProxy, noProxyDefault)
+
+	// Set subtitle generation defaults
+	i.setDefault(SubtitleGenerationURL, subtitleGenerationURLDefault)
+	i.setDefault(SubtitleGenerationLanguage, subtitleGenerationLangDefault)
 
 	// set default package sources
 	i.setDefault(PluginPackageSources, []map[string]string{{

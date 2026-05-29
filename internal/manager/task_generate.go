@@ -33,6 +33,8 @@ type GenerateMetadataInput struct {
 	InteractiveHeatmapsSpeeds bool `json:"interactiveHeatmapsSpeeds"`
 	ClipPreviews              bool `json:"clipPreviews"`
 	ImageThumbnails           bool `json:"imageThumbnails"`
+	// Subtitles generates captions for videos without them via the configured ASR service
+	Subtitles bool `json:"subtitles"`
 	// scene ids to generate for
 	SceneIDs []string `json:"sceneIDs"`
 	// marker ids to generate for
@@ -84,6 +86,7 @@ type totalsGenerate struct {
 	interactiveHeatmapSpeeds int64
 	clipPreviews             int64
 	imageThumbnails          int64
+	subtitles                int64
 
 	tasks int
 }
@@ -237,6 +240,9 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 		}
 		if j.input.ImageThumbnails {
 			logMsg += fmt.Sprintf(" %d image thumbnails", totals.imageThumbnails)
+		}
+		if j.input.Subtitles {
+			logMsg += fmt.Sprintf(" %d subtitles", totals.subtitles)
 		}
 		if logMsg == "Generating" {
 			logMsg = "Nothing selected to generate"
@@ -538,6 +544,20 @@ func (j *GenerateJob) queueSceneJobs(ctx context.Context, g *generate.Generator,
 
 		if task.required() {
 			j.totals.interactiveHeatmapSpeeds++
+			j.totals.tasks++
+			queue <- task
+		}
+	}
+
+	if j.input.Subtitles {
+		task := &GenerateSubtitlesTask{
+			repository: r,
+			Scene:      *scene,
+			Overwrite:  j.overwrite,
+		}
+
+		if task.required(ctx) {
+			j.totals.subtitles++
 			j.totals.tasks++
 			queue <- task
 		}

@@ -151,6 +151,14 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
             headingID="dialogs.scene_gen.interactive_heatmap_speed"
             onChange={(v) => setOptions({ interactiveHeatmapsSpeeds: v })}
           />
+
+          <BooleanSetting
+            id="subtitles-task"
+            checked={options.subtitles ?? false}
+            headingID="dialogs.scene_gen.subtitles"
+            tooltipID="dialogs.scene_gen.subtitles_tooltip"
+            onChange={(v) => setOptions({ subtitles: v })}
+          />
         </>
       )}
       {showImageOptions && (

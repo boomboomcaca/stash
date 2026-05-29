@@ -1090,6 +1090,8 @@
       "preview_seg_duration_head": "Preview segment duration",
       "sprites": "Scene scrubber sprites",
       "sprites_tooltip": "The set of images displayed below the video player for easy navigation.",
+      "subtitles": "Subtitles",
+      "subtitles_tooltip": "Generate subtitles for videos that have no captions, using the configured speech-to-text service (parakeet). Does not support Chinese audio.",
       "transcodes": "Transcodes",
       "transcodes_tooltip": "MP4 transcodes will be pre-generated for all content; useful for slow CPUs but requires much more disk space",
       "video_previews": "Previews",
