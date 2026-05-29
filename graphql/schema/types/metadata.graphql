@@ -19,6 +19,8 @@ input GenerateMetadataInput {
   clipPreviews: Boolean
   "Generate subtitles for videos without captions using the configured ASR service"
   subtitles: Boolean
+  "Language code for subtitle generation for this run (Parakeet prompt + caption label). Overrides the configured default."
+  subtitleLanguage: String
 
   "scene ids to generate for"
   sceneIDs: [ID!]
@@ -63,6 +65,7 @@ type GenerateMetadataOptions {
   imageThumbnails: Boolean
   clipPreviews: Boolean
   subtitles: Boolean
+  subtitleLanguage: String
 }
 
 type GeneratePreviewOptions {

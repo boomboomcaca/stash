@@ -1090,6 +1090,8 @@
       "preview_seg_duration_head": "Preview segment duration",
       "sprites": "Scene scrubber sprites",
       "sprites_tooltip": "The set of images displayed below the video player for easy navigation.",
+      "subtitle_language": "Subtitle language",
+      "subtitle_language_desc": "Language spoken in the selected videos. Sent to the speech-to-text service and used as the generated caption's language tag. Choose Japanese for Japanese audio. parakeet does not support Chinese.",
       "subtitles": "Subtitles",
       "subtitles_tooltip": "Generate subtitles for videos that have no captions, using the configured speech-to-text service (parakeet). Does not support Chinese audio.",
       "transcodes": "Transcodes",

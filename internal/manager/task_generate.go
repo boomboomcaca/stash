@@ -35,6 +35,8 @@ type GenerateMetadataInput struct {
 	ImageThumbnails           bool `json:"imageThumbnails"`
 	// Subtitles generates captions for videos without them via the configured ASR service
 	Subtitles bool `json:"subtitles"`
+	// SubtitleLanguage overrides the configured language for this run (Parakeet prompt + caption label)
+	SubtitleLanguage *string `json:"subtitleLanguage"`
 	// scene ids to generate for
 	SceneIDs []string `json:"sceneIDs"`
 	// marker ids to generate for
@@ -550,10 +552,15 @@ func (j *GenerateJob) queueSceneJobs(ctx context.Context, g *generate.Generator,
 	}
 
 	if j.input.Subtitles {
+		lang := ""
+		if j.input.SubtitleLanguage != nil {
+			lang = *j.input.SubtitleLanguage
+		}
 		task := &GenerateSubtitlesTask{
 			repository: r,
 			Scene:      *scene,
 			Overwrite:  j.overwrite,
+			Language:   lang,
 		}
 
 		if task.required(ctx) {

@@ -30,6 +30,9 @@ type GenerateSubtitlesTask struct {
 	repository models.Repository
 	Scene      models.Scene
 	Overwrite  bool
+	// Language overrides the configured default for this run (Parakeet prompt + caption label).
+	// Empty means fall back to the configured GetSubtitleGenerationLanguage.
+	Language string
 }
 
 func (t *GenerateSubtitlesTask) GetDescription() string {
@@ -66,7 +69,10 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 
 	fileID := f.Base().ID
 	videoPath := f.Path
-	lang := config.GetInstance().GetSubtitleGenerationLanguage()
+	lang := t.Language
+	if lang == "" {
+		lang = config.GetInstance().GetSubtitleGenerationLanguage()
+	}
 
 	// re-check captions here in case they were added since queuing
 	if !t.Overwrite {

@@ -21,6 +21,7 @@ type GenerateMetadataOptions struct {
 	ImageThumbnails           bool                    `json:"imageThumbnails"`
 	ClipPreviews              bool                    `json:"clipPreviews"`
 	Subtitles                 bool                    `json:"subtitles"`
+	SubtitleLanguage          string                  `json:"subtitleLanguage"`
 }
 
 type GeneratePreviewOptions struct {

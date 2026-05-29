@@ -1,10 +1,26 @@
 import React from "react";
 import * as GQL from "src/core/generated-graphql";
-import { BooleanSetting, ModalSetting } from "../Inputs";
+import { BooleanSetting, ModalSetting, SelectSetting } from "../Inputs";
 import {
   VideoPreviewInput,
   VideoPreviewSettingsInput,
 } from "../GeneratePreviewOptions";
+
+// Languages supported by the parakeet ASR service. The "default" (English)
+// model also auto-handles ~25 European languages; Japanese and Vietnamese
+// use dedicated models and must be selected explicitly. Chinese is not
+// supported by parakeet, so it is intentionally absent.
+const SUBTITLE_LANGUAGES: { code: string; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "ja", label: "日本語 (Japanese)" },
+  { code: "vi", label: "Tiếng Việt (Vietnamese)" },
+  { code: "es", label: "Español (Spanish)" },
+  { code: "fr", label: "Français (French)" },
+  { code: "de", label: "Deutsch (German)" },
+  { code: "it", label: "Italiano (Italian)" },
+  { code: "pt", label: "Português (Portuguese)" },
+  { code: "ru", label: "Русский (Russian)" },
+];
 
 interface IGenerateOptions {
   type?: "scene" | "image" | "gallery";
@@ -159,6 +175,21 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
             tooltipID="dialogs.scene_gen.subtitles_tooltip"
             onChange={(v) => setOptions({ subtitles: v })}
           />
+          <SelectSetting
+            id="subtitle-language"
+            className="sub-setting"
+            disabled={!options.subtitles}
+            headingID="dialogs.scene_gen.subtitle_language"
+            subHeadingID="dialogs.scene_gen.subtitle_language_desc"
+            value={options.subtitleLanguage ?? "en"}
+            onChange={(v) => setOptions({ subtitleLanguage: v })}
+          >
+            {SUBTITLE_LANGUAGES.map((l) => (
+              <option value={l.code} key={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </SelectSetting>
         </>
       )}
       {showImageOptions && (
