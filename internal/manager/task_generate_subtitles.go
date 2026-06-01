@@ -6,6 +6,7 @@ import (
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,7 +19,10 @@ import (
 	"github.com/stashapp/stash/pkg/txn"
 )
 
-const subtitleTranscribePath = "/v1/audio/transcriptions"
+const (
+	subtitleTranscribePath = "/v1/audio/transcriptions"
+	subtitleTranslatePath  = "/v1/translate"
+)
 
 // GenerateSubtitlesTask generates a caption (subtitle) file for a scene's
 // primary video file by sending its audio to an external ASR service
@@ -62,6 +66,15 @@ func (t *GenerateSubtitlesTask) required(ctx context.Context) bool {
 }
 
 func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
+	// the scene may not have its primary file loaded yet (e.g. when invoked
+	// from a scan), so load it before use.
+	if err := t.repository.WithReadTxn(ctx, func(ctx context.Context) error {
+		return t.Scene.LoadPrimaryFile(ctx, t.repository.File)
+	}); err != nil {
+		logger.Errorf("[subtitles] error loading primary file for scene %d: %v", t.Scene.ID, err)
+		return
+	}
+
 	f := t.Scene.Files.Primary()
 	if f == nil {
 		return
@@ -69,9 +82,17 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 
 	fileID := f.Base().ID
 	videoPath := f.Path
+	// marker written next to the video when a previous run produced no usable
+	// subtitles (e.g. Chinese / unsupported language). lets rescans skip the
+	// file instead of re-running detection+ASR every time.
+	subskipPath := videoPath + ".subskip"
+
+	// determine the language to send to the ASR service. an explicit per-run
+	// Language wins; otherwise fall back to the configured default language.
+	cfg := config.GetInstance()
 	lang := t.Language
 	if lang == "" {
-		lang = config.GetInstance().GetSubtitleGenerationLanguage()
+		lang = cfg.GetSubtitleGenerationLanguage()
 	}
 
 	// re-check captions here in case they were added since queuing
@@ -88,6 +109,16 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 		if len(existing) > 0 {
 			return
 		}
+
+		// skip files a previous run already determined have no usable
+		// subtitles (e.g. Chinese), so rescans don't reprocess them.
+		if _, err := os.Stat(subskipPath); err == nil {
+			logger.Debugf("[subtitles] skipping %s (previously marked no-subtitles)", videoPath)
+			return
+		}
+	} else {
+		// a forced (overwrite) run should retry: clear any stale skip marker.
+		_ = os.Remove(subskipPath)
 	}
 
 	// extract audio to a temporary 16kHz mono wav for transcription.
@@ -106,31 +137,113 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 		return
 	}
 
-	srt, err := t.transcribe(ctx, audioPath, lang)
+	srt, detected, err := t.transcribe(ctx, audioPath, lang)
 	if err != nil {
 		logger.Errorf("[subtitles] error transcribing %s: %v", videoPath, err)
 		return
 	}
 
-	// guard against empty or non-SRT responses (e.g. very short clips return
-	// plain text without timestamps, which is not a usable caption)
+	// guard against empty or non-SRT responses. this also covers the case
+	// where the service detected an unsupported language (e.g. Chinese) and
+	// returned no transcription.
 	if !strings.Contains(srt, "-->") {
-		logger.Warnf("[subtitles] ASR service returned no usable subtitles for %s", videoPath)
+		logger.Warnf("[subtitles] ASR service returned no usable subtitles for %s (detected language %q)", videoPath, detected)
+		// record a skip marker so future rescans don't reprocess this file.
+		// transcription errors return earlier and are intentionally not marked,
+		// so transient failures can be retried; a forced overwrite run clears it.
+		marker := detected
+		if marker == "" {
+			marker = "none"
+		}
+		if err := os.WriteFile(subskipPath, []byte(marker+"\n"), 0644); err != nil {
+			logger.Debugf("[subtitles] could not write skip marker %s: %v", subskipPath, err)
+		}
 		return
 	}
 
-	captionPath := video.GetCaptionPath(videoPath, lang, "srt")
-	if err := os.WriteFile(captionPath, []byte(srt), 0644); err != nil {
+	// source language: prefer what the service reports, falling back to the
+	// requested language. "default" is the service's multilingual model key,
+	// not a real language, so resolve it to the configured default.
+	srcLang := detected
+	if srcLang == "" || srcLang == "default" {
+		srcLang = lang
+	}
+	if srcLang == "default" {
+		srcLang = cfg.GetSubtitleGenerationLanguage()
+	}
+
+	// produce the final subtitle. non-English content is translated to the
+	// configured target (default Chinese); English is kept as-is. only the
+	// final result is kept, written as a single file named exactly like the
+	// video (e.g. movie.srt, no language suffix).
+	finalSRT := srt
+	contentLang := srcLang
+	if cfg.GetSubtitleGenerationTranslate() {
+		target := cfg.GetSubtitleGenerationTranslateTo()
+		if srcLang != "" && srcLang != "en" && srcLang != target {
+			translated, terr := t.translate(ctx, srt, target)
+			if terr != nil {
+				// transient (e.g. Ollama down): write nothing so the file is
+				// retried next run rather than left in the source language.
+				logger.Errorf("[subtitles] error translating %s->%s for %s: %v", srcLang, target, videoPath, terr)
+				return
+			}
+			if !strings.Contains(translated, "-->") {
+				logger.Warnf("[subtitles] translation produced no usable subtitles for %s; will retry", videoPath)
+				return
+			}
+			finalSRT = translated
+			contentLang = target
+		}
+	}
+
+	// single caption file named exactly like the video (e.g. movie.srt).
+	captionPath := video.GetCaptionPath(videoPath, "", "srt")
+	if err := os.WriteFile(captionPath, []byte(finalSRT), 0644); err != nil {
 		logger.Errorf("[subtitles] error writing caption file %s: %v", captionPath, err)
 		return
 	}
 
-	if err := t.associateCaption(ctx, fileID, captionPath, lang); err != nil {
+	// associate with LangUnknown so the language derived from the suffix-less
+	// filename matches, avoiding duplicate caption entries on later scans.
+	if err := t.associateCaption(ctx, fileID, captionPath, video.LangUnknown); err != nil {
 		logger.Errorf("[subtitles] error associating caption for %s: %v", videoPath, err)
 		return
 	}
 
-	logger.Infof("[subtitles] generated %s caption for %s", lang, videoPath)
+	logger.Infof("[subtitles] generated %s caption (%s) for %s", contentLang, filepath.Base(captionPath), videoPath)
+}
+
+// translate sends an SRT body to the service /v1/translate and returns the
+// translated SRT.
+func (t *GenerateSubtitlesTask) translate(ctx context.Context, srt, target string) (string, error) {
+	serviceURL := config.GetInstance().GetSubtitleGenerationURL() + subtitleTranslatePath
+	form := url.Values{}
+	form.Set("text", srt)
+	form.Set("target", target)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// no client timeout: translating long videos can take minutes; cancellation
+	// is handled via the request context.
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("translate service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return string(body), nil
 }
 
 // extractAudio extracts the audio track of videoPath to a 16kHz mono wav at
@@ -146,8 +259,10 @@ func (t *GenerateSubtitlesTask) extractAudio(ctx context.Context, videoPath, aud
 	return instance.FFMpeg.Generate(ctx, args)
 }
 
-// transcribe uploads the audio file to the ASR service and returns the SRT body.
-func (t *GenerateSubtitlesTask) transcribe(ctx context.Context, audioPath, lang string) (string, error) {
+// transcribe uploads the audio file to the ASR service and returns the SRT
+// body along with the language the service reports via the X-Detected-Language
+// header (empty if not provided).
+func (t *GenerateSubtitlesTask) transcribe(ctx context.Context, audioPath, lang string) (string, string, error) {
 	serviceURL := config.GetInstance().GetSubtitleGenerationURL() + subtitleTranscribePath
 
 	pr, pw := io.Pipe()
@@ -179,7 +294,7 @@ func (t *GenerateSubtitlesTask) transcribe(ctx context.Context, audioPath, lang 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, pr)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Set("Content-Type", contentType)
 
@@ -187,20 +302,20 @@ func (t *GenerateSubtitlesTask) transcribe(ctx context.Context, audioPath, lang 
 	// cancellation is handled via the request context.
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return "", "", fmt.Errorf("service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
-	return string(body), nil
+	return string(body), resp.Header.Get("X-Detected-Language"), nil
 }
 
 // associateCaption records the generated caption against the video file so it

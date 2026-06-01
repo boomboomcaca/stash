@@ -6,10 +6,9 @@ import {
   VideoPreviewSettingsInput,
 } from "../GeneratePreviewOptions";
 
-// Languages supported by the parakeet ASR service. The "default" (English)
-// model also auto-handles ~25 European languages; Japanese and Vietnamese
-// use dedicated models and must be selected explicitly. Chinese is not
-// supported by parakeet, so it is intentionally absent.
+// Languages supported by the parakeet ASR service. The "en" model also
+// auto-handles ~25 European languages; Japanese and Vietnamese use dedicated
+// models. Chinese is not supported by parakeet, so it is intentionally absent.
 const SUBTITLE_LANGUAGES: { code: string; label: string }[] = [
   { code: "en", label: "English" },
   { code: "ja", label: "日本語 (Japanese)" },

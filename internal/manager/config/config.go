@@ -153,6 +153,12 @@ const (
 	subtitleGenerationURLDefault  = "http://192.168.1.113:5092"
 	SubtitleGenerationLanguage    = "subtitle_generation_language"
 	subtitleGenerationLangDefault = "en"
+	// SubtitleGenerationTranslate, when true, translates non-English generated
+	// captions to SubtitleGenerationTranslateTo via the service /v1/translate.
+	SubtitleGenerationTranslate          = "subtitle_generation_translate"
+	subtitleGenerationTranslateDefault   = true
+	SubtitleGenerationTranslateTo        = "subtitle_generation_translate_to"
+	subtitleGenerationTranslateToDefault = "zh"
 
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
@@ -890,6 +896,22 @@ func (i *Config) GetSubtitleGenerationLanguage() string {
 	ret := i.getString(SubtitleGenerationLanguage)
 	if ret == "" {
 		return subtitleGenerationLangDefault
+	}
+	return ret
+}
+
+// GetSubtitleGenerationTranslate reports whether non-English generated captions
+// should be translated to GetSubtitleGenerationTranslateTo.
+func (i *Config) GetSubtitleGenerationTranslate() bool {
+	return i.getBoolDefault(SubtitleGenerationTranslate, subtitleGenerationTranslateDefault)
+}
+
+// GetSubtitleGenerationTranslateTo returns the target language code that
+// non-English captions are translated to (default Chinese).
+func (i *Config) GetSubtitleGenerationTranslateTo() string {
+	ret := i.getString(SubtitleGenerationTranslateTo)
+	if ret == "" {
+		return subtitleGenerationTranslateToDefault
 	}
 	return ret
 }
