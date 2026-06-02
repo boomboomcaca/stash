@@ -1,8 +1,9 @@
 import { useEffect, useCallback } from "react";
+import { useIntl } from "react-intl";
 import { VideoJsPlayer } from "video.js";
 import { UAParser } from "ua-parser-js";
 import * as GQL from "src/core/generated-graphql";
-import { languageMap } from "src/utils/caption";
+import { getLanguageDisplayName } from "src/utils/caption";
 import { type IMarker } from "./markers";
 import { getMarkerTitle, type MarkerFragment } from "./types";
 import ScreenUtils from "src/utils/screen";
@@ -57,6 +58,8 @@ export function useSceneLoading({
   auto,
   started,
 }: IUseSceneLoadingProps) {
+  const intl = useIntl();
+
   useEffect(() => {
     const player = getPlayer();
     if (!player) return;
@@ -139,7 +142,7 @@ export function useSceneLoading({
 
       for (let caption of scene.captions) {
         const lang = caption.language_code;
-        const label = `${languageMap.get(lang) || lang} (${
+        const label = `${getLanguageDisplayName(lang, intl.locale)} (${
           caption.caption_type
         })`;
         const setAsDefault = !hasDefault && languageCode == lang;
@@ -248,6 +251,7 @@ export function useSceneLoading({
     auto,
     started,
     sceneId,
+    intl.locale,
   ]);
 
   const loadMarkers = useCallback(

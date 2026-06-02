@@ -50,7 +50,7 @@ class SubtitleTrackMenuButton extends MenuButton {
 
     // "Off" item
     const offItem = new MenuItem(this.player(), {
-      label: "Off",
+      label: this.localize("Off"),
       selectable: true,
       selected: this.selectedSrc === null,
     });
