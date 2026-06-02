@@ -7,6 +7,15 @@ import {
 } from "./util";
 import { handleHotkeys } from "./handleHotkeys";
 import { EnhancedSubtitleButton } from "./enhanced-subtitle-button";
+// Side-effect import: ensures the subtitleTrackMenu plugin/component is
+// registered with video.js. The named imports below are type-only and would
+// otherwise be tree-shaken, dropping the registerPlugin() call and causing
+// "vjs.subtitleTrackMenu is not a function".
+import "./subtitle-track-menu";
+import type {
+  SubtitleTrackMenuButton,
+  ISubtitleTrackOption,
+} from "./subtitle-track-menu";
 import { IEnhancedSubtitleNavigation } from "./types";
 
 interface IUsePlayerSetupProps {
@@ -22,6 +31,8 @@ interface IUsePlayerSetupProps {
   controlBarVisibleRef: React.MutableRefObject<boolean>;
   hideControlBarRef: React.MutableRefObject<(() => void) | null>;
   enhancedSubtitleButtonRef: React.MutableRefObject<unknown>;
+  subtitleTrackMenuRef: React.MutableRefObject<SubtitleTrackMenuButton | null>;
+  onSelectSubtitleTrack: (option: ISubtitleTrackOption | null) => void;
 }
 
 export function usePlayerSetup({
@@ -36,6 +47,8 @@ export function usePlayerSetup({
   controlBarVisibleRef,
   hideControlBarRef,
   enhancedSubtitleButtonRef,
+  subtitleTrackMenuRef,
+  onSelectSubtitleTrack,
 }: IUsePlayerSetupProps) {
   const [_player, setPlayer] = useState<VideoJsPlayer>();
   const sceneId = useRef<string>();
@@ -190,6 +203,14 @@ export function usePlayerSetup({
 
     // 保存按钮引用
     enhancedSubtitleButtonRef.current = subtitleButton;
+
+    // 初始化字幕轨选择菜单（列出该视频的所有字幕轨，可手动切换）
+    const trackMenu = vjs.subtitleTrackMenu({
+      onSelect: (option) => {
+        onSelectSubtitleTrack(option);
+      },
+    });
+    subtitleTrackMenuRef.current = trackMenu;
 
     // 初始化时设置字幕可用性（默认为不可用，等待场景加载）
     if (

@@ -24,8 +24,19 @@ interface IUseSceneLoadingProps {
   setTime: (value: number) => void;
   setCurrentSubtitleTrack: (value: string | null) => void;
   setSubtitleLanguage: (value: string) => void;
+  setSubtitleTrackOptions?: (
+    options: ISubtitleTrackOption[],
+    selectedSrc: string | null
+  ) => void;
   auto: React.MutableRefObject<boolean>;
   started: React.MutableRefObject<boolean>;
+}
+
+// One selectable enhanced-subtitle track for the track-selection menu.
+export interface ISubtitleTrackOption {
+  src: string;
+  lang: string;
+  label: string;
 }
 
 export function useSceneLoading({
@@ -42,6 +53,7 @@ export function useSceneLoading({
   setTime,
   setCurrentSubtitleTrack,
   setSubtitleLanguage,
+  setSubtitleTrackOptions,
   auto,
   started,
 }: IUseSceneLoadingProps) {
@@ -123,6 +135,8 @@ export function useSceneLoading({
       let defaultTrackSrc = null;
       let defaultLang = "en";
 
+      const trackOptions: ISubtitleTrackOption[] = [];
+
       for (let caption of scene.captions) {
         const lang = caption.language_code;
         const label = `${languageMap.get(lang) || lang} (${
@@ -140,6 +154,8 @@ export function useSceneLoading({
           defaultLang = lang;
         }
 
+        trackOptions.push({ src: trackSrc, lang, label });
+
         // 原生字幕默认不显示，由增强字幕按钮控制增强字幕
         sourceSelector.addTextTrack(
           {
@@ -154,21 +170,27 @@ export function useSceneLoading({
       }
 
       // Set the default or first track for enhanced subtitles
+      let selectedSrc: string | null;
       if (defaultTrackSrc) {
+        selectedSrc = defaultTrackSrc;
         setCurrentSubtitleTrack(defaultTrackSrc);
         setSubtitleLanguage(defaultLang);
       } else {
         const firstCaption = scene.captions[0];
-        setCurrentSubtitleTrack(
+        selectedSrc =
           withApiKey(
             `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`
-          ) ?? ""
-        );
+          ) ?? "";
+        setCurrentSubtitleTrack(selectedSrc);
         setSubtitleLanguage(firstCaption.language_code);
       }
+
+      // Feed the available tracks to the track-selection menu
+      setSubtitleTrackOptions?.(trackOptions, selectedSrc);
     } else {
       // 没有字幕时，重置字幕轨道为null
       setCurrentSubtitleTrack(null);
+      setSubtitleTrackOptions?.([], null);
     }
 
     auto.current =
@@ -222,6 +244,7 @@ export function useSceneLoading({
     setTime,
     setCurrentSubtitleTrack,
     setSubtitleLanguage,
+    setSubtitleTrackOptions,
     auto,
     started,
     sceneId,

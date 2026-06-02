@@ -80,6 +80,33 @@ export function useControlBarManagement({
     }
   }, [getPlayer, showEnhancedSubtitlesRef, controlBarVisibleRef]);
 
+  // Toggle the control bar lock and keep it pinned (no auto-hide timer).
+  // Used by the AP icon double-click: first double-click unlocks and keeps the
+  // control bar (and scrubber) visible; double-click again to re-lock/hide.
+  const toggleControlBarLock = useCallback(() => {
+    const player = getPlayer();
+    const playerEl = player?.el() as HTMLElement | undefined;
+    if (!player || !playerEl) return;
+
+    if (!showEnhancedSubtitlesRef.current) return;
+
+    // cancel any pending auto-hide from temporarilyUnlockControlBar
+    clearUnlockTimer();
+
+    if (controlBarVisibleRef.current) {
+      // currently shown -> re-lock and hide
+      controlBarVisibleRef.current = false;
+      player.userActive(false);
+      setControlBarLock(playerEl, true);
+    } else {
+      // currently hidden -> unlock and keep pinned (no timer)
+      controlBarVisibleRef.current = true;
+      setControlBarLock(playerEl, false);
+      player.reportUserActivity(new Event("useractive"));
+      player.userActive(true);
+    }
+  }, [getPlayer, showEnhancedSubtitlesRef, controlBarVisibleRef]);
+
   useEffect(() => {
     temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
     hideControlBarRef.current = hideControlBar;
@@ -283,5 +310,6 @@ export function useControlBarManagement({
   return {
     temporarilyUnlockControlBar,
     hideControlBar,
+    toggleControlBarLock,
   };
 }

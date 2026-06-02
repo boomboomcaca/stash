@@ -172,46 +172,47 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 		srcLang = cfg.GetSubtitleGenerationLanguage()
 	}
 
-	// produce the final subtitle. non-English content is translated to the
-	// configured target (default Chinese); English is kept as-is. only the
-	// final result is kept, written as a single file named exactly like the
-	// video (e.g. movie.srt, no language suffix).
-	finalSRT := srt
-	contentLang := srcLang
+	// Write the original-language caption with a language suffix
+	// (e.g. movie.ja.srt) and associate it under its language code, so it
+	// shows up as a selectable track.
+	if err := t.writeAndAssociate(ctx, fileID, videoPath, srcLang, srt); err != nil {
+		logger.Errorf("[subtitles] error writing %s caption for %s: %v", srcLang, videoPath, err)
+		return
+	}
+	logger.Infof("[subtitles] generated %s caption for %s", srcLang, videoPath)
+
+	// Additionally translate non-English captions to the configured target
+	// (default Chinese) and keep it as a separate track (e.g. movie.zh.srt).
+	// A translation failure does not discard the original caption above.
 	if cfg.GetSubtitleGenerationTranslate() {
 		target := cfg.GetSubtitleGenerationTranslateTo()
 		if srcLang != "" && srcLang != "en" && srcLang != target {
 			translated, terr := t.translate(ctx, srt, target)
 			if terr != nil {
-				// transient (e.g. Ollama down): write nothing so the file is
-				// retried next run rather than left in the source language.
 				logger.Errorf("[subtitles] error translating %s->%s for %s: %v", srcLang, target, videoPath, terr)
 				return
 			}
 			if !strings.Contains(translated, "-->") {
-				logger.Warnf("[subtitles] translation produced no usable subtitles for %s; will retry", videoPath)
+				logger.Warnf("[subtitles] translation produced no usable subtitles for %s", videoPath)
 				return
 			}
-			finalSRT = translated
-			contentLang = target
+			if err := t.writeAndAssociate(ctx, fileID, videoPath, target, translated); err != nil {
+				logger.Errorf("[subtitles] error writing %s translation for %s: %v", target, videoPath, err)
+				return
+			}
+			logger.Infof("[subtitles] generated %s translation for %s", target, videoPath)
 		}
 	}
+}
 
-	// single caption file named exactly like the video (e.g. movie.srt).
-	captionPath := video.GetCaptionPath(videoPath, "", "srt")
-	if err := os.WriteFile(captionPath, []byte(finalSRT), 0644); err != nil {
-		logger.Errorf("[subtitles] error writing caption file %s: %v", captionPath, err)
-		return
+// writeAndAssociate writes an SRT body to a language-suffixed caption file
+// (e.g. movie.ja.srt) and associates it with the file under that language code.
+func (t *GenerateSubtitlesTask) writeAndAssociate(ctx context.Context, fileID models.FileID, videoPath, langCode, srt string) error {
+	captionPath := video.GetCaptionPath(videoPath, langCode, "srt")
+	if err := os.WriteFile(captionPath, []byte(srt), 0644); err != nil {
+		return err
 	}
-
-	// associate with LangUnknown so the language derived from the suffix-less
-	// filename matches, avoiding duplicate caption entries on later scans.
-	if err := t.associateCaption(ctx, fileID, captionPath, video.LangUnknown); err != nil {
-		logger.Errorf("[subtitles] error associating caption for %s: %v", videoPath, err)
-		return
-	}
-
-	logger.Infof("[subtitles] generated %s caption (%s) for %s", contentLang, filepath.Base(captionPath), videoPath)
+	return t.associateCaption(ctx, fileID, captionPath, langCode)
 }
 
 // translate sends an SRT body to the service /v1/translate and returns the

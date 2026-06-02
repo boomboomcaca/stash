@@ -1,0 +1,24 @@
+// Control-bar dropdown for selecting which enhanced-subtitle track is loaded.
+.vjs-subtitle-track-menu {
+  cursor: pointer;
+
+  // Use the VideoJS "chapters"/subtitles glyph so it reads as a track list and
+  // is visually distinct from the enhanced-subtitle toggle button.
+  .vjs-icon-placeholder::before {
+    content: "\f10e"; // VideoJS subtitles/captions glyph
+    font-family: VideoJS;
+  }
+
+  // The menu popup styling follows video.js defaults; just make sure the
+  // selected item's checkmark is visible.
+  .vjs-menu-item.vjs-selected {
+    background-color: rgba(115, 133, 159, 0.5);
+    color: #fff;
+  }
+
+  // Hidden when the scene has no subtitle tracks.
+  &.vjs-hidden {
+    /* stylelint-disable-next-line declaration-no-important */
+    display: none !important;
+  }
+}

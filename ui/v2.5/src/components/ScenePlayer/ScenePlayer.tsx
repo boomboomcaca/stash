@@ -61,8 +61,9 @@ abLoopPlugin(window, videojs);
 import { IScenePlayerProps, IEnhancedSubtitleNavigation } from "./types";
 import { usePlayerSetup } from "./usePlayerSetup";
 import { usePlayerEvents } from "./usePlayerEvents";
-import { useSceneLoading } from "./useSceneLoading";
+import { useSceneLoading, ISubtitleTrackOption } from "./useSceneLoading";
 import { useControlBarManagement } from "./useControlBarManagement";
+import type { SubtitleTrackMenuButton } from "./subtitle-track-menu";
 import { useMediaSession } from "./useMediaSession";
 import { ScenePlayerActions } from "./ScenePlayerActions";
 
@@ -116,6 +117,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       string | null
     >(null);
     const [subtitleLanguage, setSubtitleLanguage] = useState<string>("en");
+
+    const subtitleTrackMenuRef = useRef<SubtitleTrackMenuButton | null>(null);
     const [resetFontSizeTrigger, setResetFontSizeTrigger] = useState(0);
     const [subtitleCues, setSubtitleCues] = useState<
       Array<{ startTime: number; endTime: number; text: string }>
@@ -174,6 +177,20 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const hideControlBarRef = useRef<(() => void) | null>(null);
 
     // Use player setup hook
+    // Handle manual subtitle-track selection from the control-bar menu.
+    const onSelectSubtitleTrack = useCallback(
+      (option: ISubtitleTrackOption | null) => {
+        if (option) {
+          setCurrentSubtitleTrack(option.src);
+          setSubtitleLanguage(option.lang);
+        } else {
+          // "Off" selected: turn enhanced subtitles off
+          setShowEnhancedSubtitles(false);
+        }
+      },
+      [setShowEnhancedSubtitles]
+    );
+
     const { getPlayer, sceneId } = usePlayerSetup({
       videoRef,
       uiConfig,
@@ -186,21 +203,26 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       controlBarVisibleRef,
       hideControlBarRef,
       enhancedSubtitleButtonRef,
+      subtitleTrackMenuRef,
+      onSelectSubtitleTrack,
     });
 
     // Use control bar management hook
-    const { temporarilyUnlockControlBar, hideControlBar } =
-      useControlBarManagement({
-        getPlayer,
-        showEnhancedSubtitles,
-        showEnhancedSubtitlesRef,
-        subtitleCues,
-        currentSubtitleIndex,
-        controlBarVisibleRef,
-        temporarilyUnlockControlBarRef,
-        hideControlBarRef,
-        enhancedSubtitleNavigationRef,
-      });
+    const {
+      temporarilyUnlockControlBar,
+      hideControlBar,
+      toggleControlBarLock,
+    } = useControlBarManagement({
+      getPlayer,
+      showEnhancedSubtitles,
+      showEnhancedSubtitlesRef,
+      subtitleCues,
+      currentSubtitleIndex,
+      controlBarVisibleRef,
+      temporarilyUnlockControlBarRef,
+      hideControlBarRef,
+      enhancedSubtitleNavigationRef,
+    });
 
     // Sync control bar management refs
     useEffect(() => {
@@ -342,6 +364,10 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       setTime,
       setCurrentSubtitleTrack,
       setSubtitleLanguage,
+      setSubtitleTrackOptions: (options, selectedSrc) => {
+        // feed the track menu in the control bar
+        subtitleTrackMenuRef.current?.setTrackOptions(options, selectedSrc);
+      },
       auto,
       started,
     });
@@ -636,7 +662,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                 resetFontSizeTrigger={resetFontSizeTrigger}
                 onSubtitlesLoaded={handleSubtitlesLoaded}
                 onCurrentCueChange={handleCurrentCueChange}
-                onAPDoubleClick={temporarilyUnlockControlBar}
+                onAPDoubleClick={toggleControlBarLock}
                 onPlay={() => getPlayer()?.play()}
                 onSeekToCue={(cueIndex) => {
                   const player = getPlayer();
