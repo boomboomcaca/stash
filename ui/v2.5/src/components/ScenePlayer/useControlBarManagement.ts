@@ -26,6 +26,8 @@ export function useControlBarManagement({
   enhancedSubtitleNavigationRef,
 }: IUseControlBarManagementProps) {
   const unlockTimerRef = useRef<number | null>(null);
+  // 控制栏是否已通过双击 AP 图标固定显示（固定时不启动自动隐藏计时器）
+  const controlBarPinnedRef = useRef(false);
   const originalReportUserActivityRef = useRef<
     ((event?: Event) => void) | null
   >(null);
@@ -56,6 +58,10 @@ export function useControlBarManagement({
     player.reportUserActivity(new Event("useractive"));
     player.userActive(true);
 
+    // 若控制栏已固定显示（双击 AP 图标），保持可见且不启动自动隐藏计时器，
+    // 这样用左右方向键调整进度后，进度条不会在 3 秒后消失
+    if (controlBarPinnedRef.current) return;
+
     unlockTimerRef.current = window.setTimeout(() => {
       controlBarVisibleRef.current = false;
       if (showEnhancedSubtitlesRef.current && playerEl) {
@@ -73,6 +79,7 @@ export function useControlBarManagement({
 
     clearUnlockTimer();
     controlBarVisibleRef.current = false;
+    controlBarPinnedRef.current = false;
     player.userActive(false);
 
     if (showEnhancedSubtitlesRef.current) {
@@ -96,11 +103,13 @@ export function useControlBarManagement({
     if (controlBarVisibleRef.current) {
       // currently shown -> re-lock and hide
       controlBarVisibleRef.current = false;
+      controlBarPinnedRef.current = false;
       player.userActive(false);
       setControlBarLock(playerEl, true);
     } else {
       // currently hidden -> unlock and keep pinned (no timer)
       controlBarVisibleRef.current = true;
+      controlBarPinnedRef.current = true;
       setControlBarLock(playerEl, false);
       player.reportUserActivity(new Event("useractive"));
       player.userActive(true);
@@ -205,6 +214,7 @@ export function useControlBarManagement({
       }
 
       clearUnlockTimer();
+      controlBarPinnedRef.current = false;
 
       const playerEl = player.el() as HTMLElement & {
         _focusLossHandler?: () => void;
