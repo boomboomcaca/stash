@@ -181,12 +181,12 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 	}
 	logger.Infof("[subtitles] generated %s caption for %s", srcLang, videoPath)
 
-	// Additionally translate non-English captions to the configured target
+	// Additionally translate captions whose language differs from the target
 	// (default Chinese) and keep it as a separate track (e.g. movie.zh.srt).
 	// A translation failure does not discard the original caption above.
 	if cfg.GetSubtitleGenerationTranslate() {
 		target := cfg.GetSubtitleGenerationTranslateTo()
-		if srcLang != "" && srcLang != "en" && srcLang != target {
+		if srcLang != "" && srcLang != target {
 			translated, terr := t.translate(ctx, srt, target)
 			if terr != nil {
 				logger.Errorf("[subtitles] error translating %s->%s for %s: %v", srcLang, target, videoPath, terr)
