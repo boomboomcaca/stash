@@ -102,3 +102,16 @@ func (f VideoFilter) Append(s string) VideoFilter {
 
 	return VideoFilter(fmt.Sprintf("%s,%s", f, s))
 }
+
+// AudioFilter represents audio filter parameters to be passed to ffmpeg.
+type AudioFilter string
+
+// Args converts the audio filter parameters to a slice of arguments to be passed to ffmpeg.
+// Returns an empty slice if the filter is empty.
+func (f AudioFilter) Args() []string {
+	if f == "" {
+		return nil
+	}
+
+	return []string{"-af", string(f)}
+}

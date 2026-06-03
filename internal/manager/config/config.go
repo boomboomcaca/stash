@@ -159,6 +159,14 @@ const (
 	subtitleGenerationTranslateDefault   = true
 	SubtitleGenerationTranslateTo        = "subtitle_generation_translate_to"
 	subtitleGenerationTranslateToDefault = "zh"
+	// SubtitleGenerationDenoise, when true, applies background noise reduction
+	// to the extracted audio before transcription.
+	SubtitleGenerationDenoise        = "subtitle_generation_denoise"
+	subtitleGenerationDenoiseDefault = true
+	// SubtitleGenerationAudioFilter is the ffmpeg audio filter string applied
+	// when SubtitleGenerationDenoise is enabled (default "afftdn").
+	SubtitleGenerationAudioFilter        = "subtitle_generation_audio_filter"
+	subtitleGenerationAudioFilterDefault = "afftdn"
 
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
@@ -912,6 +920,22 @@ func (i *Config) GetSubtitleGenerationTranslateTo() string {
 	ret := i.getString(SubtitleGenerationTranslateTo)
 	if ret == "" {
 		return subtitleGenerationTranslateToDefault
+	}
+	return ret
+}
+
+// GetSubtitleGenerationDenoise reports whether generated captions
+// should apply background noise reduction.
+func (i *Config) GetSubtitleGenerationDenoise() bool {
+	return i.getBoolDefault(SubtitleGenerationDenoise, subtitleGenerationDenoiseDefault)
+}
+
+// GetSubtitleGenerationAudioFilter returns the ffmpeg audio filter string
+// to be applied when SubtitleGenerationDenoise is enabled (default "afftdn").
+func (i *Config) GetSubtitleGenerationAudioFilter() string {
+	ret := i.getString(SubtitleGenerationAudioFilter)
+	if ret == "" {
+		return subtitleGenerationAudioFilterDefault
 	}
 	return ret
 }
@@ -2017,6 +2041,8 @@ func (i *Config) setDefaultValues() {
 	// Set subtitle generation defaults
 	i.setDefault(SubtitleGenerationURL, subtitleGenerationURLDefault)
 	i.setDefault(SubtitleGenerationLanguage, subtitleGenerationLangDefault)
+	i.setDefault(SubtitleGenerationDenoise, subtitleGenerationDenoiseDefault)
+	i.setDefault(SubtitleGenerationAudioFilter, subtitleGenerationAudioFilterDefault)
 
 	// set default package sources
 	i.setDefault(PluginPackageSources, []map[string]string{{

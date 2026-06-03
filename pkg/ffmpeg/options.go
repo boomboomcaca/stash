@@ -80,6 +80,11 @@ func (a Args) VideoFilter(vf VideoFilter) Args {
 	return append(a, vf.Args()...)
 }
 
+// AudioFilter adds the af audio filter and returns the result.
+func (a Args) AudioFilter(af AudioFilter) Args {
+	return append(a, af.Args()...)
+}
+
 // VSync adds the VsyncMethod and returns the result.
 func (a Args) VSync(m VSyncMethod) Args {
 	return append(a, m.Args()...)

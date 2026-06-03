@@ -250,9 +250,18 @@ func (t *GenerateSubtitlesTask) translate(ctx context.Context, srt, target strin
 // extractAudio extracts the audio track of videoPath to a 16kHz mono wav at
 // audioPath, matching the input parakeet expects.
 func (t *GenerateSubtitlesTask) extractAudio(ctx context.Context, videoPath, audioPath string) error {
+	cfg := config.GetInstance()
 	args := ffmpeg.Args{}.LogLevel(ffmpeg.LogLevelError)
 	args = args.Input(videoPath)
 	args = args.SkipVideo()
+
+	if cfg.GetSubtitleGenerationDenoise() {
+		filter := cfg.GetSubtitleGenerationAudioFilter()
+		if filter != "" {
+			args = args.AudioFilter(ffmpeg.AudioFilter(filter))
+		}
+	}
+
 	args = append(args, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-f", "wav")
 	args = args.Overwrite()
 	args = args.Output(audioPath)
