@@ -36,9 +36,9 @@ export class WordSegmenter {
       `${letterClass}+(?:['\\-]${letterClass}+)*`,
       "gu"
     );
-    let match;
+    let match = wordRegex.exec(text);
 
-    while ((match = wordRegex.exec(text)) !== null) {
+    while (match !== null) {
       const word = match[0];
       if (word.length >= this.options.minWordLength) {
         segments.push({
@@ -47,17 +47,20 @@ export class WordSegmenter {
           endIndex: match.index + word.length,
         });
       }
+      match = wordRegex.exec(text);
     }
 
     // Add punctuation if enabled
     if (this.options.enablePunctuation) {
       const punctRegex = /[.,;:!?'"()[\]{}]/g;
-      while ((match = punctRegex.exec(text)) !== null) {
+      let punctMatch = punctRegex.exec(text);
+      while (punctMatch !== null) {
         segments.push({
-          word: match[0],
-          startIndex: match.index,
-          endIndex: match.index + 1,
+          word: punctMatch[0],
+          startIndex: punctMatch.index,
+          endIndex: punctMatch.index + 1,
         });
+        punctMatch = punctRegex.exec(text);
       }
     }
 
