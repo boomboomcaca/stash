@@ -172,7 +172,9 @@ export class ListFilterModel {
           criterion.fromDecodedParams(savedCriterion);
 
           this.criteria.push(criterion);
-        } catch (err) {}
+        } catch (err) {
+          console.error("Failed to parse encoded criterion:", err);
+        }
       }
     }
   }

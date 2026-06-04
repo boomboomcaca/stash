@@ -152,7 +152,6 @@ export const SceneVideoFilterPanel: React.FC<ISceneVideoFilterPanelProps> = (
     aspectRatioRange.default
   );
 
-  // eslint-disable-next-line
   function getVideoElement(playerVideoContainer: any) {
     let videoElements = playerVideoContainer.getElementsByTagName("canvas");
 

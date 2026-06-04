@@ -9,6 +9,12 @@ if [ -n "$STAGED_GO_FILES" ]; then
   done
 fi
 
-# Frontend: lint-staged
-cd ui/v2.5
-node ./node_modules/lint-staged/bin/lint-staged.js
+# Frontend: biome on staged files (replaces lint-staged after the biome migration;
+# skips silently if biome isn't installed yet, e.g. before `pnpm install`)
+if [ -x ui/v2.5/node_modules/.bin/biome ]; then
+  STAGED_UI=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^ui/v2.5/.*\.(ts|tsx|js|jsx|json|jsonc|css|scss)$' || true)
+  if [ -n "$STAGED_UI" ]; then
+    ( cd ui/v2.5 && ./node_modules/.bin/biome format --write --no-errors-on-unmatched $(echo "$STAGED_UI" | sed 's#^ui/v2.5/##') )
+    echo "$STAGED_UI" | xargs -r git add
+  fi
+fi
