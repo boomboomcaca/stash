@@ -172,6 +172,14 @@ const (
 	SubtitleGenerationAudioFilter        = "subtitle_generation_audio_filter"
 	subtitleGenerationAudioFilterDefault = "afftdn"
 
+	// DubbingURL is the base URL of the dub service exposing POST /v1/dub,
+	// which turns a translated caption into a dubbed audio track via CosyVoice.
+	// DubbingVoice is the reference voice name the dub service should use.
+	DubbingURL          = "dubbing_url"
+	dubbingURLDefault   = "http://192.168.1.113:5093"
+	DubbingVoice        = "dubbing_voice"
+	dubbingVoiceDefault = "nix"
+
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
 
@@ -940,6 +948,24 @@ func (i *Config) GetSubtitleGenerationAudioFilter() string {
 	ret := i.getString(SubtitleGenerationAudioFilter)
 	if ret == "" {
 		return subtitleGenerationAudioFilterDefault
+	}
+	return ret
+}
+
+// GetDubbingURL returns the base URL of the dub service (POST /v1/dub).
+func (i *Config) GetDubbingURL() string {
+	ret := i.getString(DubbingURL)
+	if ret == "" {
+		return dubbingURLDefault
+	}
+	return ret
+}
+
+// GetDubbingVoice returns the reference voice name the dub service should use.
+func (i *Config) GetDubbingVoice() string {
+	ret := i.getString(DubbingVoice)
+	if ret == "" {
+		return dubbingVoiceDefault
 	}
 	return ret
 }
@@ -2062,6 +2088,8 @@ func (i *Config) setDefaultValues() {
 	i.setDefault(SubtitleGenerationLanguage, subtitleGenerationLangDefault)
 	i.setDefault(SubtitleGenerationDenoise, subtitleGenerationDenoiseDefault)
 	i.setDefault(SubtitleGenerationAudioFilter, subtitleGenerationAudioFilterDefault)
+	i.setDefault(DubbingURL, dubbingURLDefault)
+	i.setDefault(DubbingVoice, dubbingVoiceDefault)
 
 	// set default package sources
 	i.setDefault(PluginPackageSources, []map[string]string{{

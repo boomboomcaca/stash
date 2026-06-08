@@ -37,6 +37,9 @@ type GenerateMetadataInput struct {
 	Subtitles bool `json:"subtitles"`
 	// SubtitleLanguage overrides the configured language for this run (Parakeet prompt + caption label)
 	SubtitleLanguage *string `json:"subtitleLanguage"`
+	// Dubbing generates a dubbed video (sidecar .<lang>-dub.mp4) from a scene's
+	// translated caption via the configured dub service (CosyVoice).
+	Dubbing bool `json:"dubbing"`
 	// scene ids to generate for
 	SceneIDs []string `json:"sceneIDs"`
 	// marker ids to generate for
@@ -89,6 +92,7 @@ type totalsGenerate struct {
 	clipPreviews             int64
 	imageThumbnails          int64
 	subtitles                int64
+	dubbing                  int64
 
 	tasks int
 }
@@ -245,6 +249,9 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 		}
 		if j.input.Subtitles {
 			logMsg += fmt.Sprintf(" %d subtitles", totals.subtitles)
+		}
+		if j.input.Dubbing {
+			logMsg += fmt.Sprintf(" %d dubbing", totals.dubbing)
 		}
 		if logMsg == "Generating" {
 			logMsg = "Nothing selected to generate"
@@ -565,6 +572,20 @@ func (j *GenerateJob) queueSceneJobs(ctx context.Context, g *generate.Generator,
 
 		if task.required(ctx) {
 			j.totals.subtitles++
+			j.totals.tasks++
+			queue <- task
+		}
+	}
+
+	if j.input.Dubbing {
+		task := &GenerateDubbingTask{
+			repository: r,
+			Scene:      *scene,
+			Overwrite:  j.overwrite,
+		}
+
+		if task.required(ctx) {
+			j.totals.dubbing++
 			j.totals.tasks++
 			queue <- task
 		}

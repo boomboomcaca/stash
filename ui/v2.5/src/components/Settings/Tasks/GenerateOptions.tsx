@@ -189,6 +189,13 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
               </option>
             ))}
           </SelectSetting>
+          <BooleanSetting
+            id="dubbing-task"
+            checked={options.dubbing ?? false}
+            headingID="dialogs.scene_gen.dubbing"
+            tooltipID="dialogs.scene_gen.dubbing_tooltip"
+            onChange={(v) => setOptions({ dubbing: v })}
+          />
         </>
       )}
       {showImageOptions && (

@@ -21,6 +21,8 @@ input GenerateMetadataInput {
   subtitles: Boolean
   "Language code for subtitle generation for this run (Parakeet prompt + caption label). Overrides the configured default."
   subtitleLanguage: String
+  "Generate a dubbed video from a scene's translated caption via the configured dub service (CosyVoice)"
+  dubbing: Boolean
 
   "scene ids to generate for"
   sceneIDs: [ID!]
@@ -66,6 +68,7 @@ type GenerateMetadataOptions {
   clipPreviews: Boolean
   subtitles: Boolean
   subtitleLanguage: String
+  dubbing: Boolean
 }
 
 type GeneratePreviewOptions {
