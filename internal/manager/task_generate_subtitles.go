@@ -37,6 +37,12 @@ type GenerateSubtitlesTask struct {
 	// Language overrides the configured default for this run (Parakeet prompt + caption label).
 	// Empty means fall back to the configured GetSubtitleGenerationLanguage.
 	Language string
+	// Dub, when set, dubs the scene from the translated caption produced by this
+	// task, right after it is written. This is how Subtitles+Dubbing run in a
+	// single generate pass: the translated caption does not exist at queue time,
+	// so a standalone GenerateDubbingTask would be skipped. No-op if no
+	// translated caption ends up being produced.
+	Dub bool
 }
 
 func (t *GenerateSubtitlesTask) GetDescription() string {
@@ -201,6 +207,16 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 				return
 			}
 			logger.Infof("[subtitles] generated %s translation for %s", target, videoPath)
+		}
+	}
+
+	// when chained from the generate job (Subtitles+Dubbing in one run), dub
+	// straight from the translated caption we just produced. dubScene no-ops if
+	// no translated caption exists (e.g. translation disabled or src==target
+	// with no target caption).
+	if t.Dub {
+		if err := dubScene(ctx, videoPath, f.Duration, t.Overwrite); err != nil {
+			logger.Errorf("[dubbing] %v", err)
 		}
 	}
 }

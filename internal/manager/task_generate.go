@@ -558,6 +558,14 @@ func (j *GenerateJob) queueSceneJobs(ctx context.Context, g *generate.Generator,
 		}
 	}
 
+	// Subtitles, with dubbing optionally chained onto it. When both are
+	// requested in one run, the translated caption does not exist yet at queue
+	// time, so a standalone GenerateDubbingTask's required() check would skip
+	// it. Folding the dub into the subtitle task makes it run right after the
+	// caption is produced. subtitleQueued then tells the standalone dubbing
+	// task below to only handle scenes whose captions already exist (or where
+	// subtitles weren't requested), avoiding a double dub.
+	subtitleQueued := false
 	if j.input.Subtitles {
 		lang := ""
 		if j.input.SubtitleLanguage != nil {
@@ -568,16 +576,21 @@ func (j *GenerateJob) queueSceneJobs(ctx context.Context, g *generate.Generator,
 			Scene:      *scene,
 			Overwrite:  j.overwrite,
 			Language:   lang,
+			Dub:        j.input.Dubbing,
 		}
 
 		if task.required(ctx) {
 			j.totals.subtitles++
+			if j.input.Dubbing {
+				j.totals.dubbing++
+			}
 			j.totals.tasks++
 			queue <- task
+			subtitleQueued = true
 		}
 	}
 
-	if j.input.Dubbing {
+	if j.input.Dubbing && !subtitleQueued {
 		task := &GenerateDubbingTask{
 			repository: r,
 			Scene:      *scene,

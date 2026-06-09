@@ -25,6 +25,11 @@ const dubbingPath = "/v1/dub"
 // GenerateSubtitlesTask) to the dub service, which synthesizes a dubbed audio
 // track via CosyVoice. That track is then muxed over the original video into a
 // sidecar "<name>.<lang>-dub.mp4". The original video is left untouched.
+//
+// This standalone task only handles scenes whose translated caption already
+// exists. When subtitles and dubbing are generated together in one run, the
+// caption does not exist at queue time, so the dub is instead chained onto the
+// subtitle task (see GenerateSubtitlesTask.Dub); both paths share dubScene.
 type GenerateDubbingTask struct {
 	repository models.Repository
 	Scene      models.Scene
@@ -45,12 +50,13 @@ func (t *GenerateDubbingTask) required(ctx context.Context) bool {
 	if t.Overwrite {
 		return true
 	}
+	target := config.GetInstance().GetSubtitleGenerationTranslateTo()
 	// skip if a dubbed file already exists
-	if _, err := os.Stat(t.dubOutputPath(f.Path)); err == nil {
+	if _, err := os.Stat(dubOutputPath(f.Path, target)); err == nil {
 		return false
 	}
 	// need a translated caption to dub from
-	srtPath := video.GetCaptionPath(f.Path, config.GetInstance().GetSubtitleGenerationTranslateTo(), "srt")
+	srtPath := video.GetCaptionPath(f.Path, target, "srt")
 	if _, err := os.Stat(srtPath); err != nil {
 		return false
 	}
@@ -69,14 +75,26 @@ func (t *GenerateDubbingTask) Start(ctx context.Context) {
 	if f == nil {
 		return
 	}
-	videoPath := f.Path
+
+	if err := dubScene(ctx, f.Path, f.Duration, t.Overwrite); err != nil {
+		logger.Errorf("[dubbing] %v", err)
+	}
+}
+
+// dubScene produces the sidecar dubbed video for videoPath from its translated
+// caption (e.g. movie.zh.srt). It is shared by GenerateDubbingTask and the
+// inline dub step that runs right after GenerateSubtitlesTask writes the
+// translated caption, so a single generate run can produce captions and then
+// dub from them. The original video is left untouched. A missing caption,
+// unknown duration, or already-existing dub is treated as a skip (nil error).
+func dubScene(ctx context.Context, videoPath string, duration float64, overwrite bool) error {
 	cfg := config.GetInstance()
 	target := cfg.GetSubtitleGenerationTranslateTo()
 
-	outPath := t.dubOutputPath(videoPath)
-	if !t.Overwrite {
+	outPath := dubOutputPath(videoPath, target)
+	if !overwrite {
 		if _, err := os.Stat(outPath); err == nil {
-			return
+			return nil
 		}
 	}
 
@@ -85,48 +103,44 @@ func (t *GenerateDubbingTask) Start(ctx context.Context) {
 	srtBytes, err := os.ReadFile(srtPath)
 	if err != nil {
 		logger.Warnf("[dubbing] no %s caption for %s (%v); skipping", target, videoPath, err)
-		return
+		return nil
 	}
 
-	duration := f.Duration
 	if duration <= 0 {
 		logger.Warnf("[dubbing] unknown/zero duration for %s; skipping", videoPath)
-		return
+		return nil
 	}
 
 	// fetch the dubbed audio track from the dub service
 	tmp, err := os.CreateTemp("", "stash-dub-*.wav")
 	if err != nil {
-		logger.Errorf("[dubbing] error creating temp file: %v", err)
-		return
+		return fmt.Errorf("creating temp file: %w", err)
 	}
 	dubAudioPath := tmp.Name()
 	_ = tmp.Close()
 	defer os.Remove(dubAudioPath)
 
-	if err := t.requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), dubAudioPath); err != nil {
-		logger.Errorf("[dubbing] dub service error for %s: %v", videoPath, err)
-		return
+	if err := requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), dubAudioPath); err != nil {
+		return fmt.Errorf("dub service error for %s: %w", videoPath, err)
 	}
 
 	// mux the dubbed audio over the original video into the sidecar file
-	if err := t.mux(ctx, videoPath, dubAudioPath, srtPath, target, outPath); err != nil {
-		logger.Errorf("[dubbing] error muxing dubbed video for %s: %v", videoPath, err)
-		return
+	if err := muxDub(ctx, videoPath, dubAudioPath, srtPath, target, outPath); err != nil {
+		return fmt.Errorf("muxing dubbed video for %s: %w", videoPath, err)
 	}
 	logger.Infof("[dubbing] generated dubbed video %s", outPath)
+	return nil
 }
 
 // dubOutputPath returns "<dir>/<name>.<lang>-dub.mp4".
-func (t *GenerateDubbingTask) dubOutputPath(videoPath string) string {
-	lang := config.GetInstance().GetSubtitleGenerationTranslateTo()
+func dubOutputPath(videoPath, lang string) string {
 	ext := filepath.Ext(videoPath)
 	return strings.TrimSuffix(videoPath, ext) + "." + lang + "-dub.mp4"
 }
 
 // requestDub posts the SRT to the dub service /v1/dub and streams the returned
 // wav to outPath.
-func (t *GenerateDubbingTask) requestDub(ctx context.Context, srt string, duration float64, voice, outPath string) error {
+func requestDub(ctx context.Context, srt string, duration float64, voice, outPath string) error {
 	serviceURL := config.GetInstance().GetDubbingURL() + dubbingPath
 	form := url.Values{}
 	form.Set("text", srt)
@@ -163,9 +177,9 @@ func (t *GenerateDubbingTask) requestDub(ctx context.Context, srt string, durati
 	return nil
 }
 
-// mux writes a sidecar mp4 with the original video stream, the dubbed audio, and
-// the translated caption as a soft subtitle track.
-func (t *GenerateDubbingTask) mux(ctx context.Context, videoPath, dubAudioPath, srtPath, lang, outPath string) error {
+// muxDub writes a sidecar mp4 with the original video stream, the dubbed audio,
+// and the translated caption as a soft subtitle track.
+func muxDub(ctx context.Context, videoPath, dubAudioPath, srtPath, lang, outPath string) error {
 	args := ffmpeg.Args{}.LogLevel(ffmpeg.LogLevelError)
 	args = args.Input(videoPath)
 	args = args.Input(dubAudioPath)
