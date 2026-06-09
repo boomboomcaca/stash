@@ -40,6 +40,24 @@ export interface ISubtitleTrackOption {
   label: string;
 }
 
+// Build the caption endpoint URL for a given language/type. scene.paths.caption
+// may already carry a signed-URL query (?cid=...&expires=...&signature=...) when
+// credentials are configured (see signed media URLs). Appending a second "?" for
+// lang/type would fold them into the previous param's value, so the server sees
+// no lang, matches no caption, and returns an empty body — leaving the enhanced
+// subtitle overlay visible but blank. Pick the correct separator instead.
+function buildCaptionTrackSrc(
+  captionBase: string | null | undefined,
+  lang: string,
+  type: string
+): string {
+  const base = captionBase ?? "";
+  const sep = base.includes("?") ? "&" : "?";
+  return `${base}${sep}lang=${encodeURIComponent(lang)}&type=${encodeURIComponent(
+    type
+  )}`;
+}
+
 export function useSceneLoading({
   getPlayer,
   scene,
@@ -148,7 +166,7 @@ export function useSceneLoading({
         const setAsDefault = !hasDefault && languageCode == lang;
         const trackSrc =
           withApiKey(
-            `${scene.paths.caption}?lang=${lang}&type=${caption.caption_type}`
+            buildCaptionTrackSrc(scene.paths.caption, lang, caption.caption_type)
           ) ?? "";
 
         if (setAsDefault) {
@@ -182,7 +200,11 @@ export function useSceneLoading({
         const firstCaption = scene.captions[0];
         selectedSrc =
           withApiKey(
-            `${scene.paths.caption}?lang=${firstCaption.language_code}&type=${firstCaption.caption_type}`
+            buildCaptionTrackSrc(
+              scene.paths.caption,
+              firstCaption.language_code,
+              firstCaption.caption_type
+            )
           ) ?? "";
         setCurrentSubtitleTrack(selectedSrc);
         setSubtitleLanguage(firstCaption.language_code);
