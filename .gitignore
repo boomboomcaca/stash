@@ -67,6 +67,7 @@ node_modules
 
 # Stash specific binaries and build artifacts
 /stash
+/stash-linux
 /stash.exe
 /Stash.app
 /phasher
