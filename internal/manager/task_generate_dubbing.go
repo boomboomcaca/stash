@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -143,9 +144,16 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		}
 	}
 
-	refit, err := requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath)
+	recut, refit, err := requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath)
 	if err != nil {
 		return fmt.Errorf("dub service error for %s: %w", videoPath, err)
+	}
+	// The dub re-cut the unit-level Chinese into clause-level display lines timed
+	// to the synthesized audio; it is the display caption (and the muxed soft-sub).
+	if strings.Contains(recut, "-->") {
+		if werr := os.WriteFile(captionPath, []byte(recut), 0644); werr != nil {
+			logger.Warnf("[dubbing] could not write re-cut caption for %s: %v", videoPath, werr)
+		}
 	}
 
 	// One-shot pace convergence: the dub measured this scene's cloned voices
@@ -161,8 +169,12 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 			if terr == nil && strings.Contains(retrans, "-->") {
 				_ = os.WriteFile(dubScriptPath(videoPath, target), []byte(retrans), 0644)
 				_ = os.WriteFile(captionPath, []byte(stripSpeakerTags(retrans)), 0644)
-				if _, err := requestDub(ctx, retrans, duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath); err != nil {
-					return fmt.Errorf("dub service error (refit) for %s: %w", videoPath, err)
+				recut2, _, derr := requestDub(ctx, retrans, duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath)
+				if derr != nil {
+					return fmt.Errorf("dub service error (refit) for %s: %w", videoPath, derr)
+				}
+				if strings.Contains(recut2, "-->") {
+					_ = os.WriteFile(captionPath, []byte(recut2), 0644)
 				}
 			} else if terr != nil {
 				logger.Warnf("[dubbing] refit re-translation failed (%v); keeping the first dub", terr)
@@ -195,10 +207,14 @@ func dubScriptPath(videoPath, lang string) string {
 // requestDub posts the SRT to the dub service /v1/dub and streams the returned
 // wav to outPath. When bgAudioPath is non-empty, the request is sent as
 // multipart with the original audio attached as bg_audio so the service remixes
-// the background; otherwise a plain url-encoded form is used. The returned
-// bool is the service's X-Dub-Cps-Refit flag: this scene's measured speaking
-// rate disagreed with the translation's budget assumption.
-func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudioPath, outPath string) (bool, error) {
+// the background; otherwise a plain url-encoded form is used. recut=1 asks the
+// service to also return a clause-level display caption re-cut from the dub
+// audio; the response is then multipart/mixed (audio part + recut SRT part).
+//
+// Returns the re-cut display SRT (empty when the service is an old build that
+// returns plain audio) and the X-Dub-Cps-Refit flag (this scene's measured
+// speaking rate disagreed with the translation's budget assumption).
+func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudioPath, outPath string) (string, bool, error) {
 	serviceURL := config.GetInstance().GetDubbingURL() + dubbingPath
 	durStr := strconv.FormatFloat(duration, 'f', 3, 64)
 
@@ -209,9 +225,10 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 		form.Set("text", srt)
 		form.Set("duration", durStr)
 		form.Set("voice", voice)
+		form.Set("recut", "1")
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, strings.NewReader(form.Encode()))
 		if err != nil {
-			return false, err
+			return "", false, err
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	} else {
@@ -226,6 +243,9 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 					return err
 				}
 				if err := mw.WriteField("voice", voice); err != nil {
+					return err
+				}
+				if err := mw.WriteField("recut", "1"); err != nil {
 					return err
 				}
 				bf, err := os.Open(bgAudioPath)
@@ -246,7 +266,7 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 		}()
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, pr)
 		if err != nil {
-			return false, err
+			return "", false, err
 		}
 		req.Header.Set("Content-Type", mw.FormDataContentType())
 	}
@@ -255,25 +275,87 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 	// is handled via the request context.
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return false, fmt.Errorf("dub service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return "", false, fmt.Errorf("dub service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 	refit := resp.Header.Get("X-Dub-Cps-Refit") == "1"
 
+	mediaType, params, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
+	if strings.HasPrefix(mediaType, "multipart/") {
+		recut, err := streamMultipartDub(resp.Body, params["boundary"], outPath)
+		if err != nil {
+			return "", refit, err
+		}
+		if recut == "" {
+			logger.Warnf("[dubbing] multipart dub response carried no re-cut caption")
+		}
+		return recut, refit, nil
+	}
+
+	// legacy / recut-off path: the whole body is the wav, streamed to disk.
 	out, err := os.Create(outPath)
 	if err != nil {
-		return false, err
+		return "", false, err
 	}
 	defer out.Close()
 	if _, err := io.Copy(out, resp.Body); err != nil {
-		return false, err
+		return "", false, err
 	}
-	return refit, nil
+	return "", refit, nil
+}
+
+// streamMultipartDub splits a multipart/mixed dub response: the audio part is
+// streamed to outPath (never buffered), the text part is read into the returned
+// re-cut SRT string.
+func streamMultipartDub(body io.Reader, boundary, outPath string) (string, error) {
+	if boundary == "" {
+		return "", fmt.Errorf("multipart dub response missing boundary")
+	}
+	mr := multipart.NewReader(body, boundary)
+	var recut string
+	wroteAudio := false
+	for {
+		p, err := mr.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		ct, _, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
+		if strings.HasPrefix(ct, "audio/") {
+			out, cerr := os.Create(outPath)
+			if cerr != nil {
+				p.Close()
+				return "", cerr
+			}
+			_, cerr = io.Copy(out, p)
+			out.Close()
+			p.Close()
+			if cerr != nil {
+				return "", cerr
+			}
+			wroteAudio = true
+		} else if strings.HasPrefix(ct, "text/") || strings.Contains(ct, "subrip") || p.FormName() == "recut_srt" {
+			b, rerr := io.ReadAll(p)
+			p.Close()
+			if rerr != nil {
+				return "", rerr
+			}
+			recut = string(b)
+		} else {
+			p.Close()
+		}
+	}
+	if !wroteAudio {
+		return "", fmt.Errorf("multipart dub response carried no audio part")
+	}
+	return recut, nil
 }
 
 // extractDubBackground extracts the scene's original audio to a stereo 44.1kHz
