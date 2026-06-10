@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -120,7 +121,24 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 	_ = tmp.Close()
 	defer os.Remove(dubAudioPath)
 
-	if err := requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), dubAudioPath); err != nil {
+	// hand the dub service the scene's original audio so it separates and remixes
+	// the music/SFX under the dubbed voice. extraction or upload failures degrade
+	// gracefully to a voice-only dub.
+	var bgAudioPath string
+	bgTmp, berr := os.CreateTemp("", "stash-dubbg-*.wav")
+	if berr != nil {
+		logger.Warnf("[dubbing] could not create background temp for %s (%v); dubbing voice-only", videoPath, berr)
+	} else {
+		bgAudioPath = bgTmp.Name()
+		_ = bgTmp.Close()
+		defer os.Remove(bgAudioPath)
+		if berr := extractDubBackground(ctx, videoPath, bgAudioPath); berr != nil {
+			logger.Warnf("[dubbing] could not extract background audio from %s (%v); dubbing voice-only", videoPath, berr)
+			bgAudioPath = ""
+		}
+	}
+
+	if err := requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath); err != nil {
 		return fmt.Errorf("dub service error for %s: %w", videoPath, err)
 	}
 
@@ -139,19 +157,61 @@ func dubOutputPath(videoPath, lang string) string {
 }
 
 // requestDub posts the SRT to the dub service /v1/dub and streams the returned
-// wav to outPath.
-func requestDub(ctx context.Context, srt string, duration float64, voice, outPath string) error {
+// wav to outPath. When bgAudioPath is non-empty, the request is sent as
+// multipart with the original audio attached as bg_audio so the service remixes
+// the background; otherwise a plain url-encoded form is used.
+func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudioPath, outPath string) error {
 	serviceURL := config.GetInstance().GetDubbingURL() + dubbingPath
-	form := url.Values{}
-	form.Set("text", srt)
-	form.Set("duration", strconv.FormatFloat(duration, 'f', 3, 64))
-	form.Set("voice", voice)
+	durStr := strconv.FormatFloat(duration, 'f', 3, 64)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, strings.NewReader(form.Encode()))
-	if err != nil {
-		return err
+	var req *http.Request
+	var err error
+	if bgAudioPath == "" {
+		form := url.Values{}
+		form.Set("text", srt)
+		form.Set("duration", durStr)
+		form.Set("voice", voice)
+		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, strings.NewReader(form.Encode()))
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	} else {
+		pr, pw := io.Pipe()
+		mw := multipart.NewWriter(pw)
+		go func() {
+			werr := func() error {
+				if err := mw.WriteField("text", srt); err != nil {
+					return err
+				}
+				if err := mw.WriteField("duration", durStr); err != nil {
+					return err
+				}
+				if err := mw.WriteField("voice", voice); err != nil {
+					return err
+				}
+				bf, err := os.Open(bgAudioPath)
+				if err != nil {
+					return err
+				}
+				defer bf.Close()
+				part, err := mw.CreateFormFile("bg_audio", filepath.Base(bgAudioPath))
+				if err != nil {
+					return err
+				}
+				if _, err := io.Copy(part, bf); err != nil {
+					return err
+				}
+				return mw.Close()
+			}()
+			_ = pw.CloseWithError(werr)
+		}()
+		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, pr)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Content-Type", mw.FormDataContentType())
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// no client timeout: synthesizing a full video can take minutes; cancellation
 	// is handled via the request context.
@@ -175,6 +235,19 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, outPat
 		return err
 	}
 	return nil
+}
+
+// extractDubBackground extracts the scene's original audio to a stereo 44.1kHz
+// wav at outPath, suitable for the dub service to source-separate and remix the
+// music/SFX under the dubbed voice.
+func extractDubBackground(ctx context.Context, videoPath, outPath string) error {
+	args := ffmpeg.Args{}.LogLevel(ffmpeg.LogLevelError)
+	args = args.Input(videoPath)
+	args = args.SkipVideo()
+	args = append(args, "-ac", "2", "-ar", "44100", "-c:a", "pcm_s16le", "-f", "wav")
+	args = args.Overwrite()
+	args = args.Output(outPath)
+	return instance.FFMpeg.Generate(ctx, args)
 }
 
 // muxDub writes a sidecar mp4 with the original video stream, the dubbed audio,
