@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/stashapp/stash/pkg/file"
@@ -196,12 +197,13 @@ func (s *Service) deleteFiles(ctx context.Context, scene *models.Scene, fileDele
 					return err
 				}
 			}
+		}
 
-			// delete caption/subtitle files if they exist and deleteSubtitles is true
-			if deleteSubtitles {
-				if err := s.deleteCaptionFiles(ctx, f, fileDeleter); err != nil {
-					return err
-				}
+		// delete caption/subtitle records (and files, when not inside a zip
+		// archive) if deleteSubtitles is true
+		if deleteSubtitles {
+			if err := s.deleteCaptionFiles(ctx, f, fileDeleter); err != nil {
+				return err
 			}
 		}
 	}
@@ -216,19 +218,17 @@ func (s *Service) deleteSubtitlesOnly(ctx context.Context, scene *models.Scene, 
 	}
 
 	for _, f := range scene.Files.List() {
-		// don't delete files in zip archives
-		if f.ZipFileID == nil {
-			// delete caption/subtitle files if they exist
-			if err := s.deleteCaptionFiles(ctx, f, fileDeleter); err != nil {
-				return err
-			}
+		// delete caption/subtitle records and files if they exist
+		if err := s.deleteCaptionFiles(ctx, f, fileDeleter); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// deleteCaptionFiles deletes caption/subtitle files associated with a video file
+// deleteCaptionFiles deletes caption/subtitle files associated with a video
+// file and removes their caption records
 func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDeleter *FileDeleter) error {
 	// Get captions from database
 	captions, err := s.File.GetCaptions(ctx, f.Base().ID)
@@ -238,64 +238,94 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 	}
 
 	var captionFiles []string
-	for _, caption := range captions {
-		captionPath := caption.Path(f.Base().Path)
-		exists, _ := fsutil.FileExists(captionPath)
-		if exists {
-			captionFiles = append(captionFiles, captionPath)
-			logger.Infof("Marking caption file for deletion: %s", captionPath)
+
+	// caption files inside zip archives cannot be deleted from disk; only
+	// their caption records are cleared below
+	if f.Base().ZipFileID == nil {
+		for _, caption := range captions {
+			captionPath := caption.Path(f.Base().Path)
+			exists, _ := fsutil.FileExists(captionPath)
+			if exists {
+				captionFiles = append(captionFiles, captionPath)
+				logger.Infof("Marking caption file for deletion: %s", captionPath)
+			}
 		}
-	}
 
-	// Also check for common subtitle file patterns that might not be in database
-	videoPath := f.Base().Path
-	videoDir := filepath.Dir(videoPath)
-	videoBase := strings.TrimSuffix(filepath.Base(videoPath), filepath.Ext(videoPath))
+		// Also check for common subtitle file patterns that might not be in database
+		videoPath := f.Base().Path
+		videoDir := filepath.Dir(videoPath)
+		videoBase := strings.TrimSuffix(filepath.Base(videoPath), filepath.Ext(videoPath))
 
-	// Check for common subtitle extensions using the centralized SubtitleExts list
-	for _, extWithoutDot := range video.SubtitleExts {
-		ext := "." + extWithoutDot
-		// Check for files with same basename + language code + extension
-		pattern := filepath.Join(videoDir, videoBase+".*"+ext)
-		matches, err := filepath.Glob(pattern)
-		if err == nil {
-			for _, match := range matches {
-				// Check if this file is not already marked for deletion
+		// Check for common subtitle extensions using the centralized SubtitleExts list
+		for _, extWithoutDot := range video.SubtitleExts {
+			ext := "." + extWithoutDot
+			// Check for files with same basename + language code + extension
+			pattern := filepath.Join(videoDir, videoBase+".*"+ext)
+			matches, err := filepath.Glob(pattern)
+			if err == nil {
+				for _, match := range matches {
+					// Check if this file is not already marked for deletion
+					alreadyMarked := false
+					for _, marked := range captionFiles {
+						if marked == match {
+							alreadyMarked = true
+							break
+						}
+					}
+					if !alreadyMarked {
+						captionFiles = append(captionFiles, match)
+						logger.Infof("Marking additional subtitle file for deletion: %s", match)
+					}
+				}
+			}
+
+			// Also check for files with same basename + extension (no language code)
+			simplePattern := filepath.Join(videoDir, videoBase+ext)
+			exists, _ := fsutil.FileExists(simplePattern)
+			if exists {
 				alreadyMarked := false
 				for _, marked := range captionFiles {
-					if marked == match {
+					if marked == simplePattern {
 						alreadyMarked = true
 						break
 					}
 				}
 				if !alreadyMarked {
-					captionFiles = append(captionFiles, match)
-					logger.Infof("Marking additional subtitle file for deletion: %s", match)
+					captionFiles = append(captionFiles, simplePattern)
+					logger.Infof("Marking simple subtitle file for deletion: %s", simplePattern)
 				}
 			}
 		}
 
-		// Also check for files with same basename + extension (no language code)
-		simplePattern := filepath.Join(videoDir, videoBase+ext)
-		exists, _ := fsutil.FileExists(simplePattern)
-		if exists {
-			alreadyMarked := false
-			for _, marked := range captionFiles {
-				if marked == simplePattern {
-					alreadyMarked = true
-					break
-				}
-			}
-			if !alreadyMarked {
-				captionFiles = append(captionFiles, simplePattern)
-				logger.Infof("Marking simple subtitle file for deletion: %s", simplePattern)
+		if len(captionFiles) > 0 {
+			if err := fileDeleter.Files(captionFiles); err != nil {
+				return fmt.Errorf("marking caption files for deletion: %w", err)
 			}
 		}
 	}
 
-	if len(captionFiles) > 0 {
-		if err := fileDeleter.Files(captionFiles); err != nil {
-			return fmt.Errorf("marking caption files for deletion: %w", err)
+	// remove the caption records as well, otherwise the player keeps offering
+	// the deleted tracks until the next scan runs CleanCaptions
+	if len(captions) > 0 {
+		if err := s.File.UpdateCaptions(ctx, f.Base().ID, nil); err != nil {
+			return fmt.Errorf("clearing captions for file %s: %w", f.Base().Path, err)
+		}
+	}
+
+	// the deleted files may also be referenced by other video files sharing
+	// the same basename (e.g. dub sidecar scenes). Include caption paths from
+	// db records even when the file is already gone from disk, so stale
+	// records on those files are cleared too.
+	dissociatePaths := captionFiles
+	for _, caption := range captions {
+		captionPath := caption.Path(f.Base().Path)
+		if !slices.Contains(dissociatePaths, captionPath) {
+			dissociatePaths = append(dissociatePaths, captionPath)
+		}
+	}
+	for _, captionPath := range dissociatePaths {
+		if err := video.DissociateCaption(ctx, captionPath, s.File, s.File); err != nil {
+			return err
 		}
 	}
 

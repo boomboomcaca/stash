@@ -13,6 +13,8 @@ export interface ISubtitleTrackOption {
   src: string;
   // ISO language code (e.g. "ja", "zh"); "00" means unknown
   lang: string;
+  // caption type (srt/vtt)
+  type: string;
   // human-readable label shown in the menu
   label: string;
 }
@@ -83,10 +85,17 @@ class SubtitleTrackMenuButton extends MenuButton {
     this.update(); // rebuild items so the checkmark moves
   }
 
-  // Called by the parent to feed in the scene's tracks.
-  setTrackOptions(options: ISubtitleTrackOption[], selectedSrc: string | null) {
+  // Called by the parent to feed in the scene's tracks. preserveOff keeps an
+  // explicit "Off" selection across same-scene track rebuilds.
+  setTrackOptions(
+    options: ISubtitleTrackOption[],
+    selectedSrc: string | null,
+    preserveOff = false
+  ) {
     this.trackOptions = options || [];
-    this.selectedSrc = selectedSrc;
+    if (!(preserveOff && this.selectedSrc === null)) {
+      this.selectedSrc = selectedSrc;
+    }
     this.update();
     this.updateVisibility();
   }

@@ -349,6 +349,22 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       onComplete,
     });
 
+    // feed the track menu in the control bar
+    const setSubtitleTrackOptions = useCallback(
+      (
+        options: ISubtitleTrackOption[],
+        selectedSrc: string | null,
+        preserveOff?: boolean
+      ) => {
+        subtitleTrackMenuRef.current?.setTrackOptions(
+          options,
+          selectedSrc,
+          preserveOff
+        );
+      },
+      []
+    );
+
     // Use scene loading hook
     useSceneLoading({
       getPlayer,
@@ -362,12 +378,11 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       initialTimestamp: _initialTimestamp,
       setReady,
       setTime,
+      currentSubtitleTrack,
+      subtitleLanguage,
       setCurrentSubtitleTrack,
       setSubtitleLanguage,
-      setSubtitleTrackOptions: (options, selectedSrc) => {
-        // feed the track menu in the control bar
-        subtitleTrackMenuRef.current?.setTrackOptions(options, selectedSrc);
-      },
+      setSubtitleTrackOptions,
       auto,
       started,
     });
