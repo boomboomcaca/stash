@@ -143,8 +143,31 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		}
 	}
 
-	if err := requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath); err != nil {
+	refit, err := requestDub(ctx, string(srtBytes), duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath)
+	if err != nil {
 		return fmt.Errorf("dub service error for %s: %w", videoPath, err)
+	}
+
+	// One-shot pace convergence: the dub measured this scene's cloned voices
+	// speaking at a rate that disagrees with the budget the translation
+	// assumed. The dub service already wrote the corrected calibration, so a
+	// single re-translate + re-dub lands the converged result inside this
+	// same generate run instead of over the next few scenes.
+	if refit {
+		srcScript := dubScriptPath(videoPath, cfg.GetSubtitleGenerationLanguage())
+		if enTagged, rerr := os.ReadFile(srcScript); rerr == nil {
+			logger.Infof("[dubbing] pace calibration shifted; re-translating %s with the measured rate", videoPath)
+			retrans, terr := translateSRT(ctx, string(enTagged), target)
+			if terr == nil && strings.Contains(retrans, "-->") {
+				_ = os.WriteFile(dubScriptPath(videoPath, target), []byte(retrans), 0644)
+				_ = os.WriteFile(captionPath, []byte(stripSpeakerTags(retrans)), 0644)
+				if _, err := requestDub(ctx, retrans, duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath); err != nil {
+					return fmt.Errorf("dub service error (refit) for %s: %w", videoPath, err)
+				}
+			} else if terr != nil {
+				logger.Warnf("[dubbing] refit re-translation failed (%v); keeping the first dub", terr)
+			}
+		}
 	}
 
 	// mux the dubbed audio over the original video into the sidecar file;
@@ -172,8 +195,10 @@ func dubScriptPath(videoPath, lang string) string {
 // requestDub posts the SRT to the dub service /v1/dub and streams the returned
 // wav to outPath. When bgAudioPath is non-empty, the request is sent as
 // multipart with the original audio attached as bg_audio so the service remixes
-// the background; otherwise a plain url-encoded form is used.
-func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudioPath, outPath string) error {
+// the background; otherwise a plain url-encoded form is used. The returned
+// bool is the service's X-Dub-Cps-Refit flag: this scene's measured speaking
+// rate disagreed with the translation's budget assumption.
+func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudioPath, outPath string) (bool, error) {
 	serviceURL := config.GetInstance().GetDubbingURL() + dubbingPath
 	durStr := strconv.FormatFloat(duration, 'f', 3, 64)
 
@@ -186,7 +211,7 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 		form.Set("voice", voice)
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, strings.NewReader(form.Encode()))
 		if err != nil {
-			return err
+			return false, err
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	} else {
@@ -221,7 +246,7 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 		}()
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, pr)
 		if err != nil {
-			return err
+			return false, err
 		}
 		req.Header.Set("Content-Type", mw.FormDataContentType())
 	}
@@ -230,24 +255,25 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 	// is handled via the request context.
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return fmt.Errorf("dub service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return false, fmt.Errorf("dub service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
+	refit := resp.Header.Get("X-Dub-Cps-Refit") == "1"
 
 	out, err := os.Create(outPath)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer out.Close()
 	if _, err := io.Copy(out, resp.Body); err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return refit, nil
 }
 
 // extractDubBackground extracts the scene's original audio to a stereo 44.1kHz

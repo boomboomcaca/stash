@@ -187,6 +187,12 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 		logger.Errorf("[subtitles] error writing %s caption for %s: %v", srcLang, videoPath, err)
 		return
 	}
+	// the tagged source is kept for dub-time re-translation (pace refit)
+	if strings.Contains(srt, "[Speaker") {
+		if err := os.WriteFile(dubScriptPath(videoPath, srcLang), []byte(srt), 0644); err != nil {
+			logger.Warnf("[subtitles] could not write %s dub script for %s: %v", srcLang, videoPath, err)
+		}
+	}
 	logger.Infof("[subtitles] generated %s caption for %s", srcLang, videoPath)
 
 	// Additionally translate captions whose language differs from the target
@@ -252,6 +258,12 @@ func (t *GenerateSubtitlesTask) writeAndAssociate(ctx context.Context, fileID mo
 // translate sends an SRT body to the service /v1/translate and returns the
 // translated SRT.
 func (t *GenerateSubtitlesTask) translate(ctx context.Context, srt, target string) (string, error) {
+	return translateSRT(ctx, srt, target)
+}
+
+// translateSRT is the package-level translation call, shared with the dub
+// task's pace-refit re-translation.
+func translateSRT(ctx context.Context, srt, target string) (string, error) {
 	serviceURL := config.GetInstance().GetSubtitleGenerationURL() + subtitleTranslatePath
 	form := url.Values{}
 	form.Set("text", srt)
