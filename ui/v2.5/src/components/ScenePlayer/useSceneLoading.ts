@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { VideoJsPlayer } from "video.js";
 import { UAParser } from "ua-parser-js";
@@ -23,11 +23,14 @@ interface IUseSceneLoadingProps {
   initialTimestamp: number;
   setReady: (value: boolean) => void;
   setTime: (value: number) => void;
+  currentSubtitleTrack: string | null;
+  subtitleLanguage: string;
   setCurrentSubtitleTrack: (value: string | null) => void;
   setSubtitleLanguage: (value: string) => void;
   setSubtitleTrackOptions?: (
     options: ISubtitleTrackOption[],
-    selectedSrc: string | null
+    selectedSrc: string | null,
+    preserveOff?: boolean
   ) => void;
   auto: React.MutableRefObject<boolean>;
   started: React.MutableRefObject<boolean>;
@@ -37,6 +40,9 @@ interface IUseSceneLoadingProps {
 export interface ISubtitleTrackOption {
   src: string;
   lang: string;
+  // caption type (srt/vtt) — distinguishes same-language tracks so the
+  // selection can be restored exactly across rebuilds
+  type: string;
   label: string;
 }
 
@@ -70,6 +76,8 @@ export function useSceneLoading({
   initialTimestamp,
   setReady,
   setTime,
+  currentSubtitleTrack,
+  subtitleLanguage,
   setCurrentSubtitleTrack,
   setSubtitleLanguage,
   setSubtitleTrackOptions,
@@ -77,6 +85,17 @@ export function useSceneLoading({
   started,
 }: IUseSceneLoadingProps) {
   const intl = useIntl();
+
+  // Text tracks added for the current caption set, so the captions effect
+  // below can remove them when the set changes without a scene change.
+  // options keeps the previous generation's track options so the selection
+  // can be restored by language/type across rebuilds.
+  const captionTracks = useRef<{
+    player: VideoJsPlayer;
+    key: string;
+    els: HTMLTrackElement[];
+    options: ISubtitleTrackOption[];
+  } | null>(null);
 
   useEffect(() => {
     const player = getPlayer();
@@ -146,78 +165,6 @@ export function useSceneLoading({
         })
     );
 
-    function getDefaultLanguageCode() {
-      return window.navigator.language.split(/[-_]/)[0];
-    }
-
-    if (scene.captions && scene.captions.length > 0) {
-      const languageCode = getDefaultLanguageCode();
-      let hasDefault = false;
-      let defaultTrackSrc = null;
-      let defaultLang = "en";
-
-      const trackOptions: ISubtitleTrackOption[] = [];
-
-      for (let caption of scene.captions) {
-        const lang = caption.language_code;
-        const label = `${getLanguageDisplayName(lang, intl.locale)} (${
-          caption.caption_type
-        })`;
-        const setAsDefault = !hasDefault && languageCode == lang;
-        const trackSrc =
-          withApiKey(
-            buildCaptionTrackSrc(scene.paths.caption, lang, caption.caption_type)
-          ) ?? "";
-
-        if (setAsDefault) {
-          hasDefault = true;
-          defaultTrackSrc = trackSrc;
-          defaultLang = lang;
-        }
-
-        trackOptions.push({ src: trackSrc, lang, label });
-
-        // 原生字幕默认不显示，由增强字幕按钮控制增强字幕
-        sourceSelector.addTextTrack(
-          {
-            src: trackSrc,
-            kind: "captions",
-            srclang: lang,
-            label,
-            default: false,
-          },
-          false
-        );
-      }
-
-      // Set the default or first track for enhanced subtitles
-      let selectedSrc: string | null;
-      if (defaultTrackSrc) {
-        selectedSrc = defaultTrackSrc;
-        setCurrentSubtitleTrack(defaultTrackSrc);
-        setSubtitleLanguage(defaultLang);
-      } else {
-        const firstCaption = scene.captions[0];
-        selectedSrc =
-          withApiKey(
-            buildCaptionTrackSrc(
-              scene.paths.caption,
-              firstCaption.language_code,
-              firstCaption.caption_type
-            )
-          ) ?? "";
-        setCurrentSubtitleTrack(selectedSrc);
-        setSubtitleLanguage(firstCaption.language_code);
-      }
-
-      // Feed the available tracks to the track-selection menu
-      setSubtitleTrackOptions?.(trackOptions, selectedSrc);
-    } else {
-      // 没有字幕时，重置字幕轨道为null
-      setCurrentSubtitleTrack(null);
-      setSubtitleTrackOptions?.([], null);
-    }
-
     auto.current =
       autoplay ||
       (interfaceConfig?.autostartVideo ?? false) ||
@@ -254,8 +201,6 @@ export function useSceneLoading({
     getPlayer,
     file,
     scene.id,
-    scene.captions,
-    scene.paths.caption,
     scene.resume_time,
     scene.sceneStreams,
     scene.paths.vtt,
@@ -267,12 +212,125 @@ export function useSceneLoading({
     initialTimestamp,
     setReady,
     setTime,
-    setCurrentSubtitleTrack,
-    setSubtitleLanguage,
-    setSubtitleTrackOptions,
     auto,
     started,
     sceneId,
+  ]);
+
+  // (Re)build the enhanced-subtitle tracks whenever the scene's captions
+  // change — including for the SAME scene, e.g. after the subtitles are
+  // deleted and the scene is refetched. The init effect above only runs on
+  // scene change, so it cannot pick up same-scene caption updates.
+  useEffect(() => {
+    const player = getPlayer();
+    if (!player || !file) return;
+
+    const captions = scene.captions ?? [];
+    // identity of the caption set; signed-URL params on scene.paths.caption
+    // rotate between refetches, so key on language/type instead of the src
+    const key =
+      `${scene.id}|${intl.locale}|` +
+      captions.map((c) => `${c.language_code}:${c.caption_type}`).join(",");
+
+    const applied = captionTracks.current;
+    if (applied && applied.player === player && applied.key === key) return;
+
+    const sourceSelector = player.sourceSelector();
+
+    // remove the tracks built for the previous caption set
+    if (applied && applied.player === player) {
+      for (const el of applied.els) {
+        sourceSelector.removeTextTrack(el);
+      }
+    }
+
+    const isSameScene =
+      applied?.player === player && applied.key.startsWith(`${scene.id}|`);
+
+    const trackOptions: ISubtitleTrackOption[] = [];
+    const els: HTMLTrackElement[] = [];
+
+    for (const caption of captions) {
+      const lang = caption.language_code;
+      const label = `${getLanguageDisplayName(lang, intl.locale)} (${
+        caption.caption_type
+      })`;
+      const trackSrc =
+        withApiKey(
+          buildCaptionTrackSrc(scene.paths.caption, lang, caption.caption_type)
+        ) ?? "";
+
+      trackOptions.push({
+        src: trackSrc,
+        lang,
+        type: caption.caption_type,
+        label,
+      });
+
+      // 原生字幕默认不显示，由增强字幕按钮控制增强字幕
+      els.push(
+        sourceSelector.addTextTrack(
+          {
+            src: trackSrc,
+            kind: "captions",
+            srclang: lang,
+            label,
+            default: false,
+          },
+          true
+        )
+      );
+    }
+
+    captionTracks.current = { player, key, els, options: trackOptions };
+
+    if (trackOptions.length === 0) {
+      // 没有字幕时，重置字幕轨道为null
+      setCurrentSubtitleTrack(null);
+      setSubtitleTrackOptions?.([], null);
+      return;
+    }
+
+    // pick the selected track: keep the user's exact track (language + type)
+    // when the captions changed under the same scene, then the same language,
+    // otherwise fall back to the browser language, then to the first caption.
+    // src strings can't be compared across rebuilds (signed-URL params
+    // rotate), so the previous selection is resolved against the previous
+    // generation's options.
+    const prevSelected =
+      isSameScene && currentSubtitleTrack !== null
+        ? applied?.options.find((o) => o.src === currentSubtitleTrack)
+        : undefined;
+    const keepLang =
+      isSameScene && currentSubtitleTrack !== null ? subtitleLanguage : null;
+    const languageCode = window.navigator.language.split(/[-_]/)[0];
+    const selected =
+      (prevSelected
+        ? trackOptions.find(
+            (o) => o.lang === prevSelected.lang && o.type === prevSelected.type
+          )
+        : undefined) ??
+      (keepLang
+        ? trackOptions.find((o) => o.lang === keepLang)
+        : undefined) ??
+      trackOptions.find((o) => o.lang === languageCode) ??
+      trackOptions[0];
+
+    setCurrentSubtitleTrack(selected.src);
+    setSubtitleLanguage(selected.lang);
+    // preserve an explicit "Off" menu selection across same-scene rebuilds
+    setSubtitleTrackOptions?.(trackOptions, selected.src, isSameScene);
+  }, [
+    getPlayer,
+    file,
+    scene.id,
+    scene.captions,
+    scene.paths.caption,
+    currentSubtitleTrack,
+    subtitleLanguage,
+    setCurrentSubtitleTrack,
+    setSubtitleLanguage,
+    setSubtitleTrackOptions,
     intl.locale,
   ]);
 

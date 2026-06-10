@@ -111,6 +111,13 @@ func AssociateCaptions(ctx context.Context, captionPath string, txnMgr txn.Manag
 	captionPrefix := getCaptionPrefix(captionPath)
 	matched := false
 	if err := txn.WithTxn(ctx, txnMgr, func(ctx context.Context) error {
+		// the caption file may have been deleted (and its records removed)
+		// after it was queued for association; re-check inside the
+		// transaction so rows aren't re-inserted for a deleted file
+		if _, statErr := os.Stat(captionPath); errors.Is(statErr, os.ErrNotExist) {
+			return nil
+		}
+
 		var err error
 		files, er := fqb.FindAllByPath(ctx, captionPrefix+"*", true)
 
@@ -162,6 +169,58 @@ func AssociateCaptions(ctx context.Context, captionPath string, txnMgr txn.Manag
 	}
 
 	return matched
+}
+
+// DissociateCaption removes caption entries referencing the given caption path
+// from all video files matching its basename. It is the inverse of
+// AssociateCaptions for a single caption file, used when the file is deleted.
+// It must be called within a transaction.
+func DissociateCaption(ctx context.Context, captionPath string, fqb models.FileFinder, w CaptionUpdater) error {
+	captionPrefix := getCaptionPrefix(captionPath)
+	captionFilename := filepath.Base(captionPath)
+
+	files, err := fqb.FindAllByPath(ctx, captionPrefix+"*", true)
+	if err != nil {
+		return fmt.Errorf("searching for videos matching %s: %w", captionPrefix, err)
+	}
+
+	for _, f := range files {
+		if _, ok := f.(*models.VideoFile); !ok {
+			continue
+		}
+
+		// FindAllByPath uses LIKE matching, so '_'/'%' in real paths act as
+		// wildcards and can match sibling directories. A caption record
+		// resolves relative to the video's own directory, so only videos in
+		// the caption's directory can actually reference the deleted file.
+		if filepath.Dir(f.Base().Path) != filepath.Dir(captionPath) {
+			continue
+		}
+
+		fileID := f.Base().ID
+
+		captions, err := w.GetCaptions(ctx, fileID)
+		if err != nil {
+			return fmt.Errorf("getting captions for file %s: %w", f.Base().Path, err)
+		}
+
+		var newCaptions []*models.VideoCaption
+		for _, caption := range captions {
+			if caption.Filename != captionFilename {
+				newCaptions = append(newCaptions, caption)
+			}
+		}
+
+		if len(newCaptions) != len(captions) {
+			if err := w.UpdateCaptions(ctx, fileID, newCaptions); err != nil {
+				return fmt.Errorf("updating captions for file %s: %w", f.Base().Path, err)
+			}
+
+			logger.Debugf("Removed caption %s from file %s", captionFilename, f.Base().Path)
+		}
+	}
+
+	return nil
 }
 
 // CleanCaptions removes non existent/accessible language codes from captions
