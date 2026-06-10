@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/stashapp/stash/internal/manager/config"
@@ -180,8 +181,9 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 
 	// Write the original-language caption with a language suffix
 	// (e.g. movie.ja.srt) and associate it under its language code, so it
-	// shows up as a selectable track.
-	if err := t.writeAndAssociate(ctx, fileID, videoPath, srcLang, srt); err != nil {
+	// shows up as a selectable track. Viewers get the tag-free text; the
+	// "[Speaker N]: " prefixes are dub-routing metadata, not subtitle content.
+	if err := t.writeAndAssociate(ctx, fileID, videoPath, srcLang, stripSpeakerTags(srt)); err != nil {
 		logger.Errorf("[subtitles] error writing %s caption for %s: %v", srcLang, videoPath, err)
 		return
 	}
@@ -202,9 +204,15 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 				logger.Warnf("[subtitles] translation produced no usable subtitles for %s", videoPath)
 				return
 			}
-			if err := t.writeAndAssociate(ctx, fileID, videoPath, target, translated); err != nil {
+			if err := t.writeAndAssociate(ctx, fileID, videoPath, target, stripSpeakerTags(translated)); err != nil {
 				logger.Errorf("[subtitles] error writing %s translation for %s: %v", target, videoPath, err)
 				return
+			}
+			// The tagged original ("[Speaker N|情绪]: ...") is what the dub
+			// service needs for voice and emotion routing; keep it beside the
+			// clean caption under a non-caption extension so scans ignore it.
+			if err := os.WriteFile(dubScriptPath(videoPath, target), []byte(translated), 0644); err != nil {
+				logger.Warnf("[subtitles] could not write dub script for %s: %v", videoPath, err)
 			}
 			logger.Infof("[subtitles] generated %s translation for %s", target, videoPath)
 		}
@@ -219,6 +227,16 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 			logger.Errorf("[dubbing] %v", err)
 		}
 	}
+}
+
+// speakerTagRE matches the "[Speaker N]: " / "[Speaker N|情绪]: " line prefixes
+// the ASR and translation services emit on multi-speaker content. They route
+// per-speaker voices and emotion in the dub service and must survive in the
+// dub script, but are noise in viewer-facing captions.
+var speakerTagRE = regexp.MustCompile(`(?m)^\[Speaker[^\]]*\]:\s*`)
+
+func stripSpeakerTags(srt string) string {
+	return speakerTagRE.ReplaceAllString(srt, "")
 }
 
 // writeAndAssociate writes an SRT body to a language-suffixed caption file

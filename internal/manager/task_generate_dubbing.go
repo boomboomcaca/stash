@@ -99,8 +99,13 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		}
 	}
 
-	// the dub source is the translated caption (e.g. movie.zh.srt)
-	srtPath := video.GetCaptionPath(videoPath, target, "srt")
+	// the dub source is the tagged dub script when present (speaker + emotion
+	// routing), else the display caption (older runs, single-speaker content)
+	captionPath := video.GetCaptionPath(videoPath, target, "srt")
+	srtPath := dubScriptPath(videoPath, target)
+	if _, err := os.Stat(srtPath); err != nil {
+		srtPath = captionPath
+	}
 	srtBytes, err := os.ReadFile(srtPath)
 	if err != nil {
 		logger.Warnf("[dubbing] no %s caption for %s (%v); skipping", target, videoPath, err)
@@ -142,8 +147,9 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		return fmt.Errorf("dub service error for %s: %w", videoPath, err)
 	}
 
-	// mux the dubbed audio over the original video into the sidecar file
-	if err := muxDub(ctx, videoPath, dubAudioPath, srtPath, target, outPath); err != nil {
+	// mux the dubbed audio over the original video into the sidecar file;
+	// the soft-sub track is always the CLEAN caption, never the tagged script
+	if err := muxDub(ctx, videoPath, dubAudioPath, captionPath, target, outPath); err != nil {
 		return fmt.Errorf("muxing dubbed video for %s: %w", videoPath, err)
 	}
 	logger.Infof("[dubbing] generated dubbed video %s", outPath)
@@ -154,6 +160,13 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 func dubOutputPath(videoPath, lang string) string {
 	ext := filepath.Ext(videoPath)
 	return strings.TrimSuffix(videoPath, ext) + "." + lang + "-dub.mp4"
+}
+
+// dubScriptPath returns "<dir>/<name>.<lang>.srt.dub" — the tagged dub script
+// ("[Speaker N|情绪]: " prefixes for voice/emotion routing) kept beside the
+// clean display caption; deliberately not ".srt" so caption scans ignore it.
+func dubScriptPath(videoPath, lang string) string {
+	return video.GetCaptionPath(videoPath, lang, "srt") + ".dub"
 }
 
 // requestDub posts the SRT to the dub service /v1/dub and streams the returned
