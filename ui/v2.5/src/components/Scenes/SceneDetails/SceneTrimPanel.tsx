@@ -14,6 +14,12 @@ interface ICue {
   text: string;
 }
 
+// A delete range the user is editing, seeded from a cue but independently adjustable.
+interface IRange {
+  start: number;
+  end: number;
+}
+
 // Mirrors ScenePlayer/useSceneLoading buildCaptionTrackSrc: scene.paths.caption
 // may already carry a signed-URL query, so pick the correct separator rather
 // than always appending "?".
@@ -78,6 +84,10 @@ function fmtTime(t: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
+function clampNonNeg(t: number): number {
+  return t < 0 ? 0 : Math.round(t * 1000) / 1000;
+}
+
 export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
   const Toast = useToast();
   const [sceneTrim, { loading: submitting }] = GQL.useSceneTrimMutation();
@@ -87,9 +97,11 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
 
   const [captionIdx, setCaptionIdx] = useState(0);
   const [cues, setCues] = useState<ICue[]>([]);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  // index -> the (editable) delete range seeded from that cue.
+  const [selected, setSelected] = useState<Map<number, IRange>>(new Map());
   const [loadingCues, setLoadingCues] = useState(false);
   const [replace, setReplace] = useState(false);
+  const [snapToKeyframes, setSnapToKeyframes] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,7 +114,7 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
     let cancelled = false;
     setLoadingCues(true);
     setError(null);
-    setSelected(new Set());
+    setSelected(new Map());
 
     const url = buildCaptionTrackSrc(
       captionBase,
@@ -133,52 +145,137 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
     };
   }, [captionBase, captionIdx, captions]);
 
-  function toggle(i: number) {
+  // tick/untick a cue — seeds the editable delete range from the cue's own times.
+  function toggle(c: ICue) {
     setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
+      const next = new Map(prev);
+      if (next.has(c.index)) next.delete(c.index);
+      else next.set(c.index, { start: c.start, end: c.end });
+      return next;
+    });
+  }
+
+  // set an absolute value for one edge of a selected range.
+  function setEdge(index: number, edge: "start" | "end", value: number) {
+    if (Number.isNaN(value)) return;
+    setSelected((prev) => {
+      const r = prev.get(index);
+      if (!r) return prev;
+      const next = new Map(prev);
+      next.set(index, { ...r, [edge]: clampNonNeg(value) });
+      return next;
+    });
+  }
+
+  // nudge one edge of a selected range by delta seconds.
+  function nudge(index: number, edge: "start" | "end", delta: number) {
+    setSelected((prev) => {
+      const r = prev.get(index);
+      if (!r) return prev;
+      const next = new Map(prev);
+      next.set(index, { ...r, [edge]: clampNonNeg(r[edge] + delta) });
       return next;
     });
   }
 
   const selectedCount = selected.size;
-  const totalDeleteSeconds = useMemo(
-    () =>
-      cues
-        .filter((c) => selected.has(c.index))
-        .reduce((acc, c) => acc + (c.end - c.start), 0),
-    [cues, selected]
-  );
+  const totalDeleteSeconds = useMemo(() => {
+    let acc = 0;
+    selected.forEach((r) => {
+      if (r.end > r.start) acc += r.end - r.start;
+    });
+    return acc;
+  }, [selected]);
 
   async function onTrim() {
-    const ranges = cues
-      .filter((c) => selected.has(c.index))
-      .map((c) => ({ start: c.start, end: c.end }));
-    if (ranges.length === 0) return;
+    const ranges: IRange[] = [];
+    selected.forEach((r) => {
+      if (r.end > r.start) ranges.push({ start: r.start, end: r.end });
+    });
+    if (ranges.length === 0) {
+      Toast.error("All selected ranges are empty (end must be after start).");
+      return;
+    }
     try {
       await sceneTrim({
-        variables: { id: scene.id, deleteRanges: ranges, replace },
+        variables: {
+          id: scene.id,
+          deleteRanges: ranges,
+          replace,
+          snapToKeyframes,
+        },
       });
       Toast.success(
         `Trim job started: removing ${ranges.length} segment(s)${
           replace ? " (replacing original)" : " (new .trimmed.mp4)"
         }`
       );
-      setSelected(new Set());
+      setSelected(new Map());
     } catch (e) {
       Toast.error(e);
     }
+  }
+
+  // inline editor for one edge of a selected range (− / number / +).
+  function edgeEditor(index: number, edge: "start" | "end", r: IRange) {
+    return (
+      <span className="d-inline-flex align-items-center" style={{ gap: 2 }}>
+        <Button
+          size="sm"
+          variant="outline-secondary"
+          title="-1 frame (~0.04s)"
+          onClick={() => nudge(index, edge, -0.04)}
+        >
+          ‹
+        </Button>
+        <Button
+          size="sm"
+          variant="outline-secondary"
+          title="-0.5s"
+          onClick={() => nudge(index, edge, -0.5)}
+        >
+          −
+        </Button>
+        <Form.Control
+          type="number"
+          step={0.1}
+          min={0}
+          size="sm"
+          style={{ width: "6.5em", textAlign: "center" }}
+          value={r[edge].toFixed(2)}
+          onChange={(e) =>
+            setEdge(index, edge, parseFloat(e.currentTarget.value))
+          }
+        />
+        <Button
+          size="sm"
+          variant="outline-secondary"
+          title="+0.5s"
+          onClick={() => nudge(index, edge, 0.5)}
+        >
+          +
+        </Button>
+        <Button
+          size="sm"
+          variant="outline-secondary"
+          title="+1 frame (~0.04s)"
+          onClick={() => nudge(index, edge, 0.04)}
+        >
+          ›
+        </Button>
+      </span>
+    );
   }
 
   return (
     <div className="container scene-trim-panel">
       <h5>Trim by Subtitle</h5>
       <p className="text-muted">
-        Tick the subtitle lines to <strong>remove</strong> from the video. The
+        Tick the subtitle lines to <strong>remove</strong> from the video. Each
+        selected line seeds a delete range you can <strong>fine-tune</strong>{" "}
+        (the subtitle times rarely match the exact frame you want to cut). The
         remaining parts are joined into a new <code>.trimmed.mp4</code> and the
-        captions are re-timed to match. Run this before dubbing so nothing needs
-        re-aligning.
+        captions are re-timed to match. Run this before dubbing.
       </p>
 
       {captions.length === 0 && (
@@ -222,7 +319,7 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => setSelected(new Set())}
+              onClick={() => setSelected(new Map())}
               disabled={selectedCount === 0}
             >
               Clear
@@ -238,41 +335,69 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
               borderRadius: 4,
             }}
           >
-            {cues.map((c) => (
-              <label
-                key={c.index}
-                className="d-flex align-items-start p-1 mb-0"
-                style={{
-                  cursor: "pointer",
-                  background: selected.has(c.index)
-                    ? "rgba(220,53,69,0.25)"
-                    : "transparent",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.has(c.index)}
-                  onChange={() => toggle(c.index)}
-                  className="mr-2 mt-1"
-                />
-                <span
-                  className="text-muted mr-2"
+            {cues.map((c) => {
+              const sel = selected.get(c.index);
+              return (
+                <div
+                  key={c.index}
                   style={{
-                    minWidth: "5.5em",
-                    fontVariantNumeric: "tabular-nums",
+                    background: sel ? "rgba(220,53,69,0.18)" : "transparent",
+                    borderBottom: "1px solid rgba(128,128,128,0.12)",
                   }}
                 >
-                  {fmtTime(c.start)}
-                </span>
-                <span>{c.text}</span>
-              </label>
-            ))}
+                  <label
+                    className="d-flex align-items-start p-1 mb-0"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!sel}
+                      onChange={() => toggle(c)}
+                      className="mr-2 mt-1"
+                    />
+                    <span
+                      className="text-muted mr-2"
+                      style={{
+                        minWidth: "5.5em",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {fmtTime(c.start)}
+                    </span>
+                    <span>{c.text}</span>
+                  </label>
+                  {sel && (
+                    <div
+                      className="d-flex align-items-center flex-wrap pl-4 pb-2"
+                      style={{ gap: "0.4rem", fontVariantNumeric: "tabular-nums" }}
+                    >
+                      <span className="text-muted small">remove (s):</span>
+                      {edgeEditor(c.index, "start", sel)}
+                      <span>→</span>
+                      {edgeEditor(c.index, "end", sel)}
+                      <span className="text-muted small">
+                        = {(Math.max(0, sel.end - sel.start)).toFixed(2)}s
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <Form.Check
             type="checkbox"
-            id="scene-trim-replace"
+            id="scene-trim-snap"
             className="mt-3"
+            label="Snap cut points to nearest keyframe (cleaner seams, faster — gives up a little precision)"
+            checked={snapToKeyframes}
+            onChange={(e) => setSnapToKeyframes(e.currentTarget.checked)}
+          />
+
+          <Form.Check
+            type="checkbox"
+            id="scene-trim-replace"
+            className="mt-1"
             label="Replace the original file (otherwise write a new .trimmed.mp4)"
             checked={replace}
             onChange={(e) => setReplace(e.currentTarget.checked)}

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,9 +44,13 @@ type TrimVideoJob struct {
 	Scene        *models.Scene
 	DeleteRanges []TimeRange
 	// Replace overwrites the original file; otherwise a new <name>.trimmed.mp4 is written.
-	Replace     bool
-	TxnManager  models.TxnManager
-	SceneFinder models.SceneReaderWriter
+	Replace bool
+	// SnapToKeyframes moves each cut point to the nearest keyframe so the kept
+	// segments are whole-GOP stream copies (faster, no seam re-encode), trading a
+	// little cut precision (up to ~half a GOP).
+	SnapToKeyframes bool
+	TxnManager      models.TxnManager
+	SceneFinder     models.SceneReaderWriter
 }
 
 func (j *TrimVideoJob) Execute(ctx context.Context, progress *job.Progress) error {
@@ -83,12 +88,29 @@ func (j *TrimVideoJob) Execute(ctx context.Context, progress *job.Progress) erro
 		return fmt.Errorf("scene video has unknown duration; cannot trim")
 	}
 
-	keep, err := computeKeepIntervals(j.DeleteRanges, duration)
+	// Read keyframes once — used both to optionally snap the cut points to
+	// keyframes AND for the smartcut segment planning below.
+	var ffprobePath string
+	if instance.FFProbe != nil {
+		ffprobePath = instance.FFProbe.Path()
+	}
+	keyframes, kerr := getVideoKeyframes(ctx, inputPath, ffprobePath)
+	if kerr != nil {
+		logger.Warnf("scene trim: reading keyframes (%v); falling back to full re-encode", kerr)
+	}
+
+	ranges := j.DeleteRanges
+	if j.SnapToKeyframes && len(keyframes) > 0 {
+		ranges = snapRangesToKeyframes(ranges, keyframes)
+		logger.Infof("scene trim: snapped cut points to nearest keyframes")
+	}
+
+	keep, err := computeKeepIntervals(ranges, duration)
 	if err != nil {
 		return err
 	}
 
-	logger.Infof("Trimming video %s: removing %d range(s), keeping %d segment(s)", inputPath, len(j.DeleteRanges), len(keep))
+	logger.Infof("Trimming video %s: removing %d range(s), keeping %d segment(s)", inputPath, len(ranges), len(keep))
 
 	if err := instance.Paths.Generated.EnsureTmpDir(); err != nil {
 		return fmt.Errorf("ensuring temp dir: %w", err)
@@ -100,14 +122,6 @@ func (j *TrimVideoJob) Execute(ctx context.Context, progress *job.Progress) erro
 	// kept span then costs a couple of short re-encodes instead of re-encoding the
 	// entire span — orders of magnitude faster, lossless on the copied part. If
 	// keyframes can't be read, the interval is re-encoded whole (old behaviour).
-	var ffprobePath string
-	if instance.FFProbe != nil {
-		ffprobePath = instance.FFProbe.Path()
-	}
-	keyframes, kerr := getVideoKeyframes(ctx, inputPath, ffprobePath)
-	if kerr != nil {
-		logger.Warnf("scene trim: reading keyframes (%v); falling back to full re-encode", kerr)
-	}
 	plan := planSmartcutSegments(keep, keyframes)
 	logger.Infof("scene trim: %d kept segment(s) -> %d sub-segment(s), %d stream-copied", len(keep), len(plan), countCopies(plan))
 	progress.SetTotal(len(plan) + 2)
@@ -201,8 +215,9 @@ func (j *TrimVideoJob) Execute(ctx context.Context, progress *job.Progress) erro
 		finalPath = inputPath
 	}
 
-	// 4. re-time sidecar captions onto the trimmed timeline (best-effort)
-	retimeSidecarCaptions(inputPath, finalPath, j.DeleteRanges, duration)
+	// 4. re-time sidecar captions onto the trimmed timeline (best-effort).
+	// Use the same (possibly keyframe-snapped) ranges the video was cut with.
+	retimeSidecarCaptions(inputPath, finalPath, ranges, duration)
 
 	// 5. import/refresh the result so it is usable in stash
 	if err := j.rescan(ctx, finalPath); err != nil {
@@ -480,4 +495,30 @@ func planSmartcutSegments(keep []TimeRange, kf []float64) []trimSeg {
 		}
 	}
 	return segs
+}
+
+// snapRangesToKeyframes moves each delete range's start and end to the nearest
+// keyframe. The kept-interval boundaries then land on keyframes, so smartcut can
+// stream-copy each kept span whole (no head/tail re-encode) — faster and avoids
+// any seam re-encode. Cut precision drops to keyframe granularity (up to ~half a
+// GOP). Empty/inverted ranges that collapse after snapping are dropped downstream
+// by mergeDeleteRanges.
+func snapRangesToKeyframes(ranges []TimeRange, kf []float64) []TimeRange {
+	if len(kf) == 0 {
+		return ranges
+	}
+	nearest := func(t float64) float64 {
+		best := kf[0]
+		for _, k := range kf {
+			if math.Abs(k-t) < math.Abs(best-t) {
+				best = k
+			}
+		}
+		return best
+	}
+	out := make([]TimeRange, 0, len(ranges))
+	for _, r := range ranges {
+		out = append(out, TimeRange{Start: nearest(r.Start), End: nearest(r.End)})
+	}
+	return out
 }

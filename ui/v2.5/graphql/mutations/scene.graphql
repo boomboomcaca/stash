@@ -136,6 +136,12 @@ mutation SceneTrim(
   $id: ID!
   $deleteRanges: [TimeRangeInput!]!
   $replace: Boolean
+  $snapToKeyframes: Boolean
 ) {
-  sceneTrim(id: $id, deleteRanges: $deleteRanges, replace: $replace)
+  sceneTrim(
+    id: $id
+    deleteRanges: $deleteRanges
+    replace: $replace
+    snapToKeyframes: $snapToKeyframes
+  )
 }

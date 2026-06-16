@@ -1369,7 +1369,7 @@ func (r *mutationResolver) SceneRotateVideo(ctx context.Context, id string, rota
 	return strconv.Itoa(jobID), nil
 }
 
-func (r *mutationResolver) SceneTrim(ctx context.Context, id string, deleteRanges []*TimeRangeInput, replace *bool) (string, error) {
+func (r *mutationResolver) SceneTrim(ctx context.Context, id string, deleteRanges []*TimeRangeInput, replace *bool, snapToKeyframes *bool) (string, error) {
 	sceneID, err := strconv.Atoi(id)
 	if err != nil {
 		return "", fmt.Errorf("invalid scene id: %w", err)
@@ -1402,11 +1402,12 @@ func (r *mutationResolver) SceneTrim(ctx context.Context, id string, deleteRange
 	mgr := manager.GetInstance()
 
 	task := &manager.TrimVideoJob{
-		Scene:        s,
-		DeleteRanges: ranges,
-		Replace:      replace != nil && *replace,
-		TxnManager:   r.repository.TxnManager,
-		SceneFinder:  r.repository.Scene,
+		Scene:           s,
+		DeleteRanges:    ranges,
+		Replace:         replace != nil && *replace,
+		SnapToKeyframes: snapToKeyframes != nil && *snapToKeyframes,
+		TxnManager:      r.repository.TxnManager,
+		SceneFinder:     r.repository.Scene,
 	}
 
 	description := fmt.Sprintf("Trimming video %d (%d range(s) removed)", sceneID, len(ranges))

@@ -349,7 +349,7 @@ type Mutation {
   match. By default writes a new <name>.trimmed.mp4 (non-destructive); set replace
   to overwrite the original file. Returns job ID.
   """
-  sceneTrim(id: ID!, deleteRanges: [TimeRangeInput!]!, replace: Boolean): ID!
+  sceneTrim(id: ID!, deleteRanges: [TimeRangeInput!]!, replace: Boolean, snapToKeyframes: Boolean): ID!
 
   sceneMarkerCreate(input: SceneMarkerCreateInput!): SceneMarker
   sceneMarkerUpdate(input: SceneMarkerUpdateInput!): SceneMarker
