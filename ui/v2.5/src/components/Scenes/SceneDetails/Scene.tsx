@@ -36,6 +36,7 @@ import {
   getAbLoopPlugin,
   getPlayerPosition,
 } from "src/components/ScenePlayer/util";
+import { TrimTimeline } from "./TrimTimeline";
 import {
   faEllipsisV,
   faChevronRight,
@@ -1084,6 +1085,7 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
               });
             }}
           />
+          <TrimTimeline scene={scene} />
         </div>
       </div>
     </>
