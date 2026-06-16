@@ -131,17 +131,3 @@ mutation SceneMerge($input: SceneMergeInput!) {
 mutation SceneRotateVideo($id: ID!, $rotation: Int!) {
   sceneRotateVideo(id: $id, rotation: $rotation)
 }
-
-mutation SceneTrim(
-  $id: ID!
-  $deleteRanges: [TimeRangeInput!]!
-  $replace: Boolean
-  $snapToKeyframes: Boolean
-) {
-  sceneTrim(
-    id: $id
-    deleteRanges: $deleteRanges
-    replace: $replace
-    snapToKeyframes: $snapToKeyframes
-  )
-}

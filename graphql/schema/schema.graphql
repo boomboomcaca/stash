@@ -343,14 +343,6 @@ type Mutation {
   "Rotates the video file permanently. Rotation is in degrees (90, 180, 270). Returns job ID."
   sceneRotateVideo(id: ID!, rotation: Int!): ID!
 
-  """
-  Trims a scene's video by REMOVING the given time ranges (e.g. identified from
-  subtitles) and joining the remaining parts. Sidecar captions are re-timed to
-  match. By default writes a new <name>.trimmed.mp4 (non-destructive); set replace
-  to overwrite the original file. Returns job ID.
-  """
-  sceneTrim(id: ID!, deleteRanges: [TimeRangeInput!]!, replace: Boolean, snapToKeyframes: Boolean): ID!
-
   sceneMarkerCreate(input: SceneMarkerCreateInput!): SceneMarker
   sceneMarkerUpdate(input: SceneMarkerUpdateInput!): SceneMarker
   bulkSceneMarkerUpdate(input: BulkSceneMarkerUpdateInput!): [SceneMarker!]

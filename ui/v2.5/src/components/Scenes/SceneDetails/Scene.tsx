@@ -36,7 +36,6 @@ import {
   getAbLoopPlugin,
   getPlayerPosition,
 } from "src/components/ScenePlayer/util";
-import { TrimTimeline } from "./TrimTimeline";
 import {
   faEllipsisV,
   faChevronRight,
@@ -89,7 +88,6 @@ const GenerateDialog = lazyComponent(
 const SceneVideoFilterPanel = lazyComponent(
   () => import("./SceneVideoFilterPanel")
 );
-const SceneTrimPanel = lazyComponent(() => import("./SceneTrimPanel"));
 
 const VideoFrameRateResolution: React.FC<{
   width?: number;
@@ -572,9 +570,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
               </Nav.Link>
             </Nav.Item>
             <Nav.Item>
-              <Nav.Link eventKey="scene-trim-panel">Trim</Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
               <Nav.Link eventKey="scene-file-info-panel">
                 <FormattedMessage id="file_info" />
                 <Counter count={scene.files.length} hideZero hideOne />
@@ -636,9 +631,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
           )}
           <Tab.Pane eventKey="scene-video-filter-panel">
             <SceneVideoFilterPanel scene={scene} />
-          </Tab.Pane>
-          <Tab.Pane eventKey="scene-trim-panel" mountOnEnter unmountOnExit>
-            <SceneTrimPanel scene={scene} />
           </Tab.Pane>
           <Tab.Pane
             className="file-info-panel"
@@ -1085,7 +1077,6 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
               });
             }}
           />
-          <TrimTimeline scene={scene} />
         </div>
       </div>
     </>

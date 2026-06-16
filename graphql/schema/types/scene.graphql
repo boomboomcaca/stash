@@ -36,14 +36,6 @@ type VideoCaption {
   caption_type: String!
 }
 
-"A [start, end) time range in seconds, used for subtitle-driven video trimming."
-input TimeRangeInput {
-  "start time in seconds (inclusive)"
-  start: Float!
-  "end time in seconds (exclusive)"
-  end: Float!
-}
-
 type Scene {
   id: ID!
   title: String
