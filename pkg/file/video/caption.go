@@ -138,6 +138,15 @@ func AssociateCaptions(ctx context.Context, captionPath string, txnMgr txn.Manag
 			fileID := f.Base().ID
 			path := f.Base().Path
 
+			// FindAllByPath("<prefix>*") also matches *derived* videos that merely
+			// share the prefix — e.g. "<base>.zh-dub.mp4" / "<base>.trimmed.mp4" for
+			// caption "<base>.zh.srt". Those must NOT inherit the parent's captions
+			// (a dubbed/trimmed scene has its own "<base>.zh-dub.zh.srt"), so require
+			// the video's own basename prefix to match the caption's exactly.
+			if !MatchesCaption(path, captionPath) {
+				continue
+			}
+
 			logger.Debugf("Matched captions to file %s", path)
 			matched = true
 
