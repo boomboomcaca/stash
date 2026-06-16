@@ -34,7 +34,7 @@ interface IPanState {
 
 const TRACK_H = 60;
 const MIN_RANGE = 0.1;
-const ZOOM_MIN = 2;
+const ZOOM_MIN = 0.02; // low enough that even a multi-hour video fits the width
 const ZOOM_MAX = 600;
 const PAN_THRESHOLD = 4; // px of background drag before it pans (vs. click-to-seek)
 
@@ -68,6 +68,7 @@ export const TrimTimeline: React.FC<ITrimTimelineProps> = ({ scene }) => {
   const rafSeek = useRef<number | null>(null);
   const pendingSeek = useRef<number>(0);
   const zoomAnchor = useRef<{ time: number; offset: number } | null>(null);
+  const fittedScene = useRef<string | null>(null);
 
   const [pxPerSec, setPxPerSec] = useState(() =>
     duration > 0 ? clampNum(960 / duration, ZOOM_MIN, ZOOM_MAX) : 10
@@ -276,6 +277,17 @@ export const TrimTimeline: React.FC<ITrimTimelineProps> = ({ scene }) => {
       setTip((s) => ({ ...s, show: false }));
     }
   }, [ranges, selected]);
+
+  // dock-full: when the timeline first mounts (or the scene changes), fit the
+  // WHOLE video into the visible width so it never needs horizontal scrolling
+  // by default. The user can still zoom in afterwards.
+  useLayoutEffect(() => {
+    if (!vpEl || duration <= 0 || fittedScene.current === sceneId) return;
+    fittedScene.current = sceneId;
+    const w = vpEl.clientWidth || 960;
+    zoomAnchor.current = { time: 0, offset: 0 };
+    setPxPerSec(clampNum((w - 8) / Math.max(1, duration), ZOOM_MIN, ZOOM_MAX));
+  }, [vpEl, duration, sceneId]);
 
   // keep the anchored time fixed when the zoom level changes
   useLayoutEffect(() => {
