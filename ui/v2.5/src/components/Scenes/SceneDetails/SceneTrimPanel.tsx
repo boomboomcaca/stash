@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import * as GQL from "src/core/generated-graphql";
 import { useToast } from "src/hooks/Toast";
+import { TrimTimeline } from "./TrimTimeline";
 
 interface ISceneTrimPanelProps {
   scene: GQL.SceneDataFragment;
@@ -94,6 +95,7 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
 
   const captions = useMemo(() => scene.captions ?? [], [scene.captions]);
   const captionBase = scene.paths?.caption;
+  const duration = scene.files?.[0]?.duration ?? 0;
 
   const [captionIdx, setCaptionIdx] = useState(0);
   const [cues, setCues] = useState<ICue[]>([]);
@@ -174,6 +176,25 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
       if (!r) return prev;
       const next = new Map(prev);
       next.set(index, { ...r, [edge]: clampNonNeg(r[edge] + delta) });
+      return next;
+    });
+  }
+
+  // set a whole range (from the timeline drag).
+  function setRange(index: number, r: { start: number; end: number }) {
+    setSelected((prev) => {
+      if (!prev.has(index)) return prev;
+      const next = new Map(prev);
+      next.set(index, { start: clampNonNeg(r.start), end: clampNonNeg(r.end) });
+      return next;
+    });
+  }
+
+  function removeRange(index: number) {
+    setSelected((prev) => {
+      if (!prev.has(index)) return prev;
+      const next = new Map(prev);
+      next.delete(index);
       return next;
     });
   }
@@ -325,6 +346,17 @@ export const SceneTrimPanel: React.FC<ISceneTrimPanelProps> = ({ scene }) => {
               Clear
             </Button>
           </div>
+
+          {selectedCount > 0 && duration > 0 && (
+            <TrimTimeline
+              scene={scene}
+              duration={duration}
+              ranges={selected}
+              cueTimes={cues.map((c) => c.start)}
+              onChange={setRange}
+              onRemove={removeRange}
+            />
+          )}
 
           <div
             className="scene-trim-cues"
