@@ -17,6 +17,7 @@ import (
 	"github.com/stashapp/stash/internal/manager/config"
 	"github.com/stashapp/stash/pkg/ffmpeg"
 	"github.com/stashapp/stash/pkg/ffmpeg/transcoder"
+	"github.com/stashapp/stash/pkg/file/video"
 	"github.com/stashapp/stash/pkg/fsutil"
 	"github.com/stashapp/stash/pkg/job"
 	"github.com/stashapp/stash/pkg/logger"
@@ -323,37 +324,75 @@ func writeConcatList(listPath string, segments []string) error {
 
 // retimeSidecarCaptions re-times the .srt/.vtt sidecars of srcVideo onto the
 // trimmed timeline and writes them next to dstVideo. Best-effort.
+//
+// Captions follow stash's naming (<base>.<lang>.srt). When trimming a derived
+// file such as "<base>.zh-dub.mp4" the captions live under the *parent* base
+// ("<base>"), not the dub's name — so look there too and emit the re-timed
+// copies next to the trimmed output (e.g. "<base>.zh-dub.trimmed.en.srt") so a
+// rescan associates them with the trimmed scene.
 func retimeSidecarCaptions(srcVideo, dstVideo string, del []TimeRange, duration float64) {
-	srcBase := strings.TrimSuffix(srcVideo, filepath.Ext(srcVideo))
+	videoBase := strings.TrimSuffix(srcVideo, filepath.Ext(srcVideo))
 	dstBase := strings.TrimSuffix(dstVideo, filepath.Ext(dstVideo))
 	merged := mergeDeleteRanges(del, duration)
 
-	matches, err := filepath.Glob(srcBase + ".*")
+	// a "<...>.<lang>-dub" video borrows its captions from the parent base
+	parentBase := ""
+	if seg := filepath.Ext(videoBase); strings.HasSuffix(seg, "-dub") {
+		parentBase = strings.TrimSuffix(videoBase, seg)
+	}
+
+	globBase := videoBase
+	if parentBase != "" {
+		globBase = parentBase // broadest prefix that still covers videoBase
+	}
+	matches, err := filepath.Glob(globBase + ".*")
 	if err != nil {
 		logger.Warnf("scene trim: globbing captions: %v", err)
 		return
 	}
 
-	for _, m := range matches {
-		switch strings.ToLower(filepath.Ext(m)) {
-		case ".srt", ".vtt":
-		default:
+	done := make(map[string]bool)
+	// videoBase first so a dub's own caption wins over the borrowed parent one
+	for _, owner := range []string{videoBase, parentBase} {
+		if owner == "" {
 			continue
 		}
-		suffix := strings.TrimPrefix(m, srcBase) // e.g. ".en.srt"
-		if strings.HasPrefix(suffix, ".trimmed.") {
-			continue // skip our own prior outputs
+		for _, m := range matches {
+			switch strings.ToLower(filepath.Ext(m)) {
+			case ".srt", ".vtt":
+			default:
+				continue
+			}
+			capOwner, tail := captionOwnerAndTail(m)
+			if capOwner != owner {
+				continue // belongs to a different (e.g. more specific) base
+			}
+			dst := dstBase + tail
+			if done[dst] {
+				continue
+			}
+			if err := retimeCaptionFile(m, dst, merged); err != nil {
+				logger.Warnf("scene trim: re-timing caption %s: %v", m, err)
+				continue
+			}
+			done[dst] = true
+			logger.Infof("scene trim: re-timed caption -> %s", dst)
 		}
-		dst := dstBase + suffix
-		if dst == m {
-			continue // nothing to do (shouldn't happen unless src==dst base)
-		}
-		if err := retimeCaptionFile(m, dst, merged); err != nil {
-			logger.Warnf("scene trim: re-timing caption %s: %v", m, err)
-			continue
-		}
-		logger.Infof("scene trim: re-timed caption -> %s", dst)
 	}
+}
+
+// captionOwnerAndTail splits a caption path into its owning video base (no
+// language code, no extension) and the tail to re-append onto the trimmed
+// output's base — ".<lang>.srt" when a valid language code is present, else
+// ".srt". Mirrors stash's caption naming (pkg/file/video).
+func captionOwnerAndTail(captionPath string) (owner, tail string) {
+	ext := filepath.Ext(captionPath) // ".srt"
+	noExt := strings.TrimSuffix(captionPath, ext)
+	langSeg := filepath.Ext(noExt) // ".en" or ""
+	if len(langSeg) > 2 && video.IsValidLanguage(langSeg[1:]) {
+		return strings.TrimSuffix(noExt, langSeg), langSeg + ext
+	}
+	return noExt, ext
 }
 
 // retimeCaptionFile drops cues that start inside a deleted range and shifts the
@@ -383,7 +422,19 @@ func retimeCaptionFile(src, dst string, merged []TimeRange) error {
 	}
 	subs.Items = kept
 
-	return subs.Write(dst)
+	// write atomically: src and dst can be the SAME file (Replace mode re-times
+	// in place), and the sidecar may be the user's only caption copy.
+	ext := filepath.Ext(dst)
+	tmp := strings.TrimSuffix(dst, ext) + ".retime-tmp" + ext
+	if err := subs.Write(tmp); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	if err := os.Rename(tmp, dst); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }
 
 func inAnyRange(sec float64, ranges []TimeRange) bool {
