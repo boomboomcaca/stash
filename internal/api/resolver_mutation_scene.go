@@ -1368,3 +1368,49 @@ func (r *mutationResolver) SceneRotateVideo(ctx context.Context, id string, rota
 
 	return strconv.Itoa(jobID), nil
 }
+
+func (r *mutationResolver) SceneTrim(ctx context.Context, id string, deleteRanges []*TimeRangeInput, replace *bool) (string, error) {
+	sceneID, err := strconv.Atoi(id)
+	if err != nil {
+		return "", fmt.Errorf("invalid scene id: %w", err)
+	}
+
+	ranges := make([]manager.TimeRange, 0, len(deleteRanges))
+	for _, dr := range deleteRanges {
+		if dr == nil {
+			continue
+		}
+		ranges = append(ranges, manager.TimeRange{Start: dr.Start, End: dr.End})
+	}
+	if len(ranges) == 0 {
+		return "", fmt.Errorf("no delete ranges provided")
+	}
+
+	var s *models.Scene
+	if err := r.withReadTxn(ctx, func(ctx context.Context) error {
+		var err error
+		s, err = r.repository.Scene.Find(ctx, sceneID)
+		return err
+	}); err != nil {
+		return "", fmt.Errorf("finding scene: %w", err)
+	}
+
+	if s == nil {
+		return "", fmt.Errorf("scene with id %d not found", sceneID)
+	}
+
+	mgr := manager.GetInstance()
+
+	task := &manager.TrimVideoJob{
+		Scene:        s,
+		DeleteRanges: ranges,
+		Replace:      replace != nil && *replace,
+		TxnManager:   r.repository.TxnManager,
+		SceneFinder:  r.repository.Scene,
+	}
+
+	description := fmt.Sprintf("Trimming video %d (%d range(s) removed)", sceneID, len(ranges))
+	jobID := mgr.JobManager.Add(ctx, description, task)
+
+	return strconv.Itoa(jobID), nil
+}

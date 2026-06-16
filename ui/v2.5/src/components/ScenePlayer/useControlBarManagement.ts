@@ -132,9 +132,6 @@ export function useControlBarManagement({
     if (!player) return;
 
     if (showEnhancedSubtitles) {
-      // 禁用Video.js的用户活跃检测
-      player.userActive(false);
-
       // 修改Video.js的用户活跃检测机制
       // 允许键盘事件触发用户活跃，但保持控制栏锁定
       // 保存原始的 reportUserActivity 方法（如果还没有保存）
@@ -169,7 +166,21 @@ export function useControlBarManagement({
         _focusLossHandler?: () => void;
       };
       if (playerEl) {
-        playerEl.classList.add("vjs-controls-locked-hidden");
+        // 首次开启增强字幕时不要立即隐藏控制栏：先把它显示出来，再按正常的
+        // 非活跃延时自动隐藏，之后才回到增强模式的“锁定隐藏”状态。
+        clearUnlockTimer();
+        controlBarVisibleRef.current = true;
+        playerEl.classList.remove("vjs-controls-locked-hidden");
+        playerEl.classList.add("vjs-controls-unlocked-once");
+        player.userActive(true);
+        unlockTimerRef.current = window.setTimeout(() => {
+          unlockTimerRef.current = null;
+          if (!showEnhancedSubtitlesRef.current) return;
+          controlBarVisibleRef.current = false;
+          player.userActive(false);
+          playerEl.classList.remove("vjs-controls-unlocked-once");
+          playerEl.classList.add("vjs-controls-locked-hidden");
+        }, 3000);
         playerEl.setAttribute("tabindex", "0");
         playerEl.focus();
 
@@ -194,6 +205,7 @@ export function useControlBarManagement({
 
       // 清理函数：恢复原始方法
       return () => {
+        clearUnlockTimer();
         if (originalReportUserActivityRef.current) {
           player.reportUserActivity = originalReportUserActivityRef.current;
         }
