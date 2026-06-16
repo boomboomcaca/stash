@@ -166,21 +166,14 @@ export function useControlBarManagement({
         _focusLossHandler?: () => void;
       };
       if (playerEl) {
-        // 首次开启增强字幕时不要立即隐藏控制栏：先把它显示出来，再按正常的
-        // 非活跃延时自动隐藏，之后才回到增强模式的“锁定隐藏”状态。
+        // 首次开启增强字幕时显示控制栏并“固定保持”：不启动自动隐藏计时器，
+        // 控制栏一直可见，直到用户双击 AP 图标（toggleControlBarLock）才锁定隐藏。
         clearUnlockTimer();
         controlBarVisibleRef.current = true;
+        controlBarPinnedRef.current = true;
         playerEl.classList.remove("vjs-controls-locked-hidden");
         playerEl.classList.add("vjs-controls-unlocked-once");
         player.userActive(true);
-        unlockTimerRef.current = window.setTimeout(() => {
-          unlockTimerRef.current = null;
-          if (!showEnhancedSubtitlesRef.current) return;
-          controlBarVisibleRef.current = false;
-          player.userActive(false);
-          playerEl.classList.remove("vjs-controls-unlocked-once");
-          playerEl.classList.add("vjs-controls-locked-hidden");
-        }, 3000);
         playerEl.setAttribute("tabindex", "0");
         playerEl.focus();
 
