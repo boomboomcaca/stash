@@ -190,6 +190,15 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
             ))}
           </SelectSetting>
           <BooleanSetting
+            id="translate-task"
+            className="sub-setting"
+            disabled={!options.subtitles}
+            checked={options.translate ?? true}
+            headingID="dialogs.scene_gen.translate"
+            tooltipID="dialogs.scene_gen.translate_tooltip"
+            onChange={(v) => setOptions({ translate: v })}
+          />
+          <BooleanSetting
             id="dubbing-task"
             checked={options.dubbing ?? false}
             headingID="dialogs.scene_gen.dubbing"
