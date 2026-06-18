@@ -21,6 +21,8 @@ input GenerateMetadataInput {
   subtitles: Boolean
   "Language code for subtitle generation for this run (Parakeet prompt + caption label). Overrides the configured default."
   subtitleLanguage: String
+  "Translate generated captions to the configured target language. Overrides the global subtitle_generation_translate setting for this run."
+  translate: Boolean
   "Generate a dubbed video from a scene's translated caption via the configured dub service (CosyVoice)"
   dubbing: Boolean
 

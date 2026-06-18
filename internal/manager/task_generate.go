@@ -37,6 +37,10 @@ type GenerateMetadataInput struct {
 	Subtitles bool `json:"subtitles"`
 	// SubtitleLanguage overrides the configured language for this run (Parakeet prompt + caption label)
 	SubtitleLanguage *string `json:"subtitleLanguage"`
+	// Translate, when set, overrides the global subtitle_generation_translate
+	// setting for this run: translate the generated caption to the target
+	// language (true) or keep only the original-language caption (false).
+	Translate *bool `json:"translate"`
 	// Dubbing generates a dubbed video (sidecar .<lang>-dub.mp4) from a scene's
 	// translated caption via the configured dub service (CosyVoice).
 	Dubbing bool `json:"dubbing"`
@@ -576,6 +580,7 @@ func (j *GenerateJob) queueSceneJobs(ctx context.Context, g *generate.Generator,
 			Scene:      *scene,
 			Overwrite:  j.overwrite,
 			Language:   lang,
+			Translate:  j.input.Translate,
 			Dub:        j.input.Dubbing,
 		}
 

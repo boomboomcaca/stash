@@ -38,6 +38,9 @@ type GenerateSubtitlesTask struct {
 	// Language overrides the configured default for this run (Parakeet prompt + caption label).
 	// Empty means fall back to the configured GetSubtitleGenerationLanguage.
 	Language string
+	// Translate, when non-nil, overrides the global subtitle_generation_translate
+	// setting for this run. nil means fall back to that configured default.
+	Translate *bool
 	// Dub, when set, dubs the scene from the translated caption produced by this
 	// task, right after it is written. This is how Subtitles+Dubbing run in a
 	// single generate pass: the translated caption does not exist at queue time,
@@ -198,7 +201,13 @@ func (t *GenerateSubtitlesTask) Start(ctx context.Context) {
 	// Additionally translate captions whose language differs from the target
 	// (default Chinese) and keep it as a separate track (e.g. movie.zh.srt).
 	// A translation failure does not discard the original caption above.
-	if cfg.GetSubtitleGenerationTranslate() {
+	// The per-run Translate flag (from the Generate dialog) overrides the global
+	// subtitle_generation_translate setting when provided.
+	translateEnabled := cfg.GetSubtitleGenerationTranslate()
+	if t.Translate != nil {
+		translateEnabled = *t.Translate
+	}
+	if translateEnabled {
 		target := cfg.GetSubtitleGenerationTranslateTo()
 		if srcLang != "" && srcLang != target {
 			translated, terr := t.translate(ctx, srt, target)

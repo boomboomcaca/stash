@@ -1099,6 +1099,8 @@
       "subtitle_language_desc": "Language spoken in the selected videos. Sent to the speech-to-text service and used as the generated caption's language tag. Choose Japanese for Japanese audio. parakeet does not support Chinese.",
       "subtitles": "Subtitles",
       "subtitles_tooltip": "Generate subtitles for videos that have no captions, using the configured speech-to-text service (parakeet). Does not support Chinese audio.",
+      "translate": "Translate captions",
+      "translate_tooltip": "Translate the generated caption to the configured target language (default Chinese) and keep it as a separate track (e.g. movie.zh.srt). Overrides the global translate setting for this run; applies only when Subtitles is on.",
       "dubbing": "Dubbing",
       "dubbing_tooltip": "Generate a dubbed video (sidecar .<lang>-dub.mp4) from the scene's translated caption via the configured dub service (CosyVoice). Runs after subtitle generation.",
       "transcodes": "Transcodes",
