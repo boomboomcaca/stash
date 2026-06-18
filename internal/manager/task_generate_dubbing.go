@@ -101,8 +101,16 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 	}
 
 	// the dub source is the tagged dub script when present (speaker + emotion
-	// routing), else the display caption (older runs, single-speaker content)
+	// routing), else the parent's translated caption (older runs, single-speaker
+	// content). this is only the dub *input* read below; the re-cut display
+	// caption is written to the dub's own sidecar (dubCaptionPath).
 	captionPath := video.GetCaptionPath(videoPath, target, "srt")
+	// the re-cut display caption belongs to the *dubbed* video, so it lives under
+	// the dub's own basename ("<name>.<lang>-dub.<lang>.srt"). Writing it under
+	// the parent's name would associate it to the parent and — since ce439e431
+	// stops derived videos inheriting the parent's captions — leave the dub with
+	// no caption at all. It also no longer clobbers the parent's own caption.
+	dubCaptionPath := video.GetCaptionPath(outPath, target, "srt")
 	srtPath := dubScriptPath(videoPath, target)
 	if _, err := os.Stat(srtPath); err != nil {
 		srtPath = captionPath
@@ -149,10 +157,16 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		return fmt.Errorf("dub service error for %s: %w", videoPath, err)
 	}
 	// The dub re-cut the unit-level Chinese into clause-level display lines timed
-	// to the synthesized audio; it is the display caption (and the muxed soft-sub).
+	// to the synthesized audio; it is the dub's display caption (and the muxed
+	// soft-sub). displayCaption is what gets muxed and shown for the dub; it
+	// falls back to the parent caption only for a legacy dub service that returns
+	// no re-cut.
+	displayCaption := captionPath
 	if strings.Contains(recut, "-->") {
-		if werr := os.WriteFile(captionPath, []byte(recut), 0644); werr != nil {
+		if werr := os.WriteFile(dubCaptionPath, []byte(recut), 0644); werr != nil {
 			logger.Warnf("[dubbing] could not write re-cut caption for %s: %v", videoPath, werr)
+		} else {
+			displayCaption = dubCaptionPath
 		}
 	}
 
@@ -168,13 +182,14 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 			retrans, terr := translateSRT(ctx, string(enTagged), target)
 			if terr == nil && strings.Contains(retrans, "-->") {
 				_ = os.WriteFile(dubScriptPath(videoPath, target), []byte(retrans), 0644)
-				_ = os.WriteFile(captionPath, []byte(stripSpeakerTags(retrans)), 0644)
+				_ = os.WriteFile(dubCaptionPath, []byte(stripSpeakerTags(retrans)), 0644)
+				displayCaption = dubCaptionPath
 				recut2, _, derr := requestDub(ctx, retrans, duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath)
 				if derr != nil {
 					return fmt.Errorf("dub service error (refit) for %s: %w", videoPath, derr)
 				}
 				if strings.Contains(recut2, "-->") {
-					_ = os.WriteFile(captionPath, []byte(recut2), 0644)
+					_ = os.WriteFile(dubCaptionPath, []byte(recut2), 0644)
 				}
 			} else if terr != nil {
 				logger.Warnf("[dubbing] refit re-translation failed (%v); keeping the first dub", terr)
@@ -184,7 +199,7 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 
 	// mux the dubbed audio over the original video into the sidecar file;
 	// the soft-sub track is always the CLEAN caption, never the tagged script
-	if err := muxDub(ctx, videoPath, dubAudioPath, captionPath, target, outPath); err != nil {
+	if err := muxDub(ctx, videoPath, dubAudioPath, displayCaption, target, outPath); err != nil {
 		return fmt.Errorf("muxing dubbed video for %s: %w", videoPath, err)
 	}
 	logger.Infof("[dubbing] generated dubbed video %s", outPath)
