@@ -1,0 +1,3269 @@
+[
+{
+"n": 1,
+"tc": "00:00:00,590 --> 00:00:01,330",
+"start": 0.59,
+"end": 1.33,
+"dur": 0.74,
+"en": "Hey guys,",
+"speaker": 0
+},
+{
+"n": 2,
+"tc": "00:00:01,610 --> 00:00:02,870",
+"start": 1.61,
+"end": 2.87,
+"dur": 1.26,
+"en": "SuperHorrorBroMike here,",
+"speaker": 0
+},
+{
+"n": 3,
+"tc": "00:00:02,990 --> 00:00:11,070",
+"start": 2.99,
+"end": 11.07,
+"dur": 8.08,
+"en": "and in today's video we journey through a haunted dreamscape as we explain the story and ending of Little Nightmares 3.",
+"speaker": 0
+},
+{
+"n": 4,
+"tc": "00:00:11,330 --> 00:00:16,930",
+"start": 11.33,
+"end": 16.93,
+"dur": 5.6,
+"en": "So sit back, relax, and let's dive into a world full of monsters and mystery.",
+"speaker": 0
+},
+{
+"n": 5,
+"tc": "00:00:23,930 --> 00:00:26,510",
+"start": 23.93,
+"end": 26.51,
+"dur": 2.58,
+"en": "Just as with Little Nightmares 1 and 2,",
+"speaker": 0
+},
+{
+"n": 6,
+"tc": "00:00:26,770 --> 00:00:32,970",
+"start": 26.77,
+"end": 32.97,
+"dur": 6.2,
+"en": "the third entry in this chilling horror franchise takes place in a dream dimension known as the Nowhere,",
+"speaker": 0
+},
+{
+"n": 7,
+"tc": "00:00:33,190 --> 00:00:37,510",
+"start": 33.19,
+"end": 37.51,
+"dur": 4.32,
+"en": "within a land called The Spiral, where the game's many locations are set.",
+"speaker": 0
+},
+{
+"n": 8,
+"tc": "00:00:38,010 --> 00:00:41,150",
+"start": 38.01,
+"end": 41.15,
+"dur": 3.14,
+"en": "Where Little Nightmares 1 followed the story of Six,",
+"speaker": 0
+},
+{
+"n": 9,
+"tc": "00:00:41,490 --> 00:00:45,610",
+"start": 41.49,
+"end": 45.61,
+"dur": 4.12,
+"en": "the sequel followed her again in addition to new character Mono.",
+"speaker": 0
+},
+{
+"n": 10,
+"tc": "00:00:45,830 --> 00:00:51,110",
+"start": 45.83,
+"end": 51.11,
+"dur": 5.28,
+"en": "This third title instead opts to introduce two brand new pint-sized heroes,",
+"speaker": 0
+},
+{
+"n": 11,
+"tc": "00:00:51,490 --> 00:00:55,330",
+"start": 51.49,
+"end": 55.33,
+"dur": 3.84,
+"en": "a little girl named Alone, and a boy called Low.",
+"speaker": 0
+},
+{
+"n": 12,
+"tc": "00:00:55,690 --> 00:01:00,070",
+"start": 55.69,
+"end": 60.07,
+"dur": 4.38,
+"en": "Alone is able to use her wrench as both a weapon for whacking enemies,",
+"speaker": 0
+},
+{
+"n": 13,
+"tc": "00:01:00,410 --> 00:01:03,210",
+"start": 60.41,
+"end": 63.21,
+"dur": 2.8,
+"en": "breaking down walls, and solving various puzzles.",
+"speaker": 0
+},
+{
+"n": 14,
+"tc": "00:01:03,870 --> 00:01:08,330",
+"start": 63.87,
+"end": 68.33,
+"dur": 4.46,
+"en": "Low, meanwhile, comes equipped with a bow and uses it to shoot at enemies,",
+"speaker": 0
+},
+{
+"n": 15,
+"tc": "00:01:08,670 --> 00:01:11,510",
+"start": 68.67,
+"end": 71.51,
+"dur": 2.84,
+"en": "sever frayed ropes, and jam up gears.",
+"speaker": 0
+},
+{
+"n": 16,
+"tc": "00:01:12,320 --> 00:01:19,990",
+"start": 72.32,
+"end": 79.99,
+"dur": 7.67,
+"en": "Our two plucky adventurers often using their combined skillset to work together in order to progress through each stage.",
+"speaker": 0
+},
+{
+"n": 17,
+"tc": "00:01:20,550 --> 00:01:25,750",
+"start": 80.55,
+"end": 85.75,
+"dur": 5.2,
+"en": "Just as Six had the power to sap the life force from other beings in order to grow stronger,",
+"speaker": 0
+},
+{
+"n": 18,
+"tc": "00:01:25,950 --> 00:01:29,370",
+"start": 85.95,
+"end": 89.37,
+"dur": 3.42,
+"en": "and Mono was able to harness the signal tower's transmission,",
+"speaker": 0
+},
+{
+"n": 19,
+"tc": "00:01:29,590 --> 00:01:34,910",
+"start": 89.59,
+"end": 94.91,
+"dur": 5.32,
+"en": "using it to move through television sets and bend the very fabric of time to his will,",
+"speaker": 0
+},
+{
+"n": 20,
+"tc": "00:01:35,190 --> 00:01:42,110",
+"start": 95.19,
+"end": 102.11,
+"dur": 6.92,
+"en": "Low also possesses a unique ability, allowing him to travel through mirrors, taking Alone with him.",
+"speaker": 0
+},
+{
+"n": 21,
+"tc": "00:01:42,410 --> 00:01:47,830",
+"start": 102.41,
+"end": 107.83,
+"dur": 5.42,
+"en": "This is how the duo move from one location to the next as they progress through their adventure.",
+"speaker": 0
+},
+{
+"n": 22,
+"tc": "00:01:48,390 --> 00:01:49,790",
+"start": 108.39,
+"end": 109.79,
+"dur": 1.4,
+"en": "With the basics explained,",
+"speaker": 0
+},
+{
+"n": 23,
+"tc": "00:01:50,090 --> 00:01:56,170",
+"start": 110.09,
+"end": 116.17,
+"dur": 6.08,
+"en": "let's dive into the story itself as we take a look at each location and the enemies found within them.",
+"speaker": 0
+},
+{
+"n": 24,
+"tc": "00:01:56,650 --> 00:02:04,730",
+"start": 116.65,
+"end": 124.73,
+"dur": 8.08,
+"en": "The Necropolis is a sprawling",
+"speaker": 0
+},
+{
+"n": 25,
+"tc": "00:02:04,730 --> 00:02:09,410",
+"start": 124.73,
+"end": 129.41,
+"dur": 4.68,
+"en": "desert wasteland in which the ruins of an ancient civilization now stand.",
+"speaker": 0
+},
+{
+"n": 26,
+"tc": "00:02:09,850 --> 00:02:13,310",
+"start": 129.85,
+"end": 133.31,
+"dur": 3.46,
+"en": "This is a ghost town with no survivors to be found.",
+"speaker": 0
+},
+{
+"n": 27,
+"tc": "00:02:13,850 --> 00:02:18,870",
+"start": 133.85,
+"end": 138.87,
+"dur": 5.02,
+"en": "Crows feed on the corpses of the townsfolk who have been frozen in place by a giant,",
+"speaker": 0
+},
+{
+"n": 28,
+"tc": "00:02:18,870 --> 00:02:21,590",
+"start": 138.87,
+"end": 141.59,
+"dur": 2.72,
+"en": "lumbering doll known as Monster Baby.",
+"speaker": 0
+},
+{
+"n": 29,
+"tc": "00:02:21,970 --> 00:02:28,570",
+"start": 141.97,
+"end": 148.57,
+"dur": 6.6,
+"en": "The Baby uses a spotlight emanating from its eyes to turn any living being to stone in seconds.",
+"speaker": 0
+},
+{
+"n": 30,
+"tc": "00:02:28,570 --> 00:02:33,190",
+"start": 148.57,
+"end": 153.19,
+"dur": 4.62,
+"en": "It's not a good place to be, but unfortunately for our two heroes,",
+"speaker": 0
+},
+{
+"n": 31,
+"tc": "00:02:33,470 --> 00:02:39,730",
+"start": 153.47,
+"end": 159.73,
+"dur": 6.26,
+"en": "this is where they awake, beside a broken mirror it seems they recently used to travel through.",
+"speaker": 0
+},
+{
+"n": 32,
+"tc": "00:02:40,610 --> 00:02:44,550",
+"start": 160.61,
+"end": 164.55,
+"dur": 3.94,
+"en": "As Low comes to, he is helped up by his companion Alone,",
+"speaker": 0
+},
+{
+"n": 33,
+"tc": "00:02:44,850 --> 00:02:47,410",
+"start": 164.85,
+"end": 167.41,
+"dur": 2.56,
+"en": "and quickly whips out what seems to be a map.",
+"speaker": 0
+},
+{
+"n": 34,
+"tc": "00:02:47,670 --> 00:02:53,750",
+"start": 167.67,
+"end": 173.75,
+"dur": 6.08,
+"en": "This map is used as a navigation point, so the pair can locate another mirror and escape through it.",
+"speaker": 0
+},
+{
+"n": 35,
+"tc": "00:02:53,910 --> 00:02:54,870",
+"start": 173.91,
+"end": 174.87,
+"dur": 0.96,
+"en": "The objective?",
+"speaker": 0
+},
+{
+"n": 36,
+"tc": "00:02:55,230 --> 00:02:59,970",
+"start": 175.23,
+"end": 179.97,
+"dur": 4.74,
+"en": "To discover that one elusive looking glass that will break them free of the nowhere for good",
+"speaker": 0
+},
+{
+"n": 37,
+"tc": "00:03:00,190 --> 00:03:04,290",
+"start": 180.19,
+"end": 184.29,
+"dur": 4.1,
+"en": "and return the duo to the waking world known as the Counties.",
+"speaker": 0
+},
+{
+"n": 38,
+"tc": "00:03:04,850 --> 00:03:09,670",
+"start": 184.85,
+"end": 189.67,
+"dur": 4.82,
+"en": "As the pair venture out into the desert ahead, we notice a curious sight.",
+"speaker": 0
+},
+{
+"n": 39,
+"tc": "00:03:10,010 --> 00:03:12,770",
+"start": 190.01,
+"end": 192.77,
+"dur": 2.76,
+"en": "It seems this desert was once a great ocean,",
+"speaker": 0
+},
+{
+"n": 40,
+"tc": "00:03:12,970 --> 00:03:19,830",
+"start": 192.97,
+"end": 199.83,
+"dur": 6.86,
+"en": "and the place the pair awoke inside was The Maw. The Maw was the giant ship the original game took place on.",
+"speaker": 0
+},
+{
+"n": 41,
+"tc": "00:03:20,070 --> 00:03:21,550",
+"start": 200.07,
+"end": 201.55,
+"dur": 1.48,
+"en": "If this theory is correct,",
+"speaker": 0
+},
+{
+"n": 42,
+"tc": "00:03:21,870 --> 00:03:27,510",
+"start": 201.87,
+"end": 207.51,
+"dur": 5.64,
+"en": "then it would place the events of Little Nightmares 3 far ahead of prior titles in the series.",
+"speaker": 0
+},
+{
+"n": 43,
+"tc": "00:03:27,930 --> 00:03:30,670",
+"start": 207.93,
+"end": 210.67,
+"dur": 2.74,
+"en": "It gives us a good indication of the timeline.",
+"speaker": 0
+},
+{
+"n": 44,
+"tc": "00:03:31,330 --> 00:03:34,630",
+"start": 211.33,
+"end": 214.63,
+"dur": 3.3,
+"en": "After scaling the Great Wall and entering the city,",
+"speaker": 0
+},
+{
+"n": 45,
+"tc": "00:03:34,970 --> 00:03:40,470",
+"start": 214.97,
+"end": 220.47,
+"dur": 5.5,
+"en": "Low and Alone begin to explore their surroundings, working together to traverse the dangers ahead.",
+"speaker": 0
+},
+{
+"n": 46,
+"tc": "00:03:40,910 --> 00:03:46,710",
+"start": 220.91,
+"end": 226.71,
+"dur": 5.8,
+"en": "It isn't long before they encounter a giant hand, buried beneath a pile of rubble.",
+"speaker": 0
+},
+{
+"n": 47,
+"tc": "00:03:47,050 --> 00:03:51,710",
+"start": 227.05,
+"end": 231.71,
+"dur": 4.66,
+"en": "Sadly, this hand doesn't belong to a corpse, but rather the resting Monster Baby,",
+"speaker": 0
+},
+{
+"n": 48,
+"tc": "00:03:51,910 --> 00:03:54,890",
+"start": 231.91,
+"end": 234.89,
+"dur": 2.98,
+"en": "who then wakes and begins roaming the city streets.",
+"speaker": 0
+},
+{
+"n": 49,
+"tc": "00:03:56,220 --> 00:04:01,040",
+"start": 236.22,
+"end": 241.04,
+"dur": 4.82,
+"en": "For now, Low and Alone remain undetected and so push forward.",
+"speaker": 0
+},
+{
+"n": 50,
+"tc": "00:04:01,340 --> 00:04:04,340",
+"start": 241.34,
+"end": 244.34,
+"dur": 3.0,
+"en": "They come across a pair of feather umbrellas,",
+"speaker": 0
+},
+{
+"n": 51,
+"tc": "00:04:04,340 --> 00:04:10,940",
+"start": 244.34,
+"end": 250.94,
+"dur": 6.6,
+"en": "and use these very fashionable accessories to ascend upwards by harnessing wind rushing through the grates.",
+"speaker": 0
+},
+{
+"n": 52,
+"tc": "00:04:11,320 --> 00:04:14,060",
+"start": 251.32,
+"end": 254.06,
+"dur": 2.74,
+"en": "the umbrellas also come in handy when falling,",
+"speaker": 0
+},
+{
+"n": 53,
+"tc": "00:04:14,260 --> 00:04:18,720",
+"start": 254.26,
+"end": 258.72,
+"dur": 4.46,
+"en": "allowing the children to gradually descend rather than fall to their death.",
+"speaker": 0
+},
+{
+"n": 54,
+"tc": "00:04:19,390 --> 00:04:23,810",
+"start": 259.39,
+"end": 263.81,
+"dur": 4.42,
+"en": "As they continue through the ruined buildings, the kids come across black eggs.",
+"speaker": 0
+},
+{
+"n": 55,
+"tc": "00:04:24,330 --> 00:04:27,370",
+"start": 264.33,
+"end": 267.37,
+"dur": 3.04,
+"en": "Sometimes these eggs are stuffed inside bodies of the dead,",
+"speaker": 0
+},
+{
+"n": 56,
+"tc": "00:04:27,550 --> 00:04:33,750",
+"start": 267.55,
+"end": 273.75,
+"dur": 6.2,
+"en": "and others laid in various corridors and crawl spaces, squishing satisfyingly underfoot.",
+"speaker": 0
+},
+{
+"n": 57,
+"tc": "00:04:34,470 --> 00:04:37,570",
+"start": 274.47,
+"end": 277.57,
+"dur": 3.1,
+"en": "It's not long before we discover who these eggs belong to,",
+"speaker": 0
+},
+{
+"n": 58,
+"tc": "00:04:37,730 --> 00:04:40,790",
+"start": 277.73,
+"end": 280.79,
+"dur": 3.06,
+"en": "as the duo encounter a nest of giant beetles,",
+"speaker": 0
+},
+{
+"n": 59,
+"tc": "00:04:40,850 --> 00:04:44,190",
+"start": 280.85,
+"end": 284.19,
+"dur": 3.34,
+"en": "who have eyes on making Low and Alone their next meal.",
+"speaker": 0
+},
+{
+"n": 60,
+"tc": "00:04:44,850 --> 00:04:47,710",
+"start": 284.85,
+"end": 287.71,
+"dur": 2.86,
+"en": "Low must shoot down these winged pests with his bow,",
+"speaker": 0
+},
+{
+"n": 61,
+"tc": "00:04:47,890 --> 00:04:52,370",
+"start": 287.89,
+"end": 292.37,
+"dur": 4.48,
+"en": "and then Alone quickly rushes over to smash them to pulp using her wrench.",
+"speaker": 0
+},
+{
+"n": 62,
+"tc": "00:04:53,360 --> 00:04:57,000",
+"start": 293.36,
+"end": 297.0,
+"dur": 3.64,
+"en": "Monster Baby relentlessly pursues our heroes through the city,",
+"speaker": 0
+},
+{
+"n": 63,
+"tc": "00:04:57,320 --> 00:05:01,220",
+"start": 297.32,
+"end": 301.22,
+"dur": 3.9,
+"en": "attempting to grab them and turn them to stone with its spotlight.",
+"speaker": 0
+},
+{
+"n": 64,
+"tc": "00:05:02,360 --> 00:05:05,820",
+"start": 302.36,
+"end": 305.82,
+"dur": 3.46,
+"en": "Eventually Low and Alone come face to face with the giant doll,",
+"speaker": 0
+},
+{
+"n": 65,
+"tc": "00:05:06,060 --> 00:05:10,440",
+"start": 306.06,
+"end": 310.44,
+"dur": 4.38,
+"en": "and with nowhere to run, it grabs them and drops them into the void.",
+"speaker": 0
+},
+{
+"n": 66,
+"tc": "00:05:10,440 --> 00:05:11,500",
+"start": 310.44,
+"end": 311.5,
+"dur": 1.06,
+"en": "Low",
+"speaker": 0
+},
+{
+"n": 67,
+"tc": "00:05:30,660 --> 00:05:31,500",
+"start": 330.66,
+"end": 331.5,
+"dur": 0.84,
+"en": "Low then",
+"speaker": 0
+},
+{
+"n": 68,
+"tc": "00:05:31,500 --> 00:05:32,740",
+"start": 331.5,
+"end": 332.74,
+"dur": 1.24,
+"en": "wakes in his bed.",
+"speaker": 0
+},
+{
+"n": 69,
+"tc": "00:05:32,940 --> 00:05:37,920",
+"start": 332.94,
+"end": 337.92,
+"dur": 4.98,
+"en": "He no longer wears his mask or cape and finds himself in a creepy padded cell.",
+"speaker": 0
+},
+{
+"n": 70,
+"tc": "00:05:38,340 --> 00:05:40,020",
+"start": 338.34,
+"end": 340.02,
+"dur": 1.68,
+"en": "Was this all just a nightmare?",
+"speaker": 0
+},
+{
+"n": 71,
+"tc": "00:05:40,340 --> 00:05:42,220",
+"start": 340.34,
+"end": 342.22,
+"dur": 1.88,
+"en": "And where is he now?",
+"speaker": 0
+},
+{
+"n": 72,
+"tc": "00:05:42,680 --> 00:05:46,460",
+"start": 342.68,
+"end": 346.46,
+"dur": 3.78,
+"en": "On the bed we can see various drawings that Low has sketched,",
+"speaker": 0
+},
+{
+"n": 73,
+"tc": "00:05:46,460 --> 00:05:49,020",
+"start": 346.46,
+"end": 349.02,
+"dur": 2.56,
+"en": "they seem to be of locations we are yet to visit.",
+"speaker": 0
+},
+{
+"n": 74,
+"tc": "00:05:49,480 --> 00:05:52,000",
+"start": 349.48,
+"end": 352.0,
+"dur": 2.52,
+"en": "Someone then begins to approach the door,",
+"speaker": 0
+},
+{
+"n": 75,
+"tc": "00:05:52,220 --> 00:05:56,900",
+"start": 352.22,
+"end": 356.9,
+"dur": 4.68,
+"en": "and fearing this mysterious visitor, Low takes refuge beneath the bed.",
+"speaker": 0
+},
+{
+"n": 76,
+"tc": "00:06:09,090 --> 00:06:11,490",
+"start": 369.09,
+"end": 371.49,
+"dur": 2.4,
+"en": "Low then wakes back in the Necropolis,",
+"speaker": 0
+},
+{
+"n": 77,
+"tc": "00:06:11,870 --> 00:06:15,790",
+"start": 371.87,
+"end": 375.79,
+"dur": 3.92,
+"en": "buried under a pile of debris after seemingly surviving his fall.",
+"speaker": 0
+},
+{
+"n": 78,
+"tc": "00:06:16,370 --> 00:06:20,370",
+"start": 376.37,
+"end": 380.37,
+"dur": 4.0,
+"en": "Alone is also still alive, helping Low up and handing over his map.",
+"speaker": 0
+},
+{
+"n": 79,
+"tc": "00:06:21,070 --> 00:06:25,170",
+"start": 381.07,
+"end": 385.17,
+"dur": 4.1,
+"en": "Nighttime has set in, and the city takes on a far creepier atmosphere.",
+"speaker": 0
+},
+{
+"n": 80,
+"tc": "00:06:25,630 --> 00:06:29,990",
+"start": 385.63,
+"end": 389.99,
+"dur": 4.36,
+"en": "The two children come across a series of mysterious chalk drawings,",
+"speaker": 0
+},
+{
+"n": 81,
+"tc": "00:06:30,450 --> 00:06:36,250",
+"start": 390.45,
+"end": 396.25,
+"dur": 5.8,
+"en": "which seem to depict a giant hand with an eye attached, a gong, and a selection of mirrors.",
+"speaker": 0
+},
+{
+"n": 82,
+"tc": "00:06:36,850 --> 00:06:42,450",
+"start": 396.85,
+"end": 402.45,
+"dur": 5.6,
+"en": "While this may seem random, it is in fact a foreshadowing of future events.",
+"speaker": 0
+},
+{
+"n": 83,
+"tc": "00:06:42,870 --> 00:06:44,050",
+"start": 402.87,
+"end": 404.05,
+"dur": 1.18,
+"en": "More on that later.",
+"speaker": 0
+},
+{
+"n": 84,
+"tc": "00:06:44,470 --> 00:06:47,850",
+"start": 404.47,
+"end": 407.85,
+"dur": 3.38,
+"en": "Despite the late hour, Monster Baby is not sleeping,",
+"speaker": 0
+},
+{
+"n": 85,
+"tc": "00:06:48,070 --> 00:06:51,270",
+"start": 408.07,
+"end": 411.27,
+"dur": 3.2,
+"en": "and stands as a continuous roadblock in our path ahead.",
+"speaker": 0
+},
+{
+"n": 86,
+"tc": "00:06:51,810 --> 00:06:57,390",
+"start": 411.81,
+"end": 417.39,
+"dur": 5.58,
+"en": "Low and Alone must come up with inventive ways to move the doll out of their way and sneak past,",
+"speaker": 0
+},
+{
+"n": 87,
+"tc": "00:06:57,730 --> 00:07:01,570",
+"start": 417.73,
+"end": 421.57,
+"dur": 3.84,
+"en": "such as this sequence where they ring an enormous bell in a bell tower,",
+"speaker": 0
+},
+{
+"n": 88,
+"tc": "00:07:01,850 --> 00:07:06,510",
+"start": 421.85,
+"end": 426.51,
+"dur": 4.66,
+"en": "causing the baby to tear it down and wander off to play with their new toy.",
+"speaker": 0
+},
+{
+"n": 89,
+"tc": "00:07:36,400 --> 00:07:38,940",
+"start": 456.4,
+"end": 458.94,
+"dur": 2.54,
+"en": "Eventually they run out of places to hide,",
+"speaker": 0
+},
+{
+"n": 90,
+"tc": "00:07:39,120 --> 00:07:45,800",
+"start": 459.12,
+"end": 465.8,
+"dur": 6.68,
+"en": "ambushed by Monster Baby who proceeds to lift up the building they are in and desperately search for the terrified children,",
+"speaker": 0
+},
+{
+"n": 91,
+"tc": "00:07:46,120 --> 00:07:50,220",
+"start": 466.12,
+"end": 470.22,
+"dur": 4.1,
+"en": "who take cover behind various objects that remain still standing.",
+"speaker": 0
+},
+{
+"n": 92,
+"tc": "00:07:50,890 --> 00:07:56,030",
+"start": 470.89,
+"end": 476.03,
+"dur": 5.14,
+"en": "Just as it seems their luck has run out, a murder of crows show up to save the day,",
+"speaker": 0
+},
+{
+"n": 93,
+"tc": "00:07:56,270 --> 00:07:59,050",
+"start": 476.27,
+"end": 479.05,
+"dur": 2.78,
+"en": "swarming Monster Baby and pecking at its head,",
+"speaker": 0
+},
+{
+"n": 94,
+"tc": "00:07:59,250 --> 00:08:02,230",
+"start": 479.25,
+"end": 482.23,
+"dur": 2.98,
+"en": "causing the hulking beast to retreat into the horizon.",
+"speaker": 0
+},
+{
+"n": 95,
+"tc": "00:08:03,150 --> 00:08:08,190",
+"start": 483.15,
+"end": 488.19,
+"dur": 5.04,
+"en": "With the danger now past, they push on, and Low locates the mirror from his map.",
+"speaker": 0
+},
+{
+"n": 96,
+"tc": "00:08:08,410 --> 00:08:11,650",
+"start": 488.41,
+"end": 491.65,
+"dur": 3.24,
+"en": "He places his palm to the glass and takes Alone by the hand,",
+"speaker": 0
+},
+{
+"n": 97,
+"tc": "00:08:11,870 --> 00:08:16,950",
+"start": 491.87,
+"end": 496.95,
+"dur": 5.08,
+"en": "the two then pulled inside, fleeing the dangers of the Necropolis.",
+"speaker": 0
+},
+{
+"n": 98,
+"tc": "00:08:23,930 --> 00:08:30,400",
+"start": 503.93,
+"end": 510.4,
+"dur": 6.47,
+"en": "Low emerges in a damp and dirty ventilation room in what appears to be a more industrial locale.",
+"speaker": 0
+},
+{
+"n": 99,
+"tc": "00:08:30,660 --> 00:08:34,340",
+"start": 510.66,
+"end": 514.34,
+"dur": 3.68,
+"en": "Alone follows shortly behind, breaking the mirror behind her.",
+"speaker": 0
+},
+{
+"n": 100,
+"tc": "00:08:34,900 --> 00:08:40,760",
+"start": 514.9,
+"end": 520.76,
+"dur": 5.86,
+"en": "There's no going back now, as Low cannot travel through glass surfaces that are cracked or broken.",
+"speaker": 0
+},
+{
+"n": 101,
+"tc": "00:08:41,220 --> 00:08:44,320",
+"start": 521.22,
+"end": 524.32,
+"dur": 3.1,
+"en": "The next stage of their journey is set within a candy factory,",
+"speaker": 0
+},
+{
+"n": 102,
+"tc": "00:08:44,560 --> 00:08:48,020",
+"start": 524.56,
+"end": 528.02,
+"dur": 3.46,
+"en": "although you probably wouldn't want to eat the sweets being manufactured here.",
+"speaker": 0
+},
+{
+"n": 103,
+"tc": "00:08:48,260 --> 00:08:51,420",
+"start": 528.26,
+"end": 531.42,
+"dur": 3.16,
+"en": "As the kids explore they see vast production lines,",
+"speaker": 0
+},
+{
+"n": 104,
+"tc": "00:08:51,640 --> 00:08:56,560",
+"start": 531.64,
+"end": 536.56,
+"dur": 4.92,
+"en": "where obese workers are hoisted along cables on winches from one job to the next.",
+"speaker": 0
+},
+{
+"n": 105,
+"tc": "00:08:57,060 --> 00:09:01,640",
+"start": 537.06,
+"end": 541.64,
+"dur": 4.58,
+"en": "The main antagonist of this stage is the overseer of Candy Production,",
+"speaker": 0
+},
+{
+"n": 106,
+"tc": "00:09:02,060 --> 00:09:06,320",
+"start": 542.06,
+"end": 546.32,
+"dur": 4.26,
+"en": "a spidery lady with six arms known as the Supervisor.",
+"speaker": 0
+},
+{
+"n": 107,
+"tc": "00:09:06,780 --> 00:09:12,400",
+"start": 546.78,
+"end": 552.4,
+"dur": 5.62,
+"en": "A haunting grin that stretches ear to ear like a Cheshire cat plastered across her face.",
+"speaker": 0
+},
+{
+"n": 108,
+"tc": "00:09:13,240 --> 00:09:19,060",
+"start": 553.24,
+"end": 559.06,
+"dur": 5.82,
+"en": "Low and Alone must use stealth to avoid detection as the Supervisor goes about her daily tasks,",
+"speaker": 0
+},
+{
+"n": 109,
+"tc": "00:09:19,060 --> 00:09:19,200",
+"start": 559.06,
+"end": 559.2,
+"dur": 0.14,
+"en": "risks,",
+"speaker": 0
+},
+{
+"n": 110,
+"tc": "00:09:19,240 --> 00:09:25,820",
+"start": 559.24,
+"end": 565.82,
+"dur": 6.58,
+"en": "which include filing paperwork and monitoring the many security cameras found throughout the factory.",
+"speaker": 0
+},
+{
+"n": 111,
+"tc": "00:09:26,280 --> 00:09:30,640",
+"start": 566.28,
+"end": 570.64,
+"dur": 4.36,
+"en": "In time, they are discovered by the supervisor, who gives chase.",
+"speaker": 0
+},
+{
+"n": 112,
+"tc": "00:09:40,680 --> 00:09:44,670",
+"start": 580.68,
+"end": 584.67,
+"dur": 3.99,
+"en": "Low and Alone plummet down through the factory after pushing through a vent,",
+"speaker": 0
+},
+{
+"n": 113,
+"tc": "00:09:44,890 --> 00:09:49,990",
+"start": 584.89,
+"end": 589.99,
+"dur": 5.1,
+"en": "but luckily are saved by a net and fortunately placed a pile of sweet treats.",
+"speaker": 0
+},
+{
+"n": 114,
+"tc": "00:09:50,870 --> 00:09:54,670",
+"start": 590.87,
+"end": 594.67,
+"dur": 3.8,
+"en": "The next threat the pair encounter are flesh-eating bugs,",
+"speaker": 0
+},
+{
+"n": 115,
+"tc": "00:09:55,030 --> 00:09:57,450",
+"start": 595.03,
+"end": 597.45,
+"dur": 2.42,
+"en": "who swarm various rooms throughout the factory.",
+"speaker": 0
+},
+{
+"n": 116,
+"tc": "00:09:57,950 --> 00:10:01,030",
+"start": 597.95,
+"end": 601.03,
+"dur": 3.08,
+"en": "This place seriously needs better pest control.",
+"speaker": 0
+},
+{
+"n": 117,
+"tc": "00:10:01,850 --> 00:10:07,390",
+"start": 601.85,
+"end": 607.39,
+"dur": 5.54,
+"en": "The only way to evade these killer creepy crawlies is to turn on the lights, or failing that,",
+"speaker": 0
+},
+{
+"n": 118,
+"tc": "00:10:07,650 --> 00:10:11,570",
+"start": 607.65,
+"end": 611.57,
+"dur": 3.92,
+"en": "use a light source such as this power cell to keep them at arm's length.",
+"speaker": 0
+},
+{
+"n": 119,
+"tc": "00:10:12,010 --> 00:10:16,490",
+"start": 612.01,
+"end": 616.49,
+"dur": 4.48,
+"en": "These bugs hate luminance, and scurry away at the very sight of it.",
+"speaker": 0
+},
+{
+"n": 120,
+"tc": "00:10:17,250 --> 00:10:20,410",
+"start": 617.25,
+"end": 620.41,
+"dur": 3.16,
+"en": "After some more exploring and puzzle solving,",
+"speaker": 0
+},
+{
+"n": 121,
+"tc": "00:10:20,750 --> 00:10:24,250",
+"start": 620.75,
+"end": 624.25,
+"dur": 3.5,
+"en": "Low and Alone come face to face with the Supervisor once more.",
+"speaker": 0
+},
+{
+"n": 122,
+"tc": "00:10:24,570 --> 00:10:27,470",
+"start": 624.57,
+"end": 627.47,
+"dur": 2.9,
+"en": "This time, she takes on a new, disturbing appearance,",
+"speaker": 0
+},
+{
+"n": 123,
+"tc": "00:10:27,950 --> 00:10:32,310",
+"start": 627.95,
+"end": 632.31,
+"dur": 4.36,
+"en": "removing the lower half of her body and crawling around like a spider.",
+"speaker": 0
+},
+{
+"n": 124,
+"tc": "00:10:32,710 --> 00:10:36,550",
+"start": 632.71,
+"end": 636.55,
+"dur": 3.84,
+"en": "This new form grants the arachnid monster better mobility,",
+"speaker": 0
+},
+{
+"n": 125,
+"tc": "00:10:36,910 --> 00:10:40,210",
+"start": 636.91,
+"end": 640.21,
+"dur": 3.3,
+"en": "allowing her to travel up walls and move at greater speed.",
+"speaker": 0
+},
+{
+"n": 126,
+"tc": "00:10:41,030 --> 00:10:44,210",
+"start": 641.03,
+"end": 644.21,
+"dur": 3.18,
+"en": "She chases the kids through the factory at every turn,",
+"speaker": 0
+},
+{
+"n": 127,
+"tc": "00:10:44,430 --> 00:10:47,850",
+"start": 644.43,
+"end": 647.85,
+"dur": 3.42,
+"en": "eventually culminating in a breathless sequence,",
+"speaker": 0
+},
+{
+"n": 128,
+"tc": "00:10:47,870 --> 00:10:53,390",
+"start": 647.87,
+"end": 653.39,
+"dur": 5.52,
+"en": "where she finally meets a gruesome demise thanks to Low and Alone's stellar teamwork.",
+"speaker": 0
+},
+{
+"n": 129,
+"tc": "00:11:13,790 --> 00:11:17,070",
+"start": 673.79,
+"end": 677.07,
+"dur": 3.28,
+"en": "With the supervisor now super-flattened,",
+"speaker": 0
+},
+{
+"n": 130,
+"tc": "00:11:17,110 --> 00:11:20,970",
+"start": 677.11,
+"end": 680.97,
+"dur": 3.86,
+"en": "our intrepid explorers push onwards in relative safety,",
+"speaker": 0
+},
+{
+"n": 131,
+"tc": "00:11:21,230 --> 00:11:23,970",
+"start": 681.23,
+"end": 683.97,
+"dur": 2.74,
+"en": "locating the next mirror from the map.",
+"speaker": 0
+},
+{
+"n": 132,
+"tc": "00:11:24,490 --> 00:11:28,870",
+"start": 684.49,
+"end": 688.87,
+"dur": 4.38,
+"en": "Low takes Alone by the hand, and the two travel to their next destination.",
+"speaker": 0
+},
+{
+"n": 133,
+"tc": "00:11:35,500 --> 00:11:39,020",
+"start": 695.5,
+"end": 699.02,
+"dur": 3.52,
+"en": "The mirror spits Low out onto the floor of the storeroom,",
+"speaker": 0
+},
+{
+"n": 134,
+"tc": "00:11:39,020 --> 00:11:42,620",
+"start": 699.02,
+"end": 702.62,
+"dur": 3.6,
+"en": "but Alone does not follow, at least not right away.",
+"speaker": 0
+},
+{
+"n": 135,
+"tc": "00:11:42,980 --> 00:11:47,700",
+"start": 702.98,
+"end": 707.7,
+"dur": 4.72,
+"en": "It takes a few moments before she emerges, smashing the mirror behind her.",
+"speaker": 0
+},
+{
+"n": 136,
+"tc": "00:11:48,200 --> 00:11:52,740",
+"start": 708.2,
+"end": 712.74,
+"dur": 4.54,
+"en": "She seems dead at first, with Low shaking her unresponsively.",
+"speaker": 0
+},
+{
+"n": 137,
+"tc": "00:11:53,000 --> 00:11:56,480",
+"start": 713.0,
+"end": 716.48,
+"dur": 3.48,
+"en": "However, she is still alive, jolting awake,",
+"speaker": 0
+},
+{
+"n": 138,
+"tc": "00:11:56,840 --> 00:12:01,480",
+"start": 716.84,
+"end": 721.48,
+"dur": 4.64,
+"en": "at which point Low wraps his arms around her in a relieved, loving embrace.",
+"speaker": 0
+},
+{
+"n": 139,
+"tc": "00:12:02,600 --> 00:12:07,340",
+"start": 722.6,
+"end": 727.34,
+"dur": 4.74,
+"en": "Whether they will survive this next chapter in their adventure is another matter entirely.",
+"speaker": 0
+},
+{
+"n": 140,
+"tc": "00:12:07,940 --> 00:12:11,000",
+"start": 727.94,
+"end": 731.0,
+"dur": 3.06,
+"en": "The third stage is set within a bustling carnival,",
+"speaker": 0
+},
+{
+"n": 141,
+"tc": "00:12:11,140 --> 00:12:16,540",
+"start": 731.14,
+"end": 736.54,
+"dur": 5.4,
+"en": "full of brutish monsters who resemble the guests seen in the original Little Nightmares.",
+"speaker": 0
+},
+{
+"n": 142,
+"tc": "00:12:16,780 --> 00:12:20,540",
+"start": 736.78,
+"end": 740.54,
+"dur": 3.76,
+"en": "We see these patrons engaging in various morbid activities,",
+"speaker": 0
+},
+{
+"n": 143,
+"tc": "00:12:20,960 --> 00:12:25,680",
+"start": 740.96,
+"end": 745.68,
+"dur": 4.72,
+"en": "such as beating a lifeless corpse stuffed with candy as if it was a pinata.",
+"speaker": 0
+},
+{
+"n": 144,
+"tc": "00:12:26,120 --> 00:12:31,380",
+"start": 746.12,
+"end": 751.38,
+"dur": 5.26,
+"en": "The carnival stage sees the return of a fan favourite character, the Nomes.",
+"speaker": 0
+},
+{
+"n": 145,
+"tc": "00:12:31,440 --> 00:12:36,080",
+"start": 751.44,
+"end": 756.08,
+"dur": 4.64,
+"en": "Once children now transformed into these cute, curious critters,",
+"speaker": 0
+},
+{
+"n": 146,
+"tc": "00:12:36,280 --> 00:12:41,560",
+"start": 756.28,
+"end": 761.56,
+"dur": 5.28,
+"en": "the Nomes scamper about from hiding spot to hiding spot as Low and Alone track them down.",
+"speaker": 0
+},
+{
+"n": 147,
+"tc": "00:12:41,820 --> 00:12:47,680",
+"start": 761.82,
+"end": 767.68,
+"dur": 5.86,
+"en": "And just like in Little Nightmares 1, we can give them big hugs when they eventually settle down.",
+"speaker": 0
+},
+{
+"n": 148,
+"tc": "00:12:48,690 --> 00:12:53,210",
+"start": 768.69,
+"end": 773.21,
+"dur": 4.52,
+"en": "Our heroes follow these Nomes through the haunting halls of the carnival's underbelly,",
+"speaker": 0
+},
+{
+"n": 149,
+"tc": "00:12:53,230 --> 00:12:56,690",
+"start": 773.23,
+"end": 776.69,
+"dur": 3.46,
+"en": "and it is here we encounter the first enemy of the stage,",
+"speaker": 0
+},
+{
+"n": 150,
+"tc": "00:12:56,690 --> 00:13:02,590",
+"start": 776.69,
+"end": 782.59,
+"dur": 5.9,
+"en": "living puppets with freaky looking face masks that seem to be made from human skin.",
+"speaker": 0
+},
+{
+"n": 151,
+"tc": "00:13:03,250 --> 00:13:07,970",
+"start": 783.25,
+"end": 787.97,
+"dur": 4.72,
+"en": "In order to thwart the puppets, Low must first shoot their heads off with his bow,",
+"speaker": 0
+},
+{
+"n": 152,
+"tc": "00:13:08,190 --> 00:13:11,190",
+"start": 788.19,
+"end": 791.19,
+"dur": 3.0,
+"en": "allowing Alone to follow up with a strike from her wrench,",
+"speaker": 0
+},
+{
+"n": 153,
+"tc": "00:13:11,350 --> 00:13:14,550",
+"start": 791.35,
+"end": 794.55,
+"dur": 3.2,
+"en": "which finally takes the still, lumbering bodies down,",
+"speaker": 0
+},
+{
+"n": 154,
+"tc": "00:13:14,910 --> 00:13:18,650",
+"start": 794.91,
+"end": 798.65,
+"dur": 3.74,
+"en": "Low baiting the body to follow him while she does so.",
+"speaker": 0
+},
+{
+"n": 155,
+"tc": "00:13:31,660 --> 00:13:35,650",
+"start": 811.66,
+"end": 815.65,
+"dur": 3.99,
+"en": "After leaving the underbelly, the children emerge on the surface above,",
+"speaker": 0
+},
+{
+"n": 156,
+"tc": "00:13:36,010 --> 00:13:38,330",
+"start": 816.01,
+"end": 818.33,
+"dur": 2.32,
+"en": "and begin to navigate through the funfair.",
+"speaker": 0
+},
+{
+"n": 157,
+"tc": "00:13:38,530 --> 00:13:42,910",
+"start": 818.53,
+"end": 822.91,
+"dur": 4.38,
+"en": "There's not much fun to be had here though, as danger looms at every turn.",
+"speaker": 0
+},
+{
+"n": 158,
+"tc": "00:13:43,310 --> 00:13:46,270",
+"start": 823.31,
+"end": 826.27,
+"dur": 2.96,
+"en": "There's also some decidedly morbid sights.",
+"speaker": 0
+},
+{
+"n": 159,
+"tc": "00:13:46,710 --> 00:13:52,670",
+"start": 826.71,
+"end": 832.67,
+"dur": 5.96,
+"en": "In one moment we're dropping a still-living chained resident into a dunking tank in order to progress,",
+"speaker": 0
+},
+{
+"n": 160,
+"tc": "00:13:53,110 --> 00:13:54,890",
+"start": 833.11,
+"end": 834.89,
+"dur": 1.78,
+"en": "drowning them in the process.",
+"speaker": 0
+},
+{
+"n": 161,
+"tc": "00:13:55,290 --> 00:13:56,310",
+"start": 835.29,
+"end": 836.31,
+"dur": 1.02,
+"en": "And in the next,",
+"speaker": 0
+},
+{
+"n": 162,
+"tc": "00:13:56,330 --> 00:14:02,250",
+"start": 836.33,
+"end": 842.25,
+"dur": 5.92,
+"en": "we're pulling apart a sawn-through corpse in a magician's box so the duo can access us a hard-to-reach window.",
+"speaker": 0
+},
+{
+"n": 163,
+"tc": "00:14:02,970 --> 00:14:04,690",
+"start": 842.97,
+"end": 844.69,
+"dur": 1.72,
+"en": "It's pretty macabre stuff.",
+"speaker": 0
+},
+{
+"n": 164,
+"tc": "00:14:06,110 --> 00:14:10,230",
+"start": 846.11,
+"end": 850.23,
+"dur": 4.12,
+"en": "Eventually, the pair locate a rollercoaster ride and set it in motion,",
+"speaker": 0
+},
+{
+"n": 165,
+"tc": "00:14:10,550 --> 00:14:17,030",
+"start": 850.55,
+"end": 857.03,
+"dur": 6.48,
+"en": "boarding the carriage as it twists and turns through a haunted house and tears through the carnival at lightning speed.",
+"speaker": 0
+},
+{
+"n": 166,
+"tc": "00:14:17,490 --> 00:14:20,390",
+"start": 857.49,
+"end": 860.39,
+"dur": 2.9,
+"en": "When the coaster finally reaches the end of the line,",
+"speaker": 0
+},
+{
+"n": 167,
+"tc": "00:14:20,550 --> 00:14:24,050",
+"start": 860.55,
+"end": 864.05,
+"dur": 3.5,
+"en": "the two disembark and come across the next mirror on the map.",
+"speaker": 0
+},
+{
+"n": 168,
+"tc": "00:14:24,410 --> 00:14:26,910",
+"start": 864.41,
+"end": 866.91,
+"dur": 2.5,
+"en": "However, there's a wrinkle in their plan.",
+"speaker": 0
+},
+{
+"n": 169,
+"tc": "00:14:27,250 --> 00:14:33,230",
+"start": 867.25,
+"end": 873.23,
+"dur": 5.98,
+"en": "This mirror is now broken, meaning there's no way for Low to use his power to travel through it.",
+"speaker": 0
+},
+{
+"n": 170,
+"tc": "00:14:34,160 --> 00:14:35,420",
+"start": 874.16,
+"end": 875.42,
+"dur": 1.26,
+"en": "Low seems defeated.",
+"speaker": 0
+},
+{
+"n": 171,
+"tc": "00:14:35,800 --> 00:14:40,700",
+"start": 875.8,
+"end": 880.7,
+"dur": 4.9,
+"en": "Without the mirror, both he and Alone will remain trapped in the nowhere forever.",
+"speaker": 0
+},
+{
+"n": 172,
+"tc": "00:14:41,760 --> 00:14:48,000",
+"start": 881.76,
+"end": 888.0,
+"dur": 6.24,
+"en": "Alone is more optimistic, picking up the map and encouraging her friend not to give up hope.",
+"speaker": 0
+},
+{
+"n": 173,
+"tc": "00:14:48,940 --> 00:14:52,220",
+"start": 888.94,
+"end": 892.22,
+"dur": 3.28,
+"en": "Moving on they encounter the main antagonist of this chapter,",
+"speaker": 0
+},
+{
+"n": 174,
+"tc": "00:14:52,480 --> 00:14:58,260",
+"start": 892.48,
+"end": 898.26,
+"dur": 5.78,
+"en": "a horrifying puppeteer with a mangled face and living puppet companion known as The Kin.",
+"speaker": 0
+},
+{
+"n": 175,
+"tc": "00:14:58,540 --> 00:15:05,160",
+"start": 898.54,
+"end": 905.16,
+"dur": 6.62,
+"en": "His puppet simply named Kin Junior, so I'll just refer to him as Junior from this point forward.",
+"speaker": 0
+},
+{
+"n": 176,
+"tc": "00:15:05,800 --> 00:15:09,620",
+"start": 905.8,
+"end": 909.62,
+"dur": 3.82,
+"en": "The Kin and his pet have fallen asleep in front of the television set,",
+"speaker": 0
+},
+{
+"n": 177,
+"tc": "00:15:09,820 --> 00:15:12,780",
+"start": 909.82,
+"end": 912.78,
+"dur": 2.96,
+"en": "allowing Low and Alone to edge past unnoticed.",
+"speaker": 0
+},
+{
+"n": 178,
+"tc": "00:15:13,260 --> 00:15:15,580",
+"start": 913.26,
+"end": 915.58,
+"dur": 2.32,
+"en": "Unfortunately, the path ahead is boarded up,",
+"speaker": 0
+},
+{
+"n": 179,
+"tc": "00:15:15,700 --> 00:15:20,780",
+"start": 915.7,
+"end": 920.78,
+"dur": 5.08,
+"en": "and pulling these boards down makes enough racket to wake both Kin and Junior,",
+"speaker": 0
+},
+{
+"n": 180,
+"tc": "00:15:21,060 --> 00:15:22,900",
+"start": 921.06,
+"end": 922.9,
+"dur": 1.84,
+"en": "who instantly give chase.",
+"speaker": 0
+},
+{
+"n": 181,
+"tc": "00:15:23,540 --> 00:15:24,140",
+"start": 923.54,
+"end": 924.14,
+"dur": 0.6,
+"en": "The",
+"speaker": 0
+},
+{
+"n": 182,
+"tc": "00:15:48,050 --> 00:15:48,860",
+"start": 948.05,
+"end": 948.86,
+"dur": 0.81,
+"en": "The two",
+"speaker": 0
+},
+{
+"n": 183,
+"tc": "00:15:48,860 --> 00:15:49,280",
+"start": 948.86,
+"end": 949.28,
+"dur": 0.42,
+"en": "children",
+"speaker": 0
+},
+{
+"n": 184,
+"tc": "00:15:49,280 --> 00:15:52,280",
+"start": 949.28,
+"end": 952.28,
+"dur": 3.0,
+"en": "manage to evade the mad puppeteer on this occasion,",
+"speaker": 0
+},
+{
+"n": 185,
+"tc": "00:15:52,520 --> 00:15:55,460",
+"start": 952.52,
+"end": 955.46,
+"dur": 2.94,
+"en": "however it isn't long before Junior locates them,",
+"speaker": 0
+},
+{
+"n": 186,
+"tc": "00:15:55,620 --> 00:15:58,800",
+"start": 955.62,
+"end": 958.8,
+"dur": 3.18,
+"en": "forcing Low and Alone to take safety inside an elevator.",
+"speaker": 0
+},
+{
+"n": 187,
+"tc": "00:15:59,420 --> 00:16:01,680",
+"start": 959.42,
+"end": 961.68,
+"dur": 2.26,
+"en": "This reprieve is short-lived,",
+"speaker": 0
+},
+{
+"n": 188,
+"tc": "00:16:01,920 --> 00:16:05,960",
+"start": 961.92,
+"end": 965.96,
+"dur": 4.04,
+"en": "as they come face to face with the Kin upon its arrival at the floor above.",
+"speaker": 0
+},
+{
+"n": 189,
+"tc": "00:16:06,480 --> 00:16:11,860",
+"start": 966.48,
+"end": 971.86,
+"dur": 5.38,
+"en": "The Kin snatches up Low, but Alone manages to escape his clutches.",
+"speaker": 0
+},
+{
+"n": 190,
+"tc": "00:16:12,610 --> 00:16:16,990",
+"start": 972.61,
+"end": 976.99,
+"dur": 4.38,
+"en": "However, unlike Six, who would never put her life at risk to save another,",
+"speaker": 0
+},
+{
+"n": 191,
+"tc": "00:16:17,510 --> 00:16:21,450",
+"start": 977.51,
+"end": 981.45,
+"dur": 3.94,
+"en": "Alone is loyal to her friend Low, and so enacts a jailbreak.",
+"speaker": 0
+},
+{
+"n": 192,
+"tc": "00:16:22,230 --> 00:16:27,910",
+"start": 982.23,
+"end": 987.91,
+"dur": 5.68,
+"en": "Low has been caged high up in the Kin's quarters, and the two must work as a team if he is to escape.",
+"speaker": 0
+},
+{
+"n": 193,
+"tc": "00:16:28,410 --> 00:16:32,230",
+"start": 988.41,
+"end": 992.23,
+"dur": 3.82,
+"en": "Low shoots arrows at objects around the environment to distract the Kin,",
+"speaker": 0
+},
+{
+"n": 194,
+"tc": "00:16:32,410 --> 00:16:37,050",
+"start": 992.41,
+"end": 997.05,
+"dur": 4.64,
+"en": "while Alone sneaks over to a winch in order to move the cage closer to a ladder,",
+"speaker": 0
+},
+{
+"n": 195,
+"tc": "00:16:37,250 --> 00:16:41,870",
+"start": 997.25,
+"end": 1001.87,
+"dur": 4.62,
+"en": "allowing her to jump up and down on the cage until it comes crashing to the floor.",
+"speaker": 0
+},
+{
+"n": 196,
+"tc": "00:16:42,550 --> 00:16:45,450",
+"start": 1002.55,
+"end": 1005.45,
+"dur": 2.9,
+"en": "With the kin distracted by a now-free Nome,",
+"speaker": 0
+},
+{
+"n": 197,
+"tc": "00:16:45,570 --> 00:16:49,070",
+"start": 1005.57,
+"end": 1009.07,
+"dur": 3.5,
+"en": "the duo continue moving forward in search of safe haven.",
+"speaker": 0
+},
+{
+"n": 198,
+"tc": "00:16:49,410 --> 00:16:53,350",
+"start": 1009.41,
+"end": 1013.35,
+"dur": 3.94,
+"en": "They come into contact with the puppeteer several more times.",
+"speaker": 0
+},
+{
+"n": 199,
+"tc": "00:16:53,710 --> 00:16:56,170",
+"start": 1013.71,
+"end": 1016.17,
+"dur": 2.46,
+"en": "In this scene we see the children captured",
+"speaker": 0
+},
+{
+"n": 200,
+"tc": "00:16:56,170 --> 00:17:02,650",
+"start": 1016.17,
+"end": 1022.65,
+"dur": 6.48,
+"en": "by this psychopath are made to perform circus tricks for his amusement as he watches with sinister glee.",
+"speaker": 0
+},
+{
+"n": 201,
+"tc": "00:17:03,400 --> 00:17:05,980",
+"start": 1023.4,
+"end": 1025.98,
+"dur": 2.58,
+"en": "This culminates in a chase sequence,",
+"speaker": 0
+},
+{
+"n": 202,
+"tc": "00:17:06,280 --> 00:17:10,680",
+"start": 1026.28,
+"end": 1030.68,
+"dur": 4.4,
+"en": "where the Kin and Junior pursue Low and Alone through the halls of the theatre,",
+"speaker": 0
+},
+{
+"n": 203,
+"tc": "00:17:10,980 --> 00:17:13,100",
+"start": 1030.98,
+"end": 1033.1,
+"dur": 2.12,
+"en": "and then through the carnival stalls.",
+"speaker": 0
+},
+{
+"n": 204,
+"tc": "00:17:29,240 --> 00:17:30,000",
+"start": 1049.24,
+"end": 1050.0,
+"dur": 0.76,
+"en": "The",
+"speaker": 0
+},
+{
+"n": 205,
+"tc": "00:17:40,460 --> 00:17:40,800",
+"start": 1060.46,
+"end": 1060.8,
+"dur": 0.34,
+"en": "The",
+"speaker": 0
+},
+{
+"n": 206,
+"tc": "00:17:40,800 --> 00:17:42,020",
+"start": 1060.8,
+"end": 1062.02,
+"dur": 1.22,
+"en": "kids eventually discover",
+"speaker": 0
+},
+{
+"n": 207,
+"tc": "00:17:42,020 --> 00:17:45,020",
+"start": 1062.02,
+"end": 1065.02,
+"dur": 3.0,
+"en": "a hot air balloon and rise into the skies above.",
+"speaker": 0
+},
+{
+"n": 208,
+"tc": "00:17:45,480 --> 00:17:49,580",
+"start": 1065.48,
+"end": 1069.58,
+"dur": 4.1,
+"en": "The Kin attempts to shoot it down with a shotgun, but is unsuccessful.",
+"speaker": 0
+},
+{
+"n": 209,
+"tc": "00:17:50,200 --> 00:17:52,720",
+"start": 1070.2,
+"end": 1072.72,
+"dur": 2.52,
+"en": "However, his puppet pal Junior Jr.",
+"speaker": 0
+},
+{
+"n": 210,
+"tc": "00:17:52,740 --> 00:17:57,160",
+"start": 1072.74,
+"end": 1077.16,
+"dur": 4.42,
+"en": "manages to scamper up the side of the balloon and attempts to drop down from above.",
+"speaker": 0
+},
+{
+"n": 211,
+"tc": "00:17:57,700 --> 00:18:03,740",
+"start": 1077.7,
+"end": 1083.74,
+"dur": 6.04,
+"en": "Low and Alone quickly pull the burner valve, incinerating the nasty creature in the process.",
+"speaker": 0
+},
+{
+"n": 212,
+"tc": "00:18:04,680 --> 00:18:08,100",
+"start": 1084.68,
+"end": 1088.1,
+"dur": 3.42,
+"en": "The balloon takes them high above the carnival and across a lake,",
+"speaker": 0
+},
+{
+"n": 213,
+"tc": "00:18:08,280 --> 00:18:10,920",
+"start": 1088.28,
+"end": 1090.92,
+"dur": 2.64,
+"en": "but as the storm around them picks up,",
+"speaker": 0
+},
+{
+"n": 214,
+"tc": "00:18:11,100 --> 00:18:16,180",
+"start": 1091.1,
+"end": 1096.18,
+"dur": 5.08,
+"en": "a bolt of lightning hits the top of the balloon, causing it to plummet downwards.",
+"speaker": 0
+},
+{
+"n": 215,
+"tc": "00:18:16,980 --> 00:18:20,820",
+"start": 1096.98,
+"end": 1100.82,
+"dur": 3.84,
+"en": "At that moment, Low wakes back up in his prison.",
+"speaker": 0
+},
+{
+"n": 216,
+"tc": "00:18:21,040 --> 00:18:26,080",
+"start": 1101.04,
+"end": 1106.08,
+"dur": 5.04,
+"en": "On the bed beside him, off three sketches of the locations he and Alone have visited.",
+"speaker": 0
+},
+{
+"n": 217,
+"tc": "00:18:26,500 --> 00:18:30,760",
+"start": 1106.5,
+"end": 1110.76,
+"dur": 4.26,
+"en": "Low hears the footsteps of a mysterious visitor outside his room,",
+"speaker": 0
+},
+{
+"n": 218,
+"tc": "00:18:30,880 --> 00:18:34,020",
+"start": 1110.88,
+"end": 1114.02,
+"dur": 3.14,
+"en": "and so hurriedly hides his sketches in a garbage chute.",
+"speaker": 0
+},
+{
+"n": 219,
+"tc": "00:18:34,240 --> 00:18:39,800",
+"start": 1114.24,
+"end": 1119.8,
+"dur": 5.56,
+"en": "He hides underneath the bed until danger has passed, and then reopens the chute.",
+"speaker": 0
+},
+{
+"n": 220,
+"tc": "00:18:40,140 --> 00:18:44,060",
+"start": 1120.14,
+"end": 1124.06,
+"dur": 3.92,
+"en": "the drawings spill back out, along with something curious.",
+"speaker": 0
+},
+{
+"n": 221,
+"tc": "00:18:44,480 --> 00:18:49,840",
+"start": 1124.48,
+"end": 1129.84,
+"dur": 5.36,
+"en": "A small doll that bears a striking resemblance to that of Alone.",
+"speaker": 0
+},
+{
+"n": 222,
+"tc": "00:18:57,200 --> 00:19:03,180",
+"start": 1137.2,
+"end": 1143.18,
+"dur": 5.98,
+"en": "Returning to the Nowhere, we discover both our plucky heroes survived the crash landing unscathed.",
+"speaker": 0
+},
+{
+"n": 223,
+"tc": "00:19:03,340 --> 00:19:05,720",
+"start": 1143.34,
+"end": 1145.72,
+"dur": 2.38,
+"en": "As the two take in their surroundings,",
+"speaker": 0
+},
+{
+"n": 224,
+"tc": "00:19:06,060 --> 00:19:10,640",
+"start": 1146.06,
+"end": 1150.64,
+"dur": 4.58,
+"en": "they realise they have crash landed on the shoreline beside a mysterious building.",
+"speaker": 0
+},
+{
+"n": 225,
+"tc": "00:19:11,140 --> 00:19:13,080",
+"start": 1151.14,
+"end": 1153.08,
+"dur": 1.94,
+"en": "This is the Institute.",
+"speaker": 0
+},
+{
+"n": 226,
+"tc": "00:19:13,480 --> 00:19:21,100",
+"start": 1153.48,
+"end": 1161.1,
+"dur": 7.62,
+"en": "The Institute is an asylum-like structure used in the real world to treat children suffering from trauma.",
+"speaker": 0
+},
+{
+"n": 227,
+"tc": "00:19:21,100 --> 00:19:25,420",
+"start": 1161.1,
+"end": 1165.42,
+"dur": 4.32,
+"en": "It is featured in the podcast series the Sounds of Nightmares,",
+"speaker": 0
+},
+{
+"n": 228,
+"tc": "00:19:25,420 --> 00:19:31,680",
+"start": 1165.42,
+"end": 1171.68,
+"dur": 6.26,
+"en": "and there are in fact many references both big and small to that series in Little Nightmares 3.",
+"speaker": 0
+},
+{
+"n": 229,
+"tc": "00:19:32,100 --> 00:19:37,640",
+"start": 1172.1,
+"end": 1177.64,
+"dur": 5.54,
+"en": "However, as listeners of the podcast will be aware, the Institute was far from innocent.",
+"speaker": 0
+},
+{
+"n": 230,
+"tc": "00:19:37,920 --> 00:19:40,780",
+"start": 1177.92,
+"end": 1180.78,
+"dur": 2.86,
+"en": "It was run by a therapist by the name of Otto.",
+"speaker": 0
+},
+{
+"n": 231,
+"tc": "00:19:41,580 --> 00:19:47,860",
+"start": 1181.58,
+"end": 1187.86,
+"dur": 6.28,
+"en": "Otto was once a kind and well-meaning doctor, seeking to help the children under his care.",
+"speaker": 0
+},
+{
+"n": 232,
+"tc": "00:19:47,860 --> 00:19:48,500",
+"start": 1187.86,
+"end": 1188.5,
+"dur": 0.64,
+"en": "However,",
+"speaker": 0
+},
+{
+"n": 233,
+"tc": "00:19:49,020 --> 00:19:52,000",
+"start": 1189.02,
+"end": 1192.0,
+"dur": 2.98,
+"en": "he is led down a dark path after suspecting",
+"speaker": 0
+},
+{
+"n": 234,
+"tc": "00:19:52,000 --> 00:19:58,700",
+"start": 1192.0,
+"end": 1198.7,
+"dur": 6.7,
+"en": "that the disappearance of his kid sister Cece may have been tied to a mysterious figure known as the Ferryman,",
+"speaker": 0
+},
+{
+"n": 235,
+"tc": "00:19:58,920 --> 00:20:02,040",
+"start": 1198.92,
+"end": 1202.04,
+"dur": 3.12,
+"en": "who many of his patients encountered in their dreams.",
+"speaker": 0
+},
+{
+"n": 236,
+"tc": "00:20:03,100 --> 00:20:08,810",
+"start": 1203.1,
+"end": 1208.81,
+"dur": 5.71,
+"en": "night in my dream a muddled voice and then I",
+"speaker": 1
+},
+{
+"n": 237,
+"tc": "00:20:09,260 --> 00:20:14,480",
+"start": 1209.26,
+"end": 1214.48,
+"dur": 5.22,
+"en": "saw him there must be more try interact with the dream",
+"speaker": 1
+},
+{
+"n": 238,
+"tc": "00:20:16,560 --> 00:20:21,030",
+"start": 1216.56,
+"end": 1221.03,
+"dur": 4.47,
+"en": "scream tearing my throat but you",
+"speaker": 1
+},
+{
+"n": 239,
+"tc": "00:20:21,030 --> 00:20:24,050",
+"start": 1221.03,
+"end": 1224.05,
+"dur": 3.02,
+"en": "were right there don't tell me you did nothing You're",
+"speaker": 2
+},
+{
+"n": 240,
+"tc": "00:20:24,050 --> 00:20:25,010",
+"start": 1224.05,
+"end": 1225.01,
+"dur": 0.96,
+"en": "supposed to help me!",
+"speaker": 1
+},
+{
+"n": 241,
+"tc": "00:20:25,130 --> 00:20:26,290",
+"start": 1225.13,
+"end": 1226.29,
+"dur": 1.16,
+"en": "You're supposed to understand!",
+"speaker": 1
+},
+{
+"n": 242,
+"tc": "00:20:26,830 --> 00:20:27,230",
+"start": 1226.83,
+"end": 1227.23,
+"dur": 0.4,
+"en": "I",
+"speaker": 1
+},
+{
+"n": 243,
+"tc": "00:20:27,230 --> 00:20:29,410",
+"start": 1227.23,
+"end": 1229.41,
+"dur": 2.18,
+"en": "can't help you if you hide things from me!",
+"speaker": 2
+},
+{
+"n": 244,
+"tc": "00:20:29,570 --> 00:20:30,130",
+"start": 1229.57,
+"end": 1230.13,
+"dur": 0.56,
+"en": "My head!",
+"speaker": 1
+},
+{
+"n": 245,
+"tc": "00:20:30,420 --> 00:20:32,300",
+"start": 1230.42,
+"end": 1232.3,
+"dur": 1.88,
+"en": "A fire burns in there!",
+"speaker": 1
+},
+{
+"n": 246,
+"tc": "00:20:32,440 --> 00:20:32,600",
+"start": 1232.44,
+"end": 1232.6,
+"dur": 0.16,
+"en": "We",
+"speaker": 1
+},
+{
+"n": 247,
+"tc": "00:20:32,600 --> 00:20:34,520",
+"start": 1232.6,
+"end": 1234.52,
+"dur": 1.92,
+"en": "can face your monsters together!",
+"speaker": 2
+},
+{
+"n": 248,
+"tc": "00:20:34,940 --> 00:20:35,760",
+"start": 1234.94,
+"end": 1235.76,
+"dur": 0.82,
+"en": "Please stop!",
+"speaker": 1
+},
+{
+"n": 249,
+"tc": "00:20:35,560 --> 00:20:36,280",
+"start": 1235.56,
+"end": 1236.28,
+"dur": 0.72,
+"en": "Otto",
+"speaker": 1
+},
+{
+"n": 250,
+"tc": "00:20:37,750 --> 00:20:41,350",
+"start": 1237.75,
+"end": 1241.35,
+"dur": 3.6,
+"en": "became obsessed with trying to connect to the nowhere.",
+"speaker": 0
+},
+{
+"n": 251,
+"tc": "00:20:41,750 --> 00:20:45,930",
+"start": 1241.75,
+"end": 1245.93,
+"dur": 4.18,
+"en": "He used sleep therapy by drugging his patients with spiked",
+"speaker": 0
+},
+{
+"n": 252,
+"tc": "00:20:45,930 --> 00:20:52,330",
+"start": 1245.93,
+"end": 1252.33,
+"dur": 6.4,
+"en": "candy so he can monitor their nightmares and then interview them about their visits to the nowhere in search of answers.",
+"speaker": 0
+},
+{
+"n": 253,
+"tc": "00:20:52,810 --> 00:20:55,890",
+"start": 1252.81,
+"end": 1255.89,
+"dur": 3.08,
+"en": "Everything ties back to the sounds of nightmares.",
+"speaker": 0
+},
+{
+"n": 254,
+"tc": "00:20:57,430 --> 00:21:02,650",
+"start": 1257.43,
+"end": 1262.65,
+"dur": 5.22,
+"en": "Here in this nightmare realm, the Institute takes on a far more sinister vibe,",
+"speaker": 0
+},
+{
+"n": 255,
+"tc": "00:21:02,690 --> 00:21:09,390",
+"start": 1262.69,
+"end": 1269.39,
+"dur": 6.7,
+"en": "dilapidated and full of monstrous creatures who want nothing more than to sap the life from Low and Alone.",
+"speaker": 0
+},
+{
+"n": 256,
+"tc": "00:21:09,910 --> 00:21:14,490",
+"start": 1269.91,
+"end": 1274.49,
+"dur": 4.58,
+"en": "We also discover the spirits of the children who once lived here as patients,",
+"speaker": 0
+},
+{
+"n": 257,
+"tc": "00:21:14,810 --> 00:21:18,490",
+"start": 1274.81,
+"end": 1278.49,
+"dur": 3.68,
+"en": "now living on as ghostly echoes of the past.",
+"speaker": 0
+},
+{
+"n": 258,
+"tc": "00:21:19,910 --> 00:21:25,710",
+"start": 1279.91,
+"end": 1285.71,
+"dur": 5.8,
+"en": "In terms of enemies, we have the staff, nurses with bandaged faces covering their eyes.",
+"speaker": 0
+},
+{
+"n": 259,
+"tc": "00:21:26,050 --> 00:21:31,890",
+"start": 1286.05,
+"end": 1291.89,
+"dur": 5.84,
+"en": "This does at least allow our heroes to be able to sneak past of them most of the time, Failing that,",
+"speaker": 0
+},
+{
+"n": 260,
+"tc": "00:21:31,930 --> 00:21:37,270",
+"start": 1291.93,
+"end": 1297.27,
+"dur": 5.34,
+"en": "a loud distraction such as throwing a can or bottle across the room can be used to thwart their advances.",
+"speaker": 0
+},
+{
+"n": 261,
+"tc": "00:21:38,110 --> 00:21:40,210",
+"start": 1298.11,
+"end": 1300.21,
+"dur": 2.1,
+"en": "Next up we have the killer plants.",
+"speaker": 0
+},
+{
+"n": 262,
+"tc": "00:21:40,690 --> 00:21:43,550",
+"start": 1300.69,
+"end": 1303.55,
+"dur": 2.86,
+"en": "Now these plants detect nearby movement and then",
+"speaker": 0
+},
+{
+"n": 263,
+"tc": "00:21:43,550 --> 00:21:49,190",
+"start": 1303.55,
+"end": 1309.19,
+"dur": 5.64,
+"en": "spit out a long tendril that grabs hold of and kills anything unlucky enough to get too close.",
+"speaker": 0
+},
+{
+"n": 264,
+"tc": "00:21:49,910 --> 00:21:56,110",
+"start": 1309.91,
+"end": 1316.11,
+"dur": 6.2,
+"en": "In this sequence we can even use one of said plants to take care of one of those pesky nurses.",
+"speaker": 0
+},
+{
+"n": 265,
+"tc": "00:22:10,520 --> 00:22:18,750",
+"start": 1330.52,
+"end": 1338.75,
+"dur": 8.23,
+"en": "The final enemy we encounter is a giant doctor with long arms and legs that twist and turn through the halls of the asylum.",
+"speaker": 0
+},
+{
+"n": 266,
+"tc": "00:22:19,210 --> 00:22:22,250",
+"start": 1339.21,
+"end": 1342.25,
+"dur": 3.04,
+"en": "the doctor in question may actually be Otto,",
+"speaker": 0
+},
+{
+"n": 267,
+"tc": "00:22:22,550 --> 00:22:25,850",
+"start": 1342.55,
+"end": 1345.85,
+"dur": 3.3,
+"en": "which would suggest he eventually committed enough heinous",
+"speaker": 0
+},
+{
+"n": 268,
+"tc": "00:22:25,850 --> 00:22:31,270",
+"start": 1345.85,
+"end": 1351.27,
+"dur": 5.42,
+"en": "acts against the children under his care at the Institute to garner the attention of the Nowhere.",
+"speaker": 0
+},
+{
+"n": 269,
+"tc": "00:22:31,550 --> 00:22:39,750",
+"start": 1351.55,
+"end": 1359.75,
+"dur": 8.2,
+"en": "This monstrous form is probably not what Otto had intended for himself on his quest to enter the realm that took his beloved sister.",
+"speaker": 0
+},
+{
+"n": 270,
+"tc": "00:22:40,580 --> 00:22:44,120",
+"start": 1360.58,
+"end": 1364.12,
+"dur": 3.54,
+"en": "But before we get to Otto and his encounter with Low and Alone,",
+"speaker": 0
+},
+{
+"n": 271,
+"tc": "00:22:44,400 --> 00:22:50,840",
+"start": 1364.4,
+"end": 1370.84,
+"dur": 6.44,
+"en": "let's rewind a little and look at some of the other key plot points we uncover while exploring this creepy locale.",
+"speaker": 0
+},
+{
+"n": 272,
+"tc": "00:22:51,240 --> 00:22:55,620",
+"start": 1371.24,
+"end": 1375.62,
+"dur": 4.38,
+"en": "The biggest twist comes with the discovery of a very familiar room.",
+"speaker": 0
+},
+{
+"n": 273,
+"tc": "00:22:56,280 --> 00:22:58,340",
+"start": 1376.28,
+"end": 1378.34,
+"dur": 2.06,
+"en": "Low and Alone enter a padlock cell,",
+"speaker": 0
+},
+{
+"n": 274,
+"tc": "00:22:58,660 --> 00:23:04,680",
+"start": 1378.66,
+"end": 1384.68,
+"dur": 6.02,
+"en": "which is an exact match for the one Low awakens within at certain points in our adventure.",
+"speaker": 0
+},
+{
+"n": 275,
+"tc": "00:23:05,200 --> 00:23:08,740",
+"start": 1385.2,
+"end": 1388.74,
+"dur": 3.54,
+"en": "This discovery tells us that Low was a patient of the Institute,",
+"speaker": 0
+},
+{
+"n": 276,
+"tc": "00:23:09,120 --> 00:23:14,140",
+"start": 1389.12,
+"end": 1394.14,
+"dur": 5.02,
+"en": "and the mysterious visitor who comes to his door each night was almost certainly Otto,",
+"speaker": 0
+},
+{
+"n": 277,
+"tc": "00:23:14,480 --> 00:23:16,500",
+"start": 1394.48,
+"end": 1396.5,
+"dur": 2.02,
+"en": "monitoring his sleep patterns.",
+"speaker": 0
+},
+{
+"n": 278,
+"tc": "00:23:17,550 --> 00:23:21,810",
+"start": 1397.55,
+"end": 1401.81,
+"dur": 4.26,
+"en": "Inside the garbage chute we discover the doll that resembles Alone.",
+"speaker": 0
+},
+{
+"n": 279,
+"tc": "00:23:22,170 --> 00:23:27,450",
+"start": 1402.17,
+"end": 1407.45,
+"dur": 5.28,
+"en": "It is carried over into the nowhere, but here it has a mysterious superpower.",
+"speaker": 0
+},
+{
+"n": 280,
+"tc": "00:23:28,030 --> 00:23:34,470",
+"start": 1408.03,
+"end": 1414.47,
+"dur": 6.44,
+"en": "After picking up the doll, Low is able to carry it around and alter a small area around him.",
+"speaker": 0
+},
+{
+"n": 281,
+"tc": "00:23:34,750 --> 00:23:41,330",
+"start": 1414.75,
+"end": 1421.33,
+"dur": 6.58,
+"en": "The doll's aura transforms the environment to return to the way it was in the waking world of the counties.",
+"speaker": 0
+},
+{
+"n": 282,
+"tc": "00:23:41,930 --> 00:23:44,410",
+"start": 1421.93,
+"end": 1424.41,
+"dur": 2.48,
+"en": "Doors that were once closed now open.",
+"speaker": 0
+},
+{
+"n": 283,
+"tc": "00:23:45,030 --> 00:23:47,530",
+"start": 1425.03,
+"end": 1427.53,
+"dur": 2.5,
+"en": "Surroundings are no longer in a state of ruin,",
+"speaker": 0
+},
+{
+"n": 284,
+"tc": "00:23:47,670 --> 00:23:51,790",
+"start": 1427.67,
+"end": 1431.79,
+"dur": 4.12,
+"en": "and even this broken goldfish bowl returns to its previous state,",
+"speaker": 0
+},
+{
+"n": 285,
+"tc": "00:23:52,010 --> 00:23:54,650",
+"start": 1432.01,
+"end": 1434.65,
+"dur": 2.64,
+"en": "aquatic denizens still alive and kicking.",
+"speaker": 0
+},
+{
+"n": 286,
+"tc": "00:23:54,650 --> 00:24:00,080",
+"start": 1434.65,
+"end": 1440.08,
+"dur": 5.43,
+"en": "Low uses the doll to help him and Alone travel deeper inside the Institute.",
+"speaker": 0
+},
+{
+"n": 287,
+"tc": "00:24:00,540 --> 00:24:04,940",
+"start": 1440.54,
+"end": 1444.94,
+"dur": 4.4,
+"en": "Along the way, they encounter Otto's stretchy arms blocking their path.",
+"speaker": 0
+},
+{
+"n": 288,
+"tc": "00:24:05,260 --> 00:24:09,720",
+"start": 1445.26,
+"end": 1449.72,
+"dur": 4.46,
+"en": "To move him out of the way, Alone must use her wrench to ring a series of gongs,",
+"speaker": 0
+},
+{
+"n": 289,
+"tc": "00:24:09,920 --> 00:24:14,340",
+"start": 1449.92,
+"end": 1454.34,
+"dur": 4.42,
+"en": "sending ripples throughout the environment and disturbing the Doctor's slumber.",
+"speaker": 0
+},
+{
+"n": 290,
+"tc": "00:24:14,940 --> 00:24:18,280",
+"start": 1454.94,
+"end": 1458.28,
+"dur": 3.34,
+"en": "Otto's hands feature eyes in the centre of their palms.",
+"speaker": 0
+},
+{
+"n": 291,
+"tc": "00:24:18,620 --> 00:24:20,640",
+"start": 1458.62,
+"end": 1460.64,
+"dur": 2.02,
+"en": "If any of this sounds familiar,",
+"speaker": 0
+},
+{
+"n": 292,
+"tc": "00:24:20,960 --> 00:24:27,320",
+"start": 1460.96,
+"end": 1467.32,
+"dur": 6.36,
+"en": "cast your mind back to that cryptic series of chalk scratchings we encountered while exploring the Necropolis.",
+"speaker": 0
+},
+{
+"n": 293,
+"tc": "00:24:27,820 --> 00:24:30,240",
+"start": 1467.82,
+"end": 1470.24,
+"dur": 2.42,
+"en": "Indeed, they foreshadowed the endgame.",
+"speaker": 0
+},
+{
+"n": 294,
+"tc": "00:24:31,020 --> 00:24:36,580",
+"start": 1471.02,
+"end": 1476.58,
+"dur": 5.56,
+"en": "After a series of breakneck chases where Low and Alone narrowly escape the Doctor's grasp,",
+"speaker": 0
+},
+{
+"n": 295,
+"tc": "00:24:36,880 --> 00:24:40,260",
+"start": 1476.88,
+"end": 1480.26,
+"dur": 3.38,
+"en": "they eventually reach a room with the mirror from Low's dreams.",
+"speaker": 0
+},
+{
+"n": 296,
+"tc": "00:24:40,620 --> 00:24:45,140",
+"start": 1480.62,
+"end": 1485.14,
+"dur": 4.52,
+"en": "A mirror which will allow them to escape the nowhere spiral for good.",
+"speaker": 0
+},
+{
+"n": 297,
+"tc": "00:24:45,600 --> 00:24:52,140",
+"start": 1485.6,
+"end": 1492.14,
+"dur": 6.54,
+"en": "But as Low places his hand on the glass one last time, Alone seems reluctant to follow.",
+"speaker": 0
+},
+{
+"n": 298,
+"tc": "00:24:52,520 --> 00:24:57,980",
+"start": 1492.52,
+"end": 1497.98,
+"dur": 5.46,
+"en": "She holds back, and in doing so buys Otto enough time to catch up with them,",
+"speaker": 0
+},
+{
+"n": 299,
+"tc": "00:24:58,080 --> 00:25:02,480",
+"start": 1498.08,
+"end": 1502.48,
+"dur": 4.4,
+"en": "at which point he snatches away the mirror and begins tearing down the room.",
+"speaker": 0
+},
+{
+"n": 300,
+"tc": "00:25:03,120 --> 00:25:06,860",
+"start": 1503.12,
+"end": 1506.86,
+"dur": 3.74,
+"en": "Our heroes must evade falling debris until a set of gongs appear,",
+"speaker": 0
+},
+{
+"n": 301,
+"tc": "00:25:07,220 --> 00:25:12,900",
+"start": 1507.22,
+"end": 1512.9,
+"dur": 5.68,
+"en": "at which point Alone rings them causing the doctor's palms to open and reveal its eye.",
+"speaker": 0
+},
+{
+"n": 302,
+"tc": "00:25:13,400 --> 00:25:19,840",
+"start": 1513.4,
+"end": 1519.84,
+"dur": 6.44,
+"en": "Low then shoots the eye, causing the hand to become immobile and crushed under falling rubble.",
+"speaker": 0
+},
+{
+"n": 303,
+"tc": "00:25:20,400 --> 00:25:23,620",
+"start": 1520.4,
+"end": 1523.62,
+"dur": 3.22,
+"en": "After doing this twice, Otto shows his face,",
+"speaker": 0
+},
+{
+"n": 304,
+"tc": "00:25:23,740 --> 00:25:27,160",
+"start": 1523.74,
+"end": 1527.16,
+"dur": 3.42,
+"en": "and the kids are able to take him down once and for all.",
+"speaker": 0
+},
+{
+"n": 305,
+"tc": "00:25:27,440 --> 00:25:28,040",
+"start": 1527.44,
+"end": 1528.04,
+"dur": 0.6,
+"en": "As",
+"speaker": 0
+},
+{
+"n": 306,
+"tc": "00:25:57,600 --> 00:25:58,400",
+"start": 1557.6,
+"end": 1558.4,
+"dur": 0.8,
+"en": "As the",
+"speaker": 0
+},
+{
+"n": 307,
+"tc": "00:25:58,400 --> 00:25:59,820",
+"start": 1558.4,
+"end": 1559.82,
+"dur": 1.42,
+"en": "doctor falls to his death,",
+"speaker": 0
+},
+{
+"n": 308,
+"tc": "00:26:00,020 --> 00:26:02,060",
+"start": 1560.02,
+"end": 1562.06,
+"dur": 2.04,
+"en": "he smashes the floor in front of him,",
+"speaker": 0
+},
+{
+"n": 309,
+"tc": "00:26:02,220 --> 00:26:04,700",
+"start": 1562.22,
+"end": 1564.7,
+"dur": 2.48,
+"en": "causing Low and Alone to plummet down with him.",
+"speaker": 0
+},
+{
+"n": 310,
+"tc": "00:26:05,000 --> 00:26:10,000",
+"start": 1565.0,
+"end": 1570.0,
+"dur": 5.0,
+"en": "They land on a crumbling ledge, Alone saving Low from falling further.",
+"speaker": 0
+},
+{
+"n": 311,
+"tc": "00:26:10,380 --> 00:26:13,860",
+"start": 1570.38,
+"end": 1573.86,
+"dur": 3.48,
+"en": "But as the ledge gives way, they continue their descent,",
+"speaker": 0
+},
+{
+"n": 312,
+"tc": "00:26:14,220 --> 00:26:18,820",
+"start": 1574.22,
+"end": 1578.82,
+"dur": 4.6,
+"en": "embracing one another as they fall, friends to the very end.",
+"speaker": 0
+},
+{
+"n": 313,
+"tc": "00:26:25,650 --> 00:26:28,980",
+"start": 1585.65,
+"end": 1588.98,
+"dur": 3.33,
+"en": "Low wakes in his bed inside the asylum once more.",
+"speaker": 0
+},
+{
+"n": 314,
+"tc": "00:26:29,240 --> 00:26:32,640",
+"start": 1589.24,
+"end": 1592.64,
+"dur": 3.4,
+"en": "This time, he is holding the doll of Alone in his arms,",
+"speaker": 0
+},
+{
+"n": 315,
+"tc": "00:26:32,760 --> 00:26:37,160",
+"start": 1592.76,
+"end": 1597.16,
+"dur": 4.4,
+"en": "just as he was moments earlier as the pair fell into the void below.",
+"speaker": 0
+},
+{
+"n": 316,
+"tc": "00:26:37,620 --> 00:26:43,560",
+"start": 1597.62,
+"end": 1603.56,
+"dur": 5.94,
+"en": "He sets the Alone doll down on the bed and goes over to the garbage chute to gather up his sketches and crayons.",
+"speaker": 0
+},
+{
+"n": 317,
+"tc": "00:26:43,840 --> 00:26:48,400",
+"start": 1603.84,
+"end": 1608.4,
+"dur": 4.56,
+"en": "As he returns to the bed, Alone is now sitting in place of her doll.",
+"speaker": 0
+},
+{
+"n": 318,
+"tc": "00:26:48,780 --> 00:26:51,680",
+"start": 1608.78,
+"end": 1611.68,
+"dur": 2.9,
+"en": "The two settle down and begin to draw together.",
+"speaker": 0
+},
+{
+"n": 319,
+"tc": "00:26:53,060 --> 00:26:56,360",
+"start": 1613.06,
+"end": 1616.36,
+"dur": 3.3,
+"en": "We then transition back to the ruins of the institute,",
+"speaker": 0
+},
+{
+"n": 320,
+"tc": "00:26:56,700 --> 00:27:02,220",
+"start": 1616.7,
+"end": 1622.22,
+"dur": 5.52,
+"en": "where miraculously the two children have survived, and thankfully, the doctor has not.",
+"speaker": 0
+},
+{
+"n": 321,
+"tc": "00:27:03,060 --> 00:27:04,380",
+"start": 1623.06,
+"end": 1624.38,
+"dur": 1.32,
+"en": "Battered and bruised,",
+"speaker": 0
+},
+{
+"n": 322,
+"tc": "00:27:04,440 --> 00:27:10,380",
+"start": 1624.44,
+"end": 1630.38,
+"dur": 5.94,
+"en": "they pick themselves up and begin to hobble through the crumbling building in search of that one last mirror.",
+"speaker": 0
+},
+{
+"n": 323,
+"tc": "00:27:10,840 --> 00:27:15,540",
+"start": 1630.84,
+"end": 1635.54,
+"dur": 4.7,
+"en": "The mirror is thankfully still intact, landing just ahead of them.",
+"speaker": 0
+},
+{
+"n": 324,
+"tc": "00:27:16,220 --> 00:27:21,200",
+"start": 1636.22,
+"end": 1641.2,
+"dur": 4.98,
+"en": "Low places his palm on the surface of the looking glass and takes Alone by the hand,",
+"speaker": 0
+},
+{
+"n": 325,
+"tc": "00:27:21,420 --> 00:27:23,600",
+"start": 1641.42,
+"end": 1643.6,
+"dur": 2.18,
+"en": "but once again she pulls away.",
+"speaker": 0
+},
+{
+"n": 326,
+"tc": "00:27:24,080 --> 00:27:26,400",
+"start": 1644.08,
+"end": 1646.4,
+"dur": 2.32,
+"en": "Low insists on taking her with him,",
+"speaker": 0
+},
+{
+"n": 327,
+"tc": "00:27:26,500 --> 00:27:31,280",
+"start": 1646.5,
+"end": 1651.28,
+"dur": 4.78,
+"en": "saving her from this nightmare realm and bringing her back to the safety of the counties.",
+"speaker": 0
+},
+{
+"n": 328,
+"tc": "00:27:32,120 --> 00:27:36,180",
+"start": 1652.12,
+"end": 1656.18,
+"dur": 4.06,
+"en": "Reluctantly, she takes his hand, and the two are dragged through the portal.",
+"speaker": 0
+},
+{
+"n": 329,
+"tc": "00:27:36,620 --> 00:27:42,780",
+"start": 1656.62,
+"end": 1662.78,
+"dur": 6.16,
+"en": "However, moments later, Alone is spat back out of the mirror, which then shatters behind her.",
+"speaker": 0
+},
+{
+"n": 330,
+"tc": "00:27:43,200 --> 00:27:46,160",
+"start": 1663.2,
+"end": 1666.16,
+"dur": 2.96,
+"en": "Not only was she unable to travel with Low,",
+"speaker": 0
+},
+{
+"n": 331,
+"tc": "00:27:46,340 --> 00:27:52,560",
+"start": 1666.34,
+"end": 1672.56,
+"dur": 6.22,
+"en": "but she also begins to vanish in his absence, her empty clothes falling to the floor.",
+"speaker": 0
+},
+{
+"n": 332,
+"tc": "00:28:13,770 --> 00:28:18,210",
+"start": 1693.77,
+"end": 1698.21,
+"dur": 4.44,
+"en": "A post-credits sequence finds Low back in the waking world,",
+"speaker": 0
+},
+{
+"n": 333,
+"tc": "00:28:18,450 --> 00:28:21,430",
+"start": 1698.45,
+"end": 1701.43,
+"dur": 2.98,
+"en": "but this time not in his cell within the Institute.",
+"speaker": 0
+},
+{
+"n": 334,
+"tc": "00:28:21,870 --> 00:28:27,630",
+"start": 1701.87,
+"end": 1707.63,
+"dur": 5.76,
+"en": "It seems he has returned home, or at least to the ruins of a place that was once his home.",
+"speaker": 0
+},
+{
+"n": 335,
+"tc": "00:28:27,890 --> 00:28:34,150",
+"start": 1707.89,
+"end": 1714.15,
+"dur": 6.26,
+"en": "This tells us that certain children can find ways to escape the Nowhere after entering it,",
+"speaker": 0
+},
+{
+"n": 336,
+"tc": "00:28:34,250 --> 00:28:36,710",
+"start": 1714.25,
+"end": 1716.71,
+"dur": 2.46,
+"en": "and Low is now safe from the terrors within.",
+"speaker": 0
+},
+{
+"n": 337,
+"tc": "00:28:37,230 --> 00:28:42,190",
+"start": 1717.23,
+"end": 1722.19,
+"dur": 4.96,
+"en": "However, he seems desperate to return and reunite with his lost friend,",
+"speaker": 0
+},
+{
+"n": 338,
+"tc": "00:28:42,470 --> 00:28:47,090",
+"start": 1722.47,
+"end": 1727.09,
+"dur": 4.62,
+"en": "and so begins the laborious task of piecing the glass back together.",
+"speaker": 0
+},
+{
+"n": 339,
+"tc": "00:28:47,770 --> 00:28:50,890",
+"start": 1727.77,
+"end": 1730.89,
+"dur": 3.12,
+"en": "So, what does this ending actually mean?",
+"speaker": 0
+},
+{
+"n": 340,
+"tc": "00:28:51,170 --> 00:28:53,230",
+"start": 1731.17,
+"end": 1733.23,
+"dur": 2.06,
+"en": "Well, it's simple enough to explain.",
+"speaker": 0
+},
+{
+"n": 341,
+"tc": "00:28:54,010 --> 00:28:56,190",
+"start": 1734.01,
+"end": 1736.19,
+"dur": 2.18,
+"en": "As we established at the beginning of this video,",
+"speaker": 0
+},
+{
+"n": 342,
+"tc": "00:28:56,570 --> 00:29:00,470",
+"start": 1736.57,
+"end": 1740.47,
+"dur": 3.9,
+"en": "children within the Nowhere usually seem to possess certain powers.",
+"speaker": 0
+},
+{
+"n": 343,
+"tc": "00:29:00,890 --> 00:29:07,110",
+"start": 1740.89,
+"end": 1747.11,
+"dur": 6.22,
+"en": "However, unlike Low, Six and Mono, Alone never had a power of her own.",
+"speaker": 0
+},
+{
+"n": 344,
+"tc": "00:29:07,370 --> 00:29:11,090",
+"start": 1747.37,
+"end": 1751.09,
+"dur": 3.72,
+"en": "She also only ever appeared in the waking world as a doll,",
+"speaker": 0
+},
+{
+"n": 345,
+"tc": "00:29:11,310 --> 00:29:16,230",
+"start": 1751.31,
+"end": 1756.23,
+"dur": 4.92,
+"en": "and seemed to be an imaginary friend of Low's to give him comfort while imprisoned.",
+"speaker": 0
+},
+{
+"n": 346,
+"tc": "00:29:16,840 --> 00:29:21,140",
+"start": 1756.84,
+"end": 1761.14,
+"dur": 4.3,
+"en": "But, upon travelling to the Nowhere, which is essentially a dream world,",
+"speaker": 0
+},
+{
+"n": 347,
+"tc": "00:29:21,340 --> 00:29:25,880",
+"start": 1761.34,
+"end": 1765.88,
+"dur": 4.54,
+"en": "that imaginary friend manifested as a living, breathing child.",
+"speaker": 0
+},
+{
+"n": 348,
+"tc": "00:29:26,640 --> 00:29:29,300",
+"start": 1766.64,
+"end": 1769.3,
+"dur": 2.66,
+"en": "Alone very much existed in Low's mind,",
+"speaker": 0
+},
+{
+"n": 349,
+"tc": "00:29:29,560 --> 00:29:33,660",
+"start": 1769.56,
+"end": 1773.66,
+"dur": 4.1,
+"en": "and so was made just as real as him when he visited the Nowhere.",
+"speaker": 0
+},
+{
+"n": 350,
+"tc": "00:29:33,880 --> 00:29:40,480",
+"start": 1773.88,
+"end": 1780.48,
+"dur": 6.6,
+"en": "But, as soon as Low broke free of that world, his imaginary friend Alone no longer could exist,",
+"speaker": 0
+},
+{
+"n": 351,
+"tc": "00:29:40,840 --> 00:29:44,080",
+"start": 1780.84,
+"end": 1784.08,
+"dur": 3.24,
+"en": "as his tether to that realm has now been severed.",
+"speaker": 0
+},
+{
+"n": 352,
+"tc": "00:29:44,260 --> 00:29:48,000",
+"start": 1784.26,
+"end": 1788.0,
+"dur": 3.74,
+"en": "This suggests that the powers these children possess are",
+"speaker": 0
+},
+{
+"n": 353,
+"tc": "00:29:48,000 --> 00:29:54,680",
+"start": 1788.0,
+"end": 1794.68,
+"dur": 6.68,
+"en": "in fact a product of their subconscious brought to life via the very existence of travelling to a dreamlike dimension,",
+"speaker": 0
+},
+{
+"n": 354,
+"tc": "00:29:55,120 --> 00:29:59,840",
+"start": 1795.12,
+"end": 1799.84,
+"dur": 4.72,
+"en": "and it helps us understand how the world of Little Nightmares actually works.",
+"speaker": 0
+},
+{
+"n": 355,
+"tc": "00:30:00,640 --> 00:30:04,440",
+"start": 1800.64,
+"end": 1804.44,
+"dur": 3.8,
+"en": "of course, some Of these concepts are pure speculation on my part,",
+"speaker": 0
+},
+{
+"n": 356,
+"tc": "00:30:04,600 --> 00:30:07,920",
+"start": 1804.6,
+"end": 1807.92,
+"dur": 3.32,
+"en": "but there is a lot of evidence to support it.",
+"speaker": 0
+},
+{
+"n": 357,
+"tc": "00:30:08,180 --> 00:30:13,880",
+"start": 1808.18,
+"end": 1813.88,
+"dur": 5.7,
+"en": "Either way, Alone is now no more, and while Low escaped his nightmare,",
+"speaker": 0
+},
+{
+"n": 358,
+"tc": "00:30:14,120 --> 00:30:17,340",
+"start": 1814.12,
+"end": 1817.34,
+"dur": 3.22,
+"en": "he sadly lost his best friend in the process.",
+"speaker": 0
+},
+{
+"n": 359,
+"tc": "00:30:20,170 --> 00:30:21,450",
+"start": 1820.17,
+"end": 1821.45,
+"dur": 1.28,
+"en": "And with that,",
+"speaker": 0
+},
+{
+"n": 360,
+"tc": "00:30:21,450 --> 00:30:26,770",
+"start": 1821.45,
+"end": 1826.77,
+"dur": 5.32,
+"en": "we come to the end of this video and a look at the story of Little Nightmares 3 Explained.",
+"speaker": 0
+},
+{
+"n": 361,
+"tc": "00:30:26,910 --> 00:30:31,570",
+"start": 1826.91,
+"end": 1831.57,
+"dur": 4.66,
+"en": "I hope you enjoyed this video and found it both entertaining and informative.",
+"speaker": 0
+},
+{
+"n": 362,
+"tc": "00:30:31,990 --> 00:30:34,010",
+"start": 1831.99,
+"end": 1834.01,
+"dur": 2.02,
+"en": "If you did remember to leave a like,",
+"speaker": 0
+},
+{
+"n": 363,
+"tc": "00:30:34,170 --> 00:30:43,310",
+"start": 1834.17,
+"end": 1843.31,
+"dur": 9.14,
+"en": "comment down below and of course subscribe for more horror related content thanks for watching and I'll see you in the next video",
+"speaker": 0
+}
+]
