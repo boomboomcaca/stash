@@ -180,6 +180,24 @@ const (
 	DubbingVoice        = "dubbing_voice"
 	dubbingVoiceDefault = "nix"
 
+	// Dubbing reliability knobs. The dub service shares a single GPU with other
+	// heavy consumers; a single whole-video request (long synthesis + a large
+	// background-audio upload) can hold that GPU for minutes and is prone to
+	// timeouts/connection-resets or wedging the service. So long videos are dubbed
+	// in bounded, sequential, retryable time windows.
+	//
+	// DubbingChunkSeconds is the max length of each dub sub-request. Videos longer
+	// than this are split; <= 0 falls back to the default. Set it larger than any
+	// video to disable chunking (single whole-video request).
+	DubbingChunkSeconds        = "dubbing_chunk_seconds"
+	dubbingChunkSecondsDefault = 180
+	// DubbingRequestTimeout is the per-chunk request timeout, in seconds.
+	DubbingRequestTimeout        = "dubbing_request_timeout"
+	dubbingRequestTimeoutDefault = 900
+	// DubbingChunkRetries is how many times a failed dub chunk is retried.
+	DubbingChunkRetries        = "dubbing_chunk_retries"
+	dubbingChunkRetriesDefault = 3
+
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
 
@@ -968,6 +986,35 @@ func (i *Config) GetDubbingVoice() string {
 		return dubbingVoiceDefault
 	}
 	return ret
+}
+
+// GetDubbingChunkSeconds returns the maximum duration (seconds) of each dub
+// sub-request. Videos longer than this are dubbed in windows of at most this
+// length so a single request can't monopolise the GPU-shared dub service.
+func (i *Config) GetDubbingChunkSeconds() float64 {
+	v := i.getInt(DubbingChunkSeconds)
+	if v <= 0 {
+		return float64(dubbingChunkSecondsDefault)
+	}
+	return float64(v)
+}
+
+// GetDubbingRequestTimeout returns the per-chunk dub request timeout.
+func (i *Config) GetDubbingRequestTimeout() time.Duration {
+	v := i.getInt(DubbingRequestTimeout)
+	if v <= 0 {
+		v = dubbingRequestTimeoutDefault
+	}
+	return time.Duration(v) * time.Second
+}
+
+// GetDubbingChunkRetries returns how many times a failed dub chunk is retried.
+func (i *Config) GetDubbingChunkRetries() int {
+	v := i.getInt(DubbingChunkRetries)
+	if v <= 0 {
+		return dubbingChunkRetriesDefault
+	}
+	return v
 }
 
 // GetScraperCDPPath gets the path to the Chrome executable or remote address
@@ -2090,6 +2137,9 @@ func (i *Config) setDefaultValues() {
 	i.setDefault(SubtitleGenerationAudioFilter, subtitleGenerationAudioFilterDefault)
 	i.setDefault(DubbingURL, dubbingURLDefault)
 	i.setDefault(DubbingVoice, dubbingVoiceDefault)
+	i.setDefault(DubbingChunkSeconds, dubbingChunkSecondsDefault)
+	i.setDefault(DubbingRequestTimeout, dubbingRequestTimeoutDefault)
+	i.setDefault(DubbingChunkRetries, dubbingChunkRetriesDefault)
 
 	// set default package sources
 	i.setDefault(PluginPackageSources, []map[string]string{{
