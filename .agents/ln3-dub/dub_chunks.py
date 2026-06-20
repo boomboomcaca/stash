@@ -116,9 +116,12 @@ def main():
     dubfull=os.path.join(work,'dub_full.wav')
     run('ffmpeg','-nostdin','-v','error','-y','-f','concat','-safe','0','-i',lst,'-c','copy',dubfull)
     print(f"concatenated {len(wavs)} chunks; muxing -> {out}",flush=True)
+    # no -shortest: the soft-sub ends at the last caption (before the video tail),
+    # and -shortest would truncate the whole output there; dub audio already spans
+    # the full video, so the output keeps the original length.
     run('ffmpeg','-nostdin','-v','error','-y','-i',video,'-i',dubfull,'-i',disp,
         '-map','0:v:0','-map','1:a:0','-map','2:0','-c:v','copy','-c:a','aac','-b:a','192k',
-        '-c:s','mov_text','-metadata:s:s:0','language=zh','-shortest',out)
+        '-c:s','mov_text','-metadata:s:s:0','language=zh',out)
     print(f"DONE -> {out}",flush=True)
     shutil.rmtree(work,ignore_errors=True)
 
