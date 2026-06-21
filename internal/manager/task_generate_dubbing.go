@@ -201,6 +201,27 @@ func dubScriptPath(videoPath, lang string) string {
 	return video.GetCaptionPath(videoPath, lang, "srt") + ".dub"
 }
 
+// findSourceDubScript returns the tagged dub-script whose language is NOT the
+// translation target ("<base>.<srcLang>.srt.dub") — the source-language script
+// written by GenerateSubtitlesTask under whatever language ASR detected. Empty
+// if none is found. Used by the pace-refit re-translation so it works even when
+// the detected source language differs from the configured default.
+func findSourceDubScript(videoPath, target string) string {
+	ext := filepath.Ext(videoPath)
+	base := strings.TrimSuffix(videoPath, ext)
+	matches, err := filepath.Glob(base + ".*.srt.dub")
+	if err != nil {
+		return ""
+	}
+	targetScript := dubScriptPath(videoPath, target)
+	for _, m := range matches {
+		if m != targetScript {
+			return m
+		}
+	}
+	return ""
+}
+
 // requestDub posts the SRT to the dub service /v1/dub and streams the returned
 // wav to outPath. When bgAudioPath is non-empty, the request is sent as
 // multipart with the original audio attached as bg_audio so the service remixes
@@ -398,7 +419,13 @@ func dubSingleRequest(ctx context.Context, videoPath, srt string, duration float
 	// One-shot pace convergence: the dub measured this scene's cloned voices
 	// speaking at a rate that disagrees with the budget the translation assumed.
 	if refit {
-		srcScript := dubScriptPath(videoPath, cfg.GetSubtitleGenerationLanguage())
+		// The source tagged dub-script is written under the language ASR actually
+		// detected, which can differ from the configured default; discover it
+		// rather than assuming the default (else refit silently never fires).
+		srcScript := findSourceDubScript(videoPath, target)
+		if srcScript == "" {
+			srcScript = dubScriptPath(videoPath, cfg.GetSubtitleGenerationLanguage())
+		}
 		if enTagged, rerr := os.ReadFile(srcScript); rerr == nil {
 			logger.Infof("[dubbing] pace calibration shifted; re-translating %s with the measured rate", videoPath)
 			retrans, terr := translateSRT(ctx, string(enTagged), target)
@@ -748,21 +775,33 @@ func extractDubBackground(ctx context.Context, videoPath, outPath string) error 
 }
 
 // muxDub writes a sidecar mp4 with the original video stream, the dubbed audio,
-// and the translated caption as a soft subtitle track.
+// and (when available) the translated caption as a soft subtitle track. A
+// missing or empty caption is muxed as video+audio only rather than aborting the
+// whole dub — the caption is a convenience track, not a hard requirement.
 func muxDub(ctx context.Context, videoPath, dubAudioPath, srtPath, lang, outPath string) error {
+	hasSub := false
+	if data, err := os.ReadFile(srtPath); err == nil && strings.Contains(string(data), "-->") {
+		hasSub = true
+	}
+
 	args := ffmpeg.Args{}.LogLevel(ffmpeg.LogLevelError)
 	args = args.Input(videoPath)
 	args = args.Input(dubAudioPath)
-	args = args.Input(srtPath)
+	if hasSub {
+		args = args.Input(srtPath)
+	}
 	// No -shortest: the soft-sub track ends at the last caption (before the
 	// video's tail), and -shortest would truncate the whole output there,
 	// dropping the post-narration outro. The dubbed audio already spans the full
 	// video, so the output keeps the original length.
-	args = append(args,
-		"-map", "0:v:0", "-map", "1:a:0", "-map", "2:0",
-		"-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
-		"-c:s", "mov_text", "-metadata:s:s:0", "language="+lang,
-	)
+	args = append(args, "-map", "0:v:0", "-map", "1:a:0")
+	if hasSub {
+		args = append(args, "-map", "2:0")
+	}
+	args = append(args, "-c:v", "copy", "-c:a", "aac", "-b:a", "192k")
+	if hasSub {
+		args = append(args, "-c:s", "mov_text", "-metadata:s:s:0", "language="+lang)
+	}
 	args = args.Overwrite()
 	args = args.Output(outPath)
 	return instance.FFMpeg.Generate(ctx, args)
