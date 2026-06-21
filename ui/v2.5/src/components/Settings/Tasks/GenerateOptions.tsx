@@ -21,6 +21,14 @@ const SUBTITLE_LANGUAGES: { code: string; label: string }[] = [
   { code: "ru", label: "Русский (Russian)" },
 ];
 
+// Recap narration is the OUTPUT (spoken) language, not the source/ASR language,
+// so it has its own list — Chinese first, since that's the primary use case.
+const RECAP_LANGUAGES: { code: string; label: string }[] = [
+  { code: "zh", label: "中文 (Chinese)" },
+  { code: "en", label: "English" },
+  { code: "ja", label: "日本語 (Japanese)" },
+];
+
 interface IGenerateOptions {
   type?: "scene" | "image" | "gallery";
   selection?: boolean;
@@ -220,7 +228,7 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
             value={options.recapLanguage ?? "zh"}
             onChange={(v) => setOptions({ recapLanguage: v })}
           >
-            {SUBTITLE_LANGUAGES.map((l) => (
+            {RECAP_LANGUAGES.map((l) => (
               <option value={l.code} key={l.code}>
                 {l.label}
               </option>
