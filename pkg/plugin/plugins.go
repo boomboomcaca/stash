@@ -91,6 +91,7 @@ type PluginSetting struct {
 type ServerConfig interface {
 	GetHost() string
 	GetPort() int
+	GetHttpsPort() int
 	GetConfigPathAbs() string
 	HasTLSConfig() bool
 	GetPluginsPath() string
@@ -252,7 +253,13 @@ func (c Cache) makeServerConnection(ctx context.Context) common.StashServerConne
 		Dir:           c.config.GetConfigPathAbs(),
 	}
 
-	if c.config.HasTLSConfig() {
+	// GetPort() serves plain HTTP whenever a separate https_port is configured
+	// (this build serves HTTP on `port` and HTTPS on `https_port`). Only use the
+	// https scheme for the localhost plugin callback when TLS is on AND there is
+	// no separate https_port (HTTPS served on the main port). Otherwise a plugin
+	// would speak TLS to the plain-HTTP port and fail the handshake
+	// (RECORD_LAYER_FAILURE).
+	if c.config.HasTLSConfig() && c.config.GetHttpsPort() <= 0 {
 		serverConnection.Scheme = "https"
 	}
 

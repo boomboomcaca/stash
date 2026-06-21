@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/stashapp/stash/internal/manager/config"
 	"github.com/stashapp/stash/pkg/ffmpeg"
@@ -271,8 +272,89 @@ func (t *GenerateSubtitlesTask) translate(ctx context.Context, srt, target strin
 }
 
 // translateSRT is the package-level translation call, shared with the dub
-// task's pace-refit re-translation.
+// task's pace-refit re-translation. Long captions are translated in
+// sentence-aligned chunks, each retried independently, so a mid-pass restart of
+// the GPU-shared translate service costs one chunk instead of the whole pass.
+// Short captions (a single chunk) take the plain single-request path.
 func translateSRT(ctx context.Context, srt, target string) (string, error) {
+	cfg := config.GetInstance()
+	chunks := chunkSRTBySentence(srt, cfg.GetSubtitleTranslateChunkCues())
+	if len(chunks) <= 1 {
+		return translateSRTOnce(ctx, srt, target)
+	}
+
+	retries := cfg.GetSubtitleTranslateRetries()
+	timeout := cfg.GetSubtitleTranslateTimeout()
+	var out strings.Builder
+	for idx, chunk := range chunks {
+		var translated string
+		var err error
+		for attempt := 1; attempt <= retries; attempt++ {
+			cctx, cancel := context.WithTimeout(ctx, timeout)
+			translated, err = translateSRTOnce(cctx, chunk, target)
+			cancel()
+			if err == nil && strings.Contains(translated, "-->") {
+				break
+			}
+			if err == nil {
+				err = fmt.Errorf("chunk produced no usable subtitles")
+			}
+			logger.Warnf("[subtitles] translate chunk %d/%d attempt %d/%d failed: %v", idx+1, len(chunks), attempt, retries, err)
+			select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			case <-time.After(10 * time.Second):
+			}
+		}
+		if err != nil {
+			return "", fmt.Errorf("translate chunk %d/%d failed after %d attempts: %w", idx+1, len(chunks), retries, err)
+		}
+		if out.Len() > 0 {
+			out.WriteString("\n\n")
+		}
+		out.WriteString(strings.TrimSpace(translated))
+	}
+	logger.Infof("[subtitles] translated in %d sentence-aligned chunks", len(chunks))
+	return out.String(), nil
+}
+
+// sentenceEndRE matches a cue text line that ends a sentence (Latin or CJK
+// terminal punctuation, optionally followed by a closing quote/paren).
+var sentenceEndRE = regexp.MustCompile(`[.!?。！？…]["'’”)\]]?\s*$`)
+
+// chunkSRTBySentence splits an SRT into chunks of whole cue blocks. A chunk
+// closes only after a sentence-ending cue once it holds >= minCues cues, so no
+// chunk ends mid-sentence — a mid-sentence split would orphan a fragment into
+// its own translation request and have it mistranslated as a standalone line.
+func chunkSRTBySentence(srt string, minCues int) []string {
+	if minCues < 1 {
+		minCues = 1
+	}
+	var blocks []string
+	for _, b := range strings.Split(strings.ReplaceAll(srt, "\r\n", "\n"), "\n\n") {
+		if t := strings.TrimSpace(b); t != "" {
+			blocks = append(blocks, t)
+		}
+	}
+	var chunks []string
+	var cur []string
+	for _, b := range blocks {
+		cur = append(cur, b)
+		lines := strings.Split(b, "\n")
+		last := strings.TrimSpace(lines[len(lines)-1])
+		if len(cur) >= minCues && sentenceEndRE.MatchString(last) {
+			chunks = append(chunks, strings.Join(cur, "\n\n"))
+			cur = nil
+		}
+	}
+	if len(cur) > 0 {
+		chunks = append(chunks, strings.Join(cur, "\n\n"))
+	}
+	return chunks
+}
+
+// translateSRTOnce sends one SRT body to /v1/translate and returns the result.
+func translateSRTOnce(ctx context.Context, srt, target string) (string, error) {
 	serviceURL := config.GetInstance().GetSubtitleGenerationURL() + subtitleTranslatePath
 	form := url.Values{}
 	form.Set("text", srt)
@@ -284,8 +366,6 @@ func translateSRT(ctx context.Context, srt, target string) (string, error) {
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	// no client timeout: translating long videos can take minutes; cancellation
-	// is handled via the request context.
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
 		return "", err

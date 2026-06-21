@@ -180,6 +180,64 @@ const (
 	DubbingVoice        = "dubbing_voice"
 	dubbingVoiceDefault = "nix"
 
+	// Dubbing reliability knobs. The dub service shares a single GPU with other
+	// heavy consumers; a single whole-video request (long synthesis + a large
+	// background-audio upload) can hold that GPU for minutes and is prone to
+	// timeouts/connection-resets or wedging the service. So long videos are dubbed
+	// in bounded, sequential, retryable time windows.
+	//
+	// DubbingChunkSeconds is the max length of each dub sub-request. Videos longer
+	// than this are split; <= 0 falls back to the default. Set it larger than any
+	// video to disable chunking (single whole-video request).
+	DubbingChunkSeconds        = "dubbing_chunk_seconds"
+	dubbingChunkSecondsDefault = 180
+	// DubbingRequestTimeout is the per-chunk request timeout, in seconds.
+	DubbingRequestTimeout        = "dubbing_request_timeout"
+	dubbingRequestTimeoutDefault = 900
+	// DubbingChunkRetries is how many times a failed dub chunk is retried.
+	DubbingChunkRetries        = "dubbing_chunk_retries"
+	dubbingChunkRetriesDefault = 3
+
+	// Translation reliability: the /v1/translate pass on a long video is a single
+	// multi-minute request that wholly restarts if the (GPU-shared) translate
+	// service bounces. So the caption is translated in sentence-aligned chunks,
+	// each retried independently — a mid-pass restart costs one chunk, not the
+	// whole pass.
+	//
+	// SubtitleTranslateChunkCues is the min cues per translate chunk; a chunk
+	// closes only AFTER a sentence-ending cue at/after this count, so chunks hold
+	// whole sentences (no orphaned fragments mistranslated as standalone lines).
+	SubtitleTranslateChunkCues        = "subtitle_translate_chunk_cues"
+	subtitleTranslateChunkCuesDefault = 12
+	// SubtitleTranslateRetries is how many times a failed translate chunk retries.
+	SubtitleTranslateRetries        = "subtitle_translate_retries"
+	subtitleTranslateRetriesDefault = 4
+	// SubtitleTranslateTimeout is the per-chunk translate request timeout (seconds).
+	SubtitleTranslateTimeout        = "subtitle_translate_timeout"
+	subtitleTranslateTimeoutDefault = 1800
+
+	// Recap (解说二创): a long scene is condensed into a <=10min narrated
+	// plot-recap derivative. RecapServiceURL is a small HTTP service (on the same
+	// box that hosts the LLM/Claude login) that turns a numbered transcript into a
+	// narration script keyed to source cues; it mirrors the dub/asr services.
+	RecapServiceURL        = "recap_service_url"
+	recapServiceURLDefault = "http://192.168.1.113:5094"
+	// RecapTargetLanguage is the language the narration is written in.
+	RecapTargetLanguage        = "recap_target_language"
+	recapTargetLanguageDefault = "zh"
+	// RecapVoice is the reference voice the dub service uses for the narrator
+	// (kept distinct from DubbingVoice so the narrator differs from dialogue dubs).
+	RecapVoice        = "recap_voice"
+	recapVoiceDefault = "nix"
+	// RecapMaxMinutes caps the recap length; the narration-script budget and clip
+	// selection are bounded by it.
+	RecapMaxMinutes        = "recap_max_minutes"
+	recapMaxMinutesDefault = 10
+	// RecapRequestTimeout is the recap-script service request timeout (seconds);
+	// the LLM pass over a full transcript can take a minute or two.
+	RecapRequestTimeout        = "recap_request_timeout"
+	recapRequestTimeoutDefault = 600
+
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
 
@@ -968,6 +1026,110 @@ func (i *Config) GetDubbingVoice() string {
 		return dubbingVoiceDefault
 	}
 	return ret
+}
+
+// GetDubbingChunkSeconds returns the maximum duration (seconds) of each dub
+// sub-request. Videos longer than this are dubbed in windows of at most this
+// length so a single request can't monopolise the GPU-shared dub service.
+func (i *Config) GetDubbingChunkSeconds() float64 {
+	v := i.getInt(DubbingChunkSeconds)
+	if v <= 0 {
+		return float64(dubbingChunkSecondsDefault)
+	}
+	return float64(v)
+}
+
+// GetDubbingRequestTimeout returns the per-chunk dub request timeout.
+func (i *Config) GetDubbingRequestTimeout() time.Duration {
+	v := i.getInt(DubbingRequestTimeout)
+	if v <= 0 {
+		v = dubbingRequestTimeoutDefault
+	}
+	return time.Duration(v) * time.Second
+}
+
+// GetDubbingChunkRetries returns how many times a failed dub chunk is retried.
+func (i *Config) GetDubbingChunkRetries() int {
+	v := i.getInt(DubbingChunkRetries)
+	if v <= 0 {
+		return dubbingChunkRetriesDefault
+	}
+	return v
+}
+
+// GetRecapServiceURL returns the base URL of the recap-script service that turns
+// a numbered transcript into an LLM narration script (解说词).
+func (i *Config) GetRecapServiceURL() string {
+	ret := i.getString(RecapServiceURL)
+	if ret == "" {
+		return recapServiceURLDefault
+	}
+	return ret
+}
+
+// GetRecapTargetLanguage returns the language the recap narration is written in.
+func (i *Config) GetRecapTargetLanguage() string {
+	ret := i.getString(RecapTargetLanguage)
+	if ret == "" {
+		return recapTargetLanguageDefault
+	}
+	return ret
+}
+
+// GetRecapVoice returns the reference voice the dub service uses for the recap
+// narrator (kept distinct from GetDubbingVoice).
+func (i *Config) GetRecapVoice() string {
+	ret := i.getString(RecapVoice)
+	if ret == "" {
+		return recapVoiceDefault
+	}
+	return ret
+}
+
+// GetRecapMaxMinutes returns the maximum recap length in minutes.
+func (i *Config) GetRecapMaxMinutes() int {
+	v := i.getInt(RecapMaxMinutes)
+	if v <= 0 {
+		return recapMaxMinutesDefault
+	}
+	return v
+}
+
+// GetRecapRequestTimeout returns the recap-script service request timeout.
+func (i *Config) GetRecapRequestTimeout() time.Duration {
+	v := i.getInt(RecapRequestTimeout)
+	if v <= 0 {
+		v = recapRequestTimeoutDefault
+	}
+	return time.Duration(v) * time.Second
+}
+
+// GetSubtitleTranslateChunkCues returns the minimum cues per translate chunk
+// (a chunk closes only after a sentence-ending cue at/after this count).
+func (i *Config) GetSubtitleTranslateChunkCues() int {
+	v := i.getInt(SubtitleTranslateChunkCues)
+	if v <= 0 {
+		return subtitleTranslateChunkCuesDefault
+	}
+	return v
+}
+
+// GetSubtitleTranslateRetries returns how many times a failed translate chunk retries.
+func (i *Config) GetSubtitleTranslateRetries() int {
+	v := i.getInt(SubtitleTranslateRetries)
+	if v <= 0 {
+		return subtitleTranslateRetriesDefault
+	}
+	return v
+}
+
+// GetSubtitleTranslateTimeout returns the per-chunk translate request timeout.
+func (i *Config) GetSubtitleTranslateTimeout() time.Duration {
+	v := i.getInt(SubtitleTranslateTimeout)
+	if v <= 0 {
+		v = subtitleTranslateTimeoutDefault
+	}
+	return time.Duration(v) * time.Second
 }
 
 // GetScraperCDPPath gets the path to the Chrome executable or remote address
@@ -2090,6 +2252,17 @@ func (i *Config) setDefaultValues() {
 	i.setDefault(SubtitleGenerationAudioFilter, subtitleGenerationAudioFilterDefault)
 	i.setDefault(DubbingURL, dubbingURLDefault)
 	i.setDefault(DubbingVoice, dubbingVoiceDefault)
+	i.setDefault(DubbingChunkSeconds, dubbingChunkSecondsDefault)
+	i.setDefault(DubbingRequestTimeout, dubbingRequestTimeoutDefault)
+	i.setDefault(DubbingChunkRetries, dubbingChunkRetriesDefault)
+	i.setDefault(SubtitleTranslateChunkCues, subtitleTranslateChunkCuesDefault)
+	i.setDefault(SubtitleTranslateRetries, subtitleTranslateRetriesDefault)
+	i.setDefault(SubtitleTranslateTimeout, subtitleTranslateTimeoutDefault)
+	i.setDefault(RecapServiceURL, recapServiceURLDefault)
+	i.setDefault(RecapTargetLanguage, recapTargetLanguageDefault)
+	i.setDefault(RecapVoice, recapVoiceDefault)
+	i.setDefault(RecapMaxMinutes, recapMaxMinutesDefault)
+	i.setDefault(RecapRequestTimeout, recapRequestTimeoutDefault)
 
 	// set default package sources
 	i.setDefault(PluginPackageSources, []map[string]string{{

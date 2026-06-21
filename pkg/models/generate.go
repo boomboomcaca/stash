@@ -23,6 +23,7 @@ type GenerateMetadataOptions struct {
 	Subtitles                 bool                    `json:"subtitles"`
 	SubtitleLanguage          string                  `json:"subtitleLanguage"`
 	Dubbing                   bool                    `json:"dubbing"`
+	Recap                     bool                    `json:"recap"`
 }
 
 type GeneratePreviewOptions struct {

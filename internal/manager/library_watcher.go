@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -173,6 +174,22 @@ func (lw *LibraryWatcher) shouldProcessEvent(event fsnotify.Event) bool {
 
 	// Ignore subtitle files; they are not media files and should not trigger scans.
 	if fsutil.MatchExtension(event.Name, video.SubtitleExts) {
+		return false
+	}
+
+	// Ignore dub-script sidecars ("<name>.<lang>.srt.dub"): they end in ".dub"
+	// (not a subtitle extension) but are dub-routing metadata, not media, so they
+	// must not trigger scan/clean/generate cycles when the dub task writes them.
+	if filepath.Ext(event.Name) == ".dub" {
+		return false
+	}
+
+	// Ignore recap sidecars: "<name>.recapscript.json" (the cached LLM narration
+	// plan, for audit/regeneration) and "<name>.recapskip" (a marker left when a
+	// recap run produced nothing usable, so rescans don't retry forever). Neither
+	// is media.
+	if ext := filepath.Ext(event.Name); ext == ".recapskip" ||
+		strings.HasSuffix(event.Name, ".recapscript.json") {
 		return false
 	}
 
