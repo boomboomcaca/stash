@@ -147,7 +147,9 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 	// The chunked path uses the already-aligned translated caption for display
 	// (no per-chunk recut). Short videos keep the single-request path, which also
 	// supports the dub service's recut display caption and one-shot pace refit.
-	displayCaption := captionPath
+	// Default to NO caption: only the audio-aligned re-cut is ever shown on the
+	// dubbed video; an original-timing caption would lag/lead the re-paced voice.
+	displayCaption := ""
 	if duration > cfg.GetDubbingChunkSeconds() {
 		recut, err := synthDubChunked(ctx, videoPath, string(srtBytes), duration, cfg.GetDubbingVoice(), dubAudioPath)
 		if err != nil {
@@ -155,17 +157,12 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		}
 		// The dubbed (derived) video gets its own caption sidecar so it
 		// associates in stash — derived videos don't inherit the parent's
-		// captions (see dubCaptionPath above). Prefer the per-chunk re-cut
-		// caption (clause-level lines timed to the synthesised audio); fall back
-		// to the aligned translation when the service returns no re-cut.
-		dubCaption := recut
-		if !strings.Contains(dubCaption, "-->") {
-			if data, rerr := os.ReadFile(captionPath); rerr == nil {
-				dubCaption = string(data)
-			}
-		}
-		if strings.Contains(dubCaption, "-->") {
-			if werr := os.WriteFile(dubCaptionPath, []byte(dubCaption), 0644); werr != nil {
+		// captions (see dubCaptionPath above). Only the per-chunk re-cut caption
+		// (clause-level lines timed to the synthesised audio) is shown; if the
+		// service returns no re-cut, leave the dub with NO soft-sub rather than
+		// the parent's original-timing caption.
+		if strings.Contains(recut, "-->") {
+			if werr := os.WriteFile(dubCaptionPath, []byte(recut), 0644); werr != nil {
 				logger.Warnf("[dubbing] could not write dub caption for %s: %v", videoPath, werr)
 			} else {
 				displayCaption = dubCaptionPath
@@ -382,7 +379,10 @@ func streamMultipartDub(body io.Reader, boundary, outPath string) (string, error
 // display caption path to mux.
 func dubSingleRequest(ctx context.Context, videoPath, srt string, duration float64, captionPath, dubCaptionPath, target, dubAudioPath string) (string, error) {
 	cfg := config.GetInstance()
-	displayCaption := captionPath
+	_ = captionPath // parent caption is intentionally never shown on the dubbed video
+	// Default to NO caption: only the audio-aligned re-cut becomes the display
+	// caption below; otherwise the dub is muxed with no soft-sub.
+	displayCaption := ""
 
 	// hand the dub service the scene's original audio so it separates and remixes
 	// the music/SFX under the dubbed voice. extraction or upload failures degrade
@@ -431,14 +431,14 @@ func dubSingleRequest(ctx context.Context, videoPath, srt string, duration float
 			retrans, terr := translateSRT(ctx, string(enTagged), target)
 			if terr == nil && strings.Contains(retrans, "-->") {
 				_ = os.WriteFile(dubScriptPath(videoPath, target), []byte(retrans), 0644)
-				_ = os.WriteFile(dubCaptionPath, []byte(stripSpeakerTags(retrans)), 0644)
-				displayCaption = dubCaptionPath
 				recut2, _, derr := requestDub(ctx, retrans, duration, cfg.GetDubbingVoice(), bgAudioPath, dubAudioPath)
 				if derr != nil {
 					return "", fmt.Errorf("dub service error (refit) for %s: %w", videoPath, derr)
 				}
+				// only the audio-aligned re-cut becomes the display caption
 				if strings.Contains(recut2, "-->") {
 					_ = os.WriteFile(dubCaptionPath, []byte(recut2), 0644)
+					displayCaption = dubCaptionPath
 				}
 			} else if terr != nil {
 				logger.Warnf("[dubbing] refit re-translation failed (%v); keeping the first dub", terr)

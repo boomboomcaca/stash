@@ -1,0 +1,113 @@
+--- /tmp/dub_server.py.bak-1826	2026-06-18 17:50:08.303475088 +0800
++++ /home/boom/dub-service/dub_server.py	2026-06-21 19:27:47.523576754 +0800
+@@ -742,9 +742,45 @@
+     return [m.strip() for m in merged if m.strip()]
+ 
+ 
+-def _recut_clip(text, start, end):
+-    """Sub-lines (sub_start, sub_end, text) distributing [start,end] across the
+-    clause splits, weighted by spoken-equivalent length so timing tracks audio."""
++def _clause_pauses(seg, sr, n_needed):
++    """Boundary times (sec, relative to seg start) at the END of the n_needed
++    most prominent interior pauses in the rendered clause audio, so sub-line
++    captions land on the ACTUAL clause onsets instead of a text-length estimate.
++    Returns [] (caller falls back to proportional) when it can't find clean ones."""
++    if n_needed <= 0 or sr is None or seg is None or len(seg) < int(0.30 * sr):
++        return []
++    fl = max(1, int(0.020 * sr))               # 20 ms frames
++    nf = len(seg) // fl
++    if nf < 5:
++        return []
++    seg = np.asarray(seg, dtype=np.float32)
++    rms = np.sqrt(np.array([float(np.mean(seg[i * fl:(i + 1) * fl] ** 2))
++                            for i in range(nf)]) + 1e-9)
++    thr = 0.10 * (float(np.percentile(rms, 85)) + 1e-6)
++    silent = rms < thr
++    edge = int(round(0.08 * sr))               # ignore leading/trailing silence
++    gaps = []                                  # (end_sample, length_frames)
++    i = 0
++    while i < nf:
++        if silent[i]:
++            j = i
++            while j < nf and silent[j]:
++                j += 1
++            if i * fl > edge and j * fl < len(seg) - edge and (j - i) >= 4:
++                gaps.append((j * fl, j - i))   # END of pause == next clause onset
++            i = j
++        else:
++            i += 1
++    if len(gaps) < n_needed:
++        return []
++    gaps.sort(key=lambda g: -g[1])             # most prominent pauses first
++    return sorted(s / sr for s, _ in gaps[:n_needed])
++
++
++def _recut_clip(text, start, end, seg=None, sr=None):
++    """Sub-lines (sub_start, sub_end, text) for [start,end]. Clause boundaries
++    track the ACTUAL rendered audio pauses (seg) when available, else fall back
++    to a spoken-length-weighted proportional split."""
+     text = (text or "").strip()
+     span = max(0.0, end - start)
+     if not text or span <= 0.05:
+@@ -752,6 +788,16 @@
+     lines = _merge_short(_split_zh(text), span)
+     if not lines:
+         return []
++    if len(lines) == 1:
++        return [(start, end, lines[0])]
++    # Prefer boundaries detected from the real audio pauses.
++    b = _clause_pauses(seg, sr, len(lines) - 1)
++    if len(b) == len(lines) - 1:
++        pts = [0.0] + list(b) + [span]
++        if all(pts[k + 1] - pts[k] >= 0.10 for k in range(len(pts) - 1)):
++            return [(start + pts[k], start + pts[k + 1], lines[k])
++                    for k in range(len(lines))]
++    # Fallback: spoken-equivalent-length proportional split.
+     w = [max(1, _eff_len_dub(x)) for x in lines]
+     total = sum(w) or 1
+     out, t = [], start
+@@ -772,9 +818,19 @@
+     return "%02d:%02d:%02d,%03d" % (h, m, s, ms)
+ 
+ 
++# Subtitles should land slightly BEFORE the voice, never after. Each unit's
++# onset is aligned (placed[] starts at the voiced onset), but WITHIN a multi-
++# clause unit the clause split is by text length, so later clauses' captions
++# trail the (faster) audio by ~50-70ms. A small uniform lead absorbs that and
++# the residual onset jitter, biasing every line a touch early. Tunable.
++CAP_LEAD = float(os.environ.get("DUB_CAP_LEAD", "0.07"))
++
++
+ def _recut_to_srt(subs):
+     blocks = []
+     for i, (s, e, txt) in enumerate(subs, 1):
++        s = max(0.0, s - CAP_LEAD)
++        e = max(s + 0.10, e - CAP_LEAD)
+         blocks.append("%d\n%s --> %s\n%s\n" % (i, _recut_srt_ts(s), _recut_srt_ts(e), txt))
+     return "\n".join(blocks)
+ 
+@@ -1569,7 +1625,13 @@
+         if end > a:                        # part of the unit fits inside the buffer
+             buf[a:end] += data[:end - a]
+             cursor = max(cursor, end)
+-            placed[idx] = (a / sr, end / sr)   # buf-capped span -> re-cut only audible part
++            # caption marks the AUDIBLE voiced onset (a + lead of the *placed* clip),
++            # not the silent lead-in at `a`. Pinning to `a` made the subtitle show
++            # ~lead seconds before the voice (measured ~+0.27s caption-leads-voice).
++            # `data` may have been head-trimmed above, so recompute the lead on it.
++            voiced = a + int(round(_onset_lead(data, sr) * sr))
++            cap_s = min(voiced, max(a, end - int(round(0.05 * sr))))
++            placed[idx] = (cap_s / sr, end / sr)   # buf-capped span -> re-cut only audible part
+         # else: onset pushed past the 15s tail headroom; the unit is fully
+         # truncated at the video end (see trailing-truncation WARNING) -> skip
+         prev_spk = spk
+@@ -1605,7 +1667,8 @@
+         for idx, c in enumerate(clips):
+             if idx in placed:
+                 s0, e0 = placed[idx]
+-                subs.extend(_recut_clip(c[3], s0, e0))
++                seg = out[int(round(s0 * sr)):int(round(e0 * sr))]
++                subs.extend(_recut_clip(c[3], s0, e0, seg, sr))
+         subs.sort(key=lambda x: x[0])
+         ordered, last_end = [], 0.0
+         for (s0, e0, txt) in subs:           # display lines must not overlap
