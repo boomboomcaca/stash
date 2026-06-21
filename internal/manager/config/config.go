@@ -216,6 +216,28 @@ const (
 	SubtitleTranslateTimeout        = "subtitle_translate_timeout"
 	subtitleTranslateTimeoutDefault = 1800
 
+	// Recap (解说二创): a long scene is condensed into a <=10min narrated
+	// plot-recap derivative. RecapServiceURL is a small HTTP service (on the same
+	// box that hosts the LLM/Claude login) that turns a numbered transcript into a
+	// narration script keyed to source cues; it mirrors the dub/asr services.
+	RecapServiceURL        = "recap_service_url"
+	recapServiceURLDefault = "http://192.168.1.113:5094"
+	// RecapTargetLanguage is the language the narration is written in.
+	RecapTargetLanguage        = "recap_target_language"
+	recapTargetLanguageDefault = "zh"
+	// RecapVoice is the reference voice the dub service uses for the narrator
+	// (kept distinct from DubbingVoice so the narrator differs from dialogue dubs).
+	RecapVoice        = "recap_voice"
+	recapVoiceDefault = "nix"
+	// RecapMaxMinutes caps the recap length; the narration-script budget and clip
+	// selection are bounded by it.
+	RecapMaxMinutes        = "recap_max_minutes"
+	recapMaxMinutesDefault = 10
+	// RecapRequestTimeout is the recap-script service request timeout (seconds);
+	// the LLM pass over a full transcript can take a minute or two.
+	RecapRequestTimeout        = "recap_request_timeout"
+	recapRequestTimeoutDefault = 600
+
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
 
@@ -1033,6 +1055,53 @@ func (i *Config) GetDubbingChunkRetries() int {
 		return dubbingChunkRetriesDefault
 	}
 	return v
+}
+
+// GetRecapServiceURL returns the base URL of the recap-script service that turns
+// a numbered transcript into an LLM narration script (解说词).
+func (i *Config) GetRecapServiceURL() string {
+	ret := i.getString(RecapServiceURL)
+	if ret == "" {
+		return recapServiceURLDefault
+	}
+	return ret
+}
+
+// GetRecapTargetLanguage returns the language the recap narration is written in.
+func (i *Config) GetRecapTargetLanguage() string {
+	ret := i.getString(RecapTargetLanguage)
+	if ret == "" {
+		return recapTargetLanguageDefault
+	}
+	return ret
+}
+
+// GetRecapVoice returns the reference voice the dub service uses for the recap
+// narrator (kept distinct from GetDubbingVoice).
+func (i *Config) GetRecapVoice() string {
+	ret := i.getString(RecapVoice)
+	if ret == "" {
+		return recapVoiceDefault
+	}
+	return ret
+}
+
+// GetRecapMaxMinutes returns the maximum recap length in minutes.
+func (i *Config) GetRecapMaxMinutes() int {
+	v := i.getInt(RecapMaxMinutes)
+	if v <= 0 {
+		return recapMaxMinutesDefault
+	}
+	return v
+}
+
+// GetRecapRequestTimeout returns the recap-script service request timeout.
+func (i *Config) GetRecapRequestTimeout() time.Duration {
+	v := i.getInt(RecapRequestTimeout)
+	if v <= 0 {
+		v = recapRequestTimeoutDefault
+	}
+	return time.Duration(v) * time.Second
 }
 
 // GetSubtitleTranslateChunkCues returns the minimum cues per translate chunk
@@ -2189,6 +2258,11 @@ func (i *Config) setDefaultValues() {
 	i.setDefault(SubtitleTranslateChunkCues, subtitleTranslateChunkCuesDefault)
 	i.setDefault(SubtitleTranslateRetries, subtitleTranslateRetriesDefault)
 	i.setDefault(SubtitleTranslateTimeout, subtitleTranslateTimeoutDefault)
+	i.setDefault(RecapServiceURL, recapServiceURLDefault)
+	i.setDefault(RecapTargetLanguage, recapTargetLanguageDefault)
+	i.setDefault(RecapVoice, recapVoiceDefault)
+	i.setDefault(RecapMaxMinutes, recapMaxMinutesDefault)
+	i.setDefault(RecapRequestTimeout, recapRequestTimeoutDefault)
 
 	// set default package sources
 	i.setDefault(PluginPackageSources, []map[string]string{{

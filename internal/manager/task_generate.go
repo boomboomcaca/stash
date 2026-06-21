@@ -44,6 +44,14 @@ type GenerateMetadataInput struct {
 	// Dubbing generates a dubbed video (sidecar .<lang>-dub.mp4) from a scene's
 	// translated caption via the configured dub service (CosyVoice).
 	Dubbing bool `json:"dubbing"`
+	// Recap generates a <=10min narrated plot-recap (解说) derivative video
+	// (sidecar .<lang>-recap.mp4) from a long scene: transcript -> LLM narration
+	// script -> clip selection -> dub narration -> cut+concat+mux.
+	Recap bool `json:"recap"`
+	// RecapLanguage overrides the configured recap target language for this run.
+	RecapLanguage *string `json:"recapLanguage"`
+	// RecapVoice overrides the configured recap narrator voice for this run.
+	RecapVoice *string `json:"recapVoice"`
 	// scene ids to generate for
 	SceneIDs []string `json:"sceneIDs"`
 	// marker ids to generate for
@@ -97,6 +105,7 @@ type totalsGenerate struct {
 	imageThumbnails          int64
 	subtitles                int64
 	dubbing                  int64
+	recap                    int64
 
 	tasks int
 }
@@ -256,6 +265,9 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 		}
 		if j.input.Dubbing {
 			logMsg += fmt.Sprintf(" %d dubbing", totals.dubbing)
+		}
+		if j.input.Recap {
+			logMsg += fmt.Sprintf(" %d recap", totals.recap)
 		}
 		if logMsg == "Generating" {
 			logMsg = "Nothing selected to generate"
@@ -604,6 +616,30 @@ func (j *GenerateJob) queueSceneJobs(ctx context.Context, g *generate.Generator,
 
 		if task.required(ctx) {
 			j.totals.dubbing++
+			j.totals.tasks++
+			queue <- task
+		}
+	}
+
+	if j.input.Recap {
+		lang := ""
+		if j.input.RecapLanguage != nil {
+			lang = *j.input.RecapLanguage
+		}
+		voice := ""
+		if j.input.RecapVoice != nil {
+			voice = *j.input.RecapVoice
+		}
+		task := &GenerateRecapTask{
+			repository: r,
+			Scene:      *scene,
+			Overwrite:  j.overwrite,
+			Language:   lang,
+			Voice:      voice,
+		}
+
+		if task.required(ctx) {
+			j.totals.recap++
 			j.totals.tasks++
 			queue <- task
 		}

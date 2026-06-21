@@ -25,6 +25,12 @@ input GenerateMetadataInput {
   translate: Boolean
   "Generate a dubbed video from a scene's translated caption via the configured dub service (CosyVoice)"
   dubbing: Boolean
+  "Generate a <=10min narrated plot-recap (解说) derivative video from a long scene"
+  recap: Boolean
+  "Target language for the recap narration. Overrides the configured default."
+  recapLanguage: String
+  "Reference voice for the recap narrator. Overrides the configured default."
+  recapVoice: String
 
   "scene ids to generate for"
   sceneIDs: [ID!]
@@ -71,6 +77,7 @@ type GenerateMetadataOptions {
   subtitles: Boolean
   subtitleLanguage: String
   dubbing: Boolean
+  recap: Boolean
 }
 
 type GeneratePreviewOptions {

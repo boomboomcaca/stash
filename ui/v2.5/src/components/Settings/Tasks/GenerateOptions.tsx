@@ -205,6 +205,27 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
             tooltipID="dialogs.scene_gen.dubbing_tooltip"
             onChange={(v) => setOptions({ dubbing: v })}
           />
+          <BooleanSetting
+            id="recap-task"
+            checked={options.recap ?? false}
+            headingID="dialogs.scene_gen.recap"
+            tooltipID="dialogs.scene_gen.recap_tooltip"
+            onChange={(v) => setOptions({ recap: v })}
+          />
+          <SelectSetting
+            id="recap-language"
+            className="sub-setting"
+            disabled={!options.recap}
+            headingID="dialogs.scene_gen.recap_language"
+            value={options.recapLanguage ?? "zh"}
+            onChange={(v) => setOptions({ recapLanguage: v })}
+          >
+            {SUBTITLE_LANGUAGES.map((l) => (
+              <option value={l.code} key={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </SelectSetting>
         </>
       )}
       {showImageOptions && (
