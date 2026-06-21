@@ -176,6 +176,13 @@ func (lw *LibraryWatcher) shouldProcessEvent(event fsnotify.Event) bool {
 		return false
 	}
 
+	// Ignore dub-script sidecars ("<name>.<lang>.srt.dub"): they end in ".dub"
+	// (not a subtitle extension) but are dub-routing metadata, not media, so they
+	// must not trigger scan/clean/generate cycles when the dub task writes them.
+	if filepath.Ext(event.Name) == ".dub" {
+		return false
+	}
+
 	// Check if the path is within a configured library path
 	stashPaths := lw.manager.Config.GetStashPaths()
 	for _, stashPath := range stashPaths {

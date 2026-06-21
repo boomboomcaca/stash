@@ -198,6 +198,24 @@ const (
 	DubbingChunkRetries        = "dubbing_chunk_retries"
 	dubbingChunkRetriesDefault = 3
 
+	// Translation reliability: the /v1/translate pass on a long video is a single
+	// multi-minute request that wholly restarts if the (GPU-shared) translate
+	// service bounces. So the caption is translated in sentence-aligned chunks,
+	// each retried independently — a mid-pass restart costs one chunk, not the
+	// whole pass.
+	//
+	// SubtitleTranslateChunkCues is the min cues per translate chunk; a chunk
+	// closes only AFTER a sentence-ending cue at/after this count, so chunks hold
+	// whole sentences (no orphaned fragments mistranslated as standalone lines).
+	SubtitleTranslateChunkCues        = "subtitle_translate_chunk_cues"
+	subtitleTranslateChunkCuesDefault = 12
+	// SubtitleTranslateRetries is how many times a failed translate chunk retries.
+	SubtitleTranslateRetries        = "subtitle_translate_retries"
+	subtitleTranslateRetriesDefault = 4
+	// SubtitleTranslateTimeout is the per-chunk translate request timeout (seconds).
+	SubtitleTranslateTimeout        = "subtitle_translate_timeout"
+	subtitleTranslateTimeoutDefault = 1800
+
 	// key used to sign JWT tokens
 	JWTSignKey = "jwt_secret_key"
 
@@ -1015,6 +1033,34 @@ func (i *Config) GetDubbingChunkRetries() int {
 		return dubbingChunkRetriesDefault
 	}
 	return v
+}
+
+// GetSubtitleTranslateChunkCues returns the minimum cues per translate chunk
+// (a chunk closes only after a sentence-ending cue at/after this count).
+func (i *Config) GetSubtitleTranslateChunkCues() int {
+	v := i.getInt(SubtitleTranslateChunkCues)
+	if v <= 0 {
+		return subtitleTranslateChunkCuesDefault
+	}
+	return v
+}
+
+// GetSubtitleTranslateRetries returns how many times a failed translate chunk retries.
+func (i *Config) GetSubtitleTranslateRetries() int {
+	v := i.getInt(SubtitleTranslateRetries)
+	if v <= 0 {
+		return subtitleTranslateRetriesDefault
+	}
+	return v
+}
+
+// GetSubtitleTranslateTimeout returns the per-chunk translate request timeout.
+func (i *Config) GetSubtitleTranslateTimeout() time.Duration {
+	v := i.getInt(SubtitleTranslateTimeout)
+	if v <= 0 {
+		v = subtitleTranslateTimeoutDefault
+	}
+	return time.Duration(v) * time.Second
 }
 
 // GetScraperCDPPath gets the path to the Chrome executable or remote address
@@ -2140,6 +2186,9 @@ func (i *Config) setDefaultValues() {
 	i.setDefault(DubbingChunkSeconds, dubbingChunkSecondsDefault)
 	i.setDefault(DubbingRequestTimeout, dubbingRequestTimeoutDefault)
 	i.setDefault(DubbingChunkRetries, dubbingChunkRetriesDefault)
+	i.setDefault(SubtitleTranslateChunkCues, subtitleTranslateChunkCuesDefault)
+	i.setDefault(SubtitleTranslateRetries, subtitleTranslateRetriesDefault)
+	i.setDefault(SubtitleTranslateTimeout, subtitleTranslateTimeoutDefault)
 
 	// set default package sources
 	i.setDefault(PluginPackageSources, []map[string]string{{

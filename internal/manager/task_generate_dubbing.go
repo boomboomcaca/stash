@@ -149,15 +149,23 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 	// supports the dub service's recut display caption and one-shot pace refit.
 	displayCaption := captionPath
 	if duration > cfg.GetDubbingChunkSeconds() {
-		if err := synthDubChunked(ctx, videoPath, string(srtBytes), duration, cfg.GetDubbingVoice(), dubAudioPath); err != nil {
+		recut, err := synthDubChunked(ctx, videoPath, string(srtBytes), duration, cfg.GetDubbingVoice(), dubAudioPath)
+		if err != nil {
 			return fmt.Errorf("dub service error for %s: %w", videoPath, err)
 		}
-		// Give the dubbed (derived) video its own caption sidecar so it
+		// The dubbed (derived) video gets its own caption sidecar so it
 		// associates in stash — derived videos don't inherit the parent's
-		// captions (see dubCaptionPath above). The chunked path does not request
-		// a per-chunk recut, so the display caption is the aligned translation.
-		if data, rerr := os.ReadFile(captionPath); rerr == nil {
-			if werr := os.WriteFile(dubCaptionPath, data, 0644); werr != nil {
+		// captions (see dubCaptionPath above). Prefer the per-chunk re-cut
+		// caption (clause-level lines timed to the synthesised audio); fall back
+		// to the aligned translation when the service returns no re-cut.
+		dubCaption := recut
+		if !strings.Contains(dubCaption, "-->") {
+			if data, rerr := os.ReadFile(captionPath); rerr == nil {
+				dubCaption = string(data)
+			}
+		}
+		if strings.Contains(dubCaption, "-->") {
+			if werr := os.WriteFile(dubCaptionPath, []byte(dubCaption), 0644); werr != nil {
 				logger.Warnf("[dubbing] could not write dub caption for %s: %v", videoPath, werr)
 			} else {
 				displayCaption = dubCaptionPath
@@ -504,7 +512,7 @@ func chunkDubSRT(cues []dubCue, t0, t1 float64) (string, int) {
 // window's audio is forced to its exact length so windows concatenate without
 // drift; the result spans the full video. A window with no cues becomes local
 // silence (no service call). The concatenated track is written to outAudioPath.
-func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float64, voice, outAudioPath string) error {
+func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float64, voice, outAudioPath string) (string, error) {
 	cfg := config.GetInstance()
 	chunk := cfg.GetDubbingChunkSeconds()
 	retries := cfg.GetDubbingChunkRetries()
@@ -513,12 +521,14 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 
 	work, err := os.MkdirTemp("", "stash-dubchunk-")
 	if err != nil {
-		return fmt.Errorf("creating chunk workdir: %w", err)
+		return "", fmt.Errorf("creating chunk workdir: %w", err)
 	}
 	defer os.RemoveAll(work)
 
 	nChunks := int(math.Ceil(totalDur / chunk))
 	var parts []string
+	var recut strings.Builder // per-chunk re-cut display captions, spliced onto the global timeline
+	recutN := 0
 	k := 0
 	for t0 := 0.0; t0 < totalDur-0.05; t0 += chunk {
 		t1 := math.Min(t0+chunk, totalDur)
@@ -528,7 +538,7 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 
 		if nCues == 0 {
 			if err := generateSilenceWav(ctx, dur, raw); err != nil {
-				return fmt.Errorf("dub chunk %d silence: %w", k+1, err)
+				return "", fmt.Errorf("dub chunk %d silence: %w", k+1, err)
 			}
 		} else {
 			var bgPath string
@@ -538,10 +548,11 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 			} else {
 				logger.Warnf("[dubbing] chunk %d background extract failed (%v); voice-only", k+1, berr)
 			}
+			var chunkRecut string
 			var derr error
 			for attempt := 1; attempt <= retries; attempt++ {
 				rctx, cancel := context.WithTimeout(ctx, timeout)
-				derr = postDubChunk(rctx, sub, dur, voice, bgPath, raw)
+				chunkRecut, derr = postDubChunk(rctx, sub, dur, voice, bgPath, raw)
 				cancel()
 				if derr == nil {
 					break
@@ -549,33 +560,44 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 				logger.Warnf("[dubbing] chunk %d/%d [%.0f-%.0fs] attempt %d/%d failed: %v", k+1, nChunks, t0, t1, attempt, retries, derr)
 				select {
 				case <-ctx.Done():
-					return ctx.Err()
+					return "", ctx.Err()
 				case <-time.After(5 * time.Second):
 				}
 			}
 			if derr != nil {
-				return fmt.Errorf("dub chunk %d [%.0f-%.0fs] failed after %d attempts: %w", k+1, t0, t1, retries, derr)
+				return "", fmt.Errorf("dub chunk %d [%.0f-%.0fs] failed after %d attempts: %w", k+1, t0, t1, retries, derr)
+			}
+			// splice this window's re-cut caption onto the global timeline
+			for _, c := range parseDubCues(chunkRecut) {
+				recutN++
+				fmt.Fprintf(&recut, "%d\n%s --> %s\n%s\n\n", recutN,
+					secsToTimecode(c.start+t0), secsToTimecode(c.end+t0), c.text)
 			}
 		}
 
 		fixed := filepath.Join(work, fmt.Sprintf("f%d.wav", k))
 		if err := padTrimWav(ctx, raw, dur, fixed); err != nil {
-			return fmt.Errorf("dub chunk %d normalise: %w", k+1, err)
+			return "", fmt.Errorf("dub chunk %d normalise: %w", k+1, err)
 		}
 		parts = append(parts, fixed)
 		logger.Infof("[dubbing] chunk %d/%d [%.0f-%.0fs] %d cues done", k+1, nChunks, t0, t1, nCues)
 		k++
 	}
 	if len(parts) == 0 {
-		return fmt.Errorf("no dub chunks produced for %s", videoPath)
+		return "", fmt.Errorf("no dub chunks produced for %s", videoPath)
 	}
-	return concatWavs(ctx, parts, outAudioPath)
+	if err := concatWavs(ctx, parts, outAudioPath); err != nil {
+		return "", err
+	}
+	return recut.String(), nil
 }
 
 // postDubChunk sends one dub window (text + duration + optional background audio)
-// to the dub service and streams the returned wav to outPath. It does not request
-// a recut (the display caption is the already-aligned translated caption).
-func postDubChunk(ctx context.Context, srt string, duration float64, voice, bgAudioPath, outPath string) error {
+// to the dub service, streams the returned wav to outPath, and returns the
+// service's re-cut display SRT for this window (clause-level lines timed to the
+// synthesised audio, with timestamps relative to the window). The caller splices
+// these onto the global timeline. Empty when the service returns plain audio.
+func postDubChunk(ctx context.Context, srt string, duration float64, voice, bgAudioPath, outPath string) (string, error) {
 	serviceURL := config.GetInstance().GetDubbingURL() + dubbingPath
 	durStr := strconv.FormatFloat(duration, 'f', 3, 64)
 
@@ -586,10 +608,10 @@ func postDubChunk(ctx context.Context, srt string, duration float64, voice, bgAu
 		form.Set("text", srt)
 		form.Set("duration", durStr)
 		form.Set("voice", voice)
-		form.Set("recut", "0")
+		form.Set("recut", "1")
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, strings.NewReader(form.Encode()))
 		if err != nil {
-			return err
+			return "", err
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	} else {
@@ -606,7 +628,7 @@ func postDubChunk(ctx context.Context, srt string, duration float64, voice, bgAu
 				if err := mw.WriteField("voice", voice); err != nil {
 					return err
 				}
-				if err := mw.WriteField("recut", "0"); err != nil {
+				if err := mw.WriteField("recut", "1"); err != nil {
 					return err
 				}
 				bf, err := os.Open(bgAudioPath)
@@ -627,33 +649,32 @@ func postDubChunk(ctx context.Context, srt string, duration float64, voice, bgAu
 		}()
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, pr)
 		if err != nil {
-			return err
+			return "", err
 		}
 		req.Header.Set("Content-Type", mw.FormDataContentType())
 	}
 
 	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		return fmt.Errorf("dub service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return "", fmt.Errorf("dub service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 
 	mediaType, params, _ := mime.ParseMediaType(resp.Header.Get("Content-Type"))
 	if strings.HasPrefix(mediaType, "multipart/") {
-		_, merr := streamMultipartDub(resp.Body, params["boundary"], outPath)
-		return merr
+		return streamMultipartDub(resp.Body, params["boundary"], outPath)
 	}
 	out, err := os.Create(outPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer out.Close()
 	_, err = io.Copy(out, resp.Body)
-	return err
+	return "", err
 }
 
 // extractDubBackgroundWindow extracts [t0, t0+dur] of videoPath's audio to a
