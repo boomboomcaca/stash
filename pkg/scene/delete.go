@@ -264,6 +264,10 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 			matches, err := filepath.Glob(pattern)
 			if err == nil {
 				for _, match := range matches {
+					// Deliberately broad: "<base>.*<ext>" also matches the derived
+					// captions ("<base>.zh-dub.zh.srt") and other related subtitles.
+					// Deleting a video with its files should sweep ALL subtitles tied
+					// to it, leaving no orphans behind.
 					// Check if this file is not already marked for deletion
 					alreadyMarked := false
 					for _, marked := range captionFiles {
@@ -293,6 +297,26 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 				if !alreadyMarked {
 					captionFiles = append(captionFiles, simplePattern)
 					logger.Infof("Marking simple subtitle file for deletion: %s", simplePattern)
+				}
+			}
+		}
+
+		// Also sweep the intermediate tagged dub-scripts ("<base>.<lang>.srt.dub")
+		// generated alongside the captions; they end in ".dub" (not a subtitle
+		// extension) so the loop above misses them, and they would otherwise be
+		// orphaned when the video and its subtitles are deleted.
+		if dubScripts, derr := filepath.Glob(filepath.Join(videoDir, videoBase+".*.dub")); derr == nil {
+			for _, match := range dubScripts {
+				alreadyMarked := false
+				for _, marked := range captionFiles {
+					if marked == match {
+						alreadyMarked = true
+						break
+					}
+				}
+				if !alreadyMarked {
+					captionFiles = append(captionFiles, match)
+					logger.Infof("Marking intermediate dub-script for deletion: %s", match)
 				}
 			}
 		}
