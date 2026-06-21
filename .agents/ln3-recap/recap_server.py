@@ -65,7 +65,8 @@ def run_claude(prompt, transcript):
     cmd = [
         CLAUDE_BIN, "-p", prompt,
         "--model", CLAUDE_MODEL,
-        "--bare",
+        # NOTE: no --bare — minimal mode skips loading the ~/.claude OAuth creds,
+        # so claude reports "Not logged in" when relying on the interactive login.
         "--max-turns", "1",
         "--disallowedTools", "Edit,Bash,Write",
         "--output-format", "json",
