@@ -508,7 +508,11 @@ func chunkDubSRT(cues []dubCue, t0, t1 float64) (string, int) {
 	var b strings.Builder
 	n := 0
 	for _, c := range cues {
-		if c.start >= t1-0.01 || c.end <= t0+0.01 {
+		// Assign each cue to EXACTLY ONE window — the one its start falls in. The
+		// old overlap test (start<t1 && end>t0) put a cue that straddles a window
+		// edge into BOTH adjacent windows, so the boundary sentence was dubbed and
+		// captioned twice (duplicate audio + repeated subtitle).
+		if c.start < t0-0.01 || c.start >= t1-0.01 {
 			continue
 		}
 		a := c.start - t0
@@ -557,8 +561,25 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 	var recut strings.Builder // per-chunk re-cut display captions, spliced onto the global timeline
 	recutN := 0
 	k := 0
-	for t0 := 0.0; t0 < totalDur-0.05; t0 += chunk {
+	for t0 := 0.0; t0 < totalDur-0.05; {
+		// Snap the window end to a cue-start gap so no cue straddles two windows
+		// (the old fixed t0+chunk edge dubbed boundary sentences twice). Every cue
+		// starting before the nominal cut joins this window; the window ends at the
+		// next cue's start, so windows tile the timeline without overlap or split.
 		t1 := math.Min(t0+chunk, totalDur)
+		if t1 < totalDur {
+			next := totalDur
+			for _, c := range cues {
+				if c.start >= t0+chunk-0.01 {
+					next = c.start
+					break
+				}
+			}
+			t1 = math.Min(next, totalDur)
+		}
+		if t1 <= t0 {
+			t1 = math.Min(t0+chunk, totalDur)
+		}
 		dur := t1 - t0
 		sub, nCues := chunkDubSRT(cues, t0, t1)
 		raw := filepath.Join(work, fmt.Sprintf("r%d.wav", k))
@@ -609,6 +630,7 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 		parts = append(parts, fixed)
 		logger.Infof("[dubbing] chunk %d/%d [%.0f-%.0fs] %d cues done", k+1, nChunks, t0, t1, nCues)
 		k++
+		t0 = t1
 	}
 	if len(parts) == 0 {
 		return "", fmt.Errorf("no dub chunks produced for %s", videoPath)
