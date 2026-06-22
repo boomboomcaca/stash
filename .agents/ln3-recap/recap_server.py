@@ -38,23 +38,42 @@ CLAUDE_BIN = os.environ.get("CLAUDE_BIN", "claude")
 CLAUDE_MODEL = os.environ.get("RECAP_MODEL", "opus")
 CONCURRENCY = int(os.environ.get("RECAP_CONCURRENCY", "3"))
 CLAUDE_TIMEOUT = int(os.environ.get("RECAP_CLAUDE_TIMEOUT", "540"))  # seconds
+# One-shot override: when RECAP_CANNED points at a beats-JSON file, the next
+# /v1/recap returns it verbatim instead of invoking the LLM (used to rebuild a
+# video from an already-validated script without paying for a fresh ~9min pass).
+CANNED_PATH = os.environ.get("RECAP_CANNED", "")
 
 _sem = threading.Semaphore(CONCURRENCY)
 
 
 def build_prompt(target_lang, max_minutes, max_chars):
     return (
-        "你是一名资深影视解说编剧。下面（随后通过输入提供）是一部影片的逐句转写，"
-        "每行格式为 `N [mm:ss] 台词`，N 是从 1 开始的句子编号。\n\n"
+        "你是一名顶尖的影视解说编剧，擅长把一部影片浓缩成一段抓人、好看的剧情解说。"
+        "下面（随后通过输入提供）是这部影片的逐句转写，每行格式为 `N [mm:ss] 台词`，"
+        "N 是从 1 开始的句子编号。\n\n"
+        "重要：这份转写由语音识别自动生成，可能有听错的词、张冠李戴的人名，以及在"
+        "配乐/打斗段落里凭空冒出的胡乱短句；同时大量台词可能因背景音乐而漏识。请依据"
+        "上下文还原真实剧情，忽略明显错乱/无意义的片段，绝不照抄乱码文本。若你认得这部"
+        "作品，请使用其在目标语言中的通用译名（人名、地名、势力名），并据此修正转写里"
+        "明显听错的专有名词。\n\n"
+        "转写中以【画面：…】开头的行不是台词，而是对重要『无对白画面』（动作、战斗、"
+        "龙、登场、死亡、名场面等）的客观描述。这类片子对白稀疏、剧情大量靠画面推进，"
+        "所以务必把这些【画面】行当作和台词同等重要的锚点：选它们的编号来呈现这些名"
+        "场面，并在解说里把对应的视觉桥段讲出来。\n\n"
         "任务：基于这份转写，创作一段第三人称剧情解说（解说词），把整部影片的剧情"
-        f"讲清楚。要求：\n"
-        f"1) 解说语言：{target_lang}。\n"
-        f"2) 总时长不超过 {max_minutes} 分钟，总字数不超过 {max_chars} 字。\n"
-        "3) 按时间顺序把解说拆成若干小段(beat)。每段对应转写里要保留展示的句子编号"
-        "（用于挑出对应画面），并为该段写一句到几句解说词。\n"
-        "4) 每段的解说词长度要大致与所选句子的时间跨度相称，不要在很短的画面上堆砌"
-        "过多文字（否则配音会被压得过快）。\n"
-        "5) 只挑最能推动剧情的关键句，跳过寒暄/重复；覆盖完整剧情弧线。\n\n"
+        "讲清楚、讲精彩。要求：\n"
+        f"1) 解说语言：{target_lang}；口语化、生动、有节奏，是“意译”而非逐句直译。"
+        "开头用一句话抓人的钩子迅速带入，结尾收束有力。\n"
+        f"2) 总时长不超过 {max_minutes} 分钟，总字数不超过 {max_chars} 字；解说要『密』，"
+        "尽量连贯讲述、少留空白，不要做成只有零星旁白的剪辑。\n"
+        "3) 按时间顺序把解说拆成较多的小段(beat)。每段只选 1–3 个『时间紧挨、相邻』的"
+        "编号（使对应片段约 5–12 秒）；切勿把相隔很远的编号塞进同一段（否则片段会很长、"
+        "几段就吃光时长预算，导致后面剧情被截断）。\n"
+        "4) 每段解说词长度与所选片段时长相称（按约每秒 5 字估算，例如 8 秒片段配约 40 字），"
+        "既不要在短片段上堆太多字（配音会被压快），也不要让长片段几乎没旁白。\n"
+        "5) 关键：beats 必须『均匀铺满整条时间轴、一路讲到结局』——尤其要覆盖最后的"
+        "高潮与收尾（如片尾的大战/海战及其余波），绝不能讲到一半就停。优先挑最能推动"
+        "剧情的台词与【画面】，跳过寒暄/重复/口水话。\n\n"
         "只输出 JSON，不要任何解释或代码块标记，格式严格为：\n"
         '{"beats":[{"cues":[12,13,15],"text":"……解说词……"}, …]}\n'
         "cues 必须是上面转写里真实存在的句子编号（整数），按出现顺序排列。"
@@ -164,6 +183,16 @@ class Handler(BaseHTTPRequestHandler):
             max_chars = int(field("max_chars", str(max_minutes * 300)) or str(max_minutes * 300))
         except ValueError:
             max_chars = max_minutes * 300
+
+        if CANNED_PATH and os.path.exists(CANNED_PATH):
+            try:
+                with open(CANNED_PATH, encoding="utf-8") as fh:
+                    beats = normalize_beats(json.load(fh))
+                self.log_message("canned: %d beats from %s", len(beats), CANNED_PATH)
+                self._send(200, {"beats": beats})
+                return
+            except Exception as e:  # noqa: BLE001
+                self.log_message("canned load failed (%s); falling back to LLM", e)
 
         prompt = build_prompt(target_lang, max_minutes, max_chars)
         with _sem:

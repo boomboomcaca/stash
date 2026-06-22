@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/stashapp/stash/internal/manager/config"
 	"github.com/stashapp/stash/pkg/ffmpeg"
@@ -171,8 +172,23 @@ func recapScene(ctx context.Context, repo models.Repository, scene models.Scene,
 		}
 		narrSRT := singleCueSRT(c.text, realDur)
 		wavPath := filepath.Join(work, fmt.Sprintf("n%d.wav", i))
-		if _, _, err := requestDub(ctx, narrSRT, realDur, voice, "", wavPath); err != nil {
-			return fmt.Errorf("recap narration %d for %s: %w", i, videoPath, err)
+		// The dub service is reached over the LAN and that hop can flap mid-run
+		// (a single reset would otherwise discard the whole multi-minute job), so
+		// retry transient failures with a short backoff before giving up. (derr is
+		// already declared above by probeRecapDuration; reuse it here.)
+		for attempt := 1; attempt <= 4; attempt++ {
+			if _, _, derr = requestDub(ctx, narrSRT, realDur, voice, "", wavPath); derr == nil {
+				break
+			}
+			logger.Warnf("[recap] narration %d attempt %d/4 failed: %v", i, attempt, derr)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(time.Duration(attempt) * 2 * time.Second):
+			}
+		}
+		if derr != nil {
+			return fmt.Errorf("recap narration %d for %s: %w", i, videoPath, derr)
 		}
 		clipParts = append(clipParts, clipPath)
 		wavParts = append(wavParts, wavPath)
@@ -375,11 +391,19 @@ func planRecapClips(beats []recapBeat, cues []dubCue, videoDur, maxDur float64) 
 		if videoDur > 0 && end > videoDur {
 			end = videoDur
 		}
-		if end-start < minClip {
-			end = start + minClip
-			if videoDur > 0 && end > videoDur {
-				end = videoDur
-			}
+		// Size each clip to the spoken length of its narration rather than the raw
+		// cue span: clips whose cues are tight get EXTENDED so the synthesized
+		// speech is never cut off mid-sentence, and clips whose cues sprawl get
+		// TRIMMED so there's no long silent tail. ~4.5 zh chars/sec (a touch slower
+		// than the dub's true rate) plus a 1s tail keeps the speech fully inside
+		// the clip without overrun.
+		spoken := float64(len([]rune(text)))/4.5 + 1.0
+		if spoken < minClip {
+			spoken = minClip
+		}
+		end = start + spoken
+		if videoDur > 0 && end > videoDur {
+			end = videoDur
 		}
 		if end-start < 0.2 {
 			continue
