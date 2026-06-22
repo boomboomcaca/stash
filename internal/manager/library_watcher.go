@@ -13,6 +13,7 @@ import (
 	"github.com/stashapp/stash/internal/manager/task"
 	"github.com/stashapp/stash/pkg/file/video"
 	"github.com/stashapp/stash/pkg/fsutil"
+	"github.com/stashapp/stash/pkg/job"
 	"github.com/stashapp/stash/pkg/logger"
 )
 
@@ -232,8 +233,38 @@ func (lw *LibraryWatcher) handleEvent(event fsnotify.Event) {
 	logger.Debugf("File system event detected: %s in %s", event.Op, dir)
 }
 
+// busy reports whether stash currently has any queued or running job. The
+// watcher only acts when stash is idle, so that file changes stash itself
+// makes during its own tasks do not retrigger it.
+func (lw *LibraryWatcher) busy() bool {
+	for _, j := range lw.manager.JobManager.GetQueue() {
+		switch j.Status {
+		case job.StatusReady, job.StatusRunning, job.StatusStopping:
+			return true
+		}
+	}
+	return false
+}
+
 // processAccumulatedEvents processes events that have accumulated during debounce time
 func (lw *LibraryWatcher) processAccumulatedEvents() {
+	// If stash is already busy with its own tasks, skip this cycle and drop the
+	// accumulated events. File-system events seen while a scan/generate/clean job
+	// is running are almost always SELF-INDUCED — e.g. the SceneRename plugin
+	// (Scene.Update.Post hook) renaming media files during a scan, or generate
+	// writing derived "<name>.<lang>-dub.mp4"/recap sidecars into a library path.
+	// Reacting would queue another scan whose updates rename more files, which the
+	// watcher sees again: an endless scan→rename→scan loop that floods the task
+	// queue. The running task already covers any genuine change, so wait until
+	// stash is idle before triggering anything.
+	if lw.busy() {
+		lw.eventsMutex.Lock()
+		lw.events = make(map[string]time.Time)
+		lw.eventsMutex.Unlock()
+		logger.Debug("Library watcher: stash busy, deferring auto-scan and discarding self-induced events")
+		return
+	}
+
 	lw.eventsMutex.Lock()
 	defer lw.eventsMutex.Unlock()
 
