@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -142,6 +143,19 @@ func recapScene(ctx context.Context, repo models.Repository, scene models.Scene,
 		_ = os.WriteFile(recapScriptPath(videoPath), data, 0644)
 	}
 
+	// 2.5 optional: hand the entire render to the upgraded external renderer
+	// (render_recap.py — original-audio bed, one-line subtitles, cold-open,
+	// loudness-normalization, truncation-safe dubbing). Opt-in via
+	// RECAP_RENDER_SCRIPT=/path/to/render_recap.py; when unset, the built-in Go
+	// clip+dub+mux below runs unchanged, so default behaviour is preserved.
+	if script := strings.TrimSpace(os.Getenv("RECAP_RENDER_SCRIPT")); script != "" {
+		if err := renderRecapViaScript(ctx, script, beats, cues, videoPath, outPath, voice); err != nil {
+			return fmt.Errorf("recap render script for %s: %w", videoPath, err)
+		}
+		logger.Infof("[recap] generated %s via %s", outPath, script)
+		return nil
+	}
+
 	// 3. turn cue references into a bounded, ordered clip plan
 	clips := planRecapClips(beats, cues, duration, maxDur)
 	if len(clips) == 0 {
@@ -221,6 +235,70 @@ func recapScene(ctx context.Context, repo models.Repository, scene models.Scene,
 		return fmt.Errorf("muxing recap for %s: %w", videoPath, err)
 	}
 	logger.Infof("[recap] generated %s (%.0fs, %d clips)", outPath, offset, len(clips))
+	return nil
+}
+
+// renderRecapViaScript hands the whole render to an external script
+// (render_recap.py) that adds an original-audio bed, one-line subtitles,
+// loudness-normalization and truncation-safe dubbing. It feeds the recap beats
+// (cue refs + narration) plus a numbered SRT mapping each cue number to its
+// source time range; the script does its own clip-extract / dub / mux.
+// Env: RECAP_PYTHON (default "python3"), RECAP_BED_VOL (default "0.6").
+func renderRecapViaScript(ctx context.Context, script string, beats []recapBeat, cues []dubCue, videoPath, outPath, voice string) error {
+	work, err := os.MkdirTemp("", "stash-recap-rr-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(work)
+
+	data, err := json.Marshal(struct {
+		Beats []recapBeat `json:"beats"`
+	}{beats})
+	if err != nil {
+		return err
+	}
+	beatsPath := filepath.Join(work, "beats.json")
+	if err := os.WriteFile(beatsPath, data, 0644); err != nil {
+		return err
+	}
+
+	// minimal numbered SRT: block N carries cue N's time range. The renderer only
+	// needs cue-number -> time, so the placeholder caption text is irrelevant.
+	var sb strings.Builder
+	for i, c := range cues {
+		fmt.Fprintf(&sb, "%d\n%s --> %s\n.\n\n", i+1, secsToTimecode(c.start), secsToTimecode(c.end))
+	}
+	srtPath := filepath.Join(work, "cues.srt")
+	if err := os.WriteFile(srtPath, []byte(sb.String()), 0644); err != nil {
+		return err
+	}
+
+	python := os.Getenv("RECAP_PYTHON")
+	if python == "" {
+		python = "python3"
+	}
+	bedvol := os.Getenv("RECAP_BED_VOL")
+	if bedvol == "" {
+		bedvol = "0.6"
+	}
+	dubURL := config.GetInstance().GetDubbingURL() + dubbingPath
+
+	args := []string{script, beatsPath, srtPath, videoPath, outPath,
+		"--dub-url", dubURL, "--bedvol", bedvol}
+	if voice != "" {
+		args = append(args, "--voice", voice)
+	}
+	cmd := exec.CommandContext(ctx, python, args...)
+	out, runErr := cmd.CombinedOutput()
+	if len(out) > 0 {
+		logger.Debugf("[recap] render_recap: %s", strings.TrimSpace(string(out)))
+	}
+	if runErr != nil {
+		return fmt.Errorf("%w: %s", runErr, strings.TrimSpace(string(out)))
+	}
+	if _, serr := os.Stat(outPath); serr != nil {
+		return fmt.Errorf("render script produced no output file: %w", serr)
+	}
 	return nil
 }
 
