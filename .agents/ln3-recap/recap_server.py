@@ -25,6 +25,7 @@ NEVER hardcode the token here.
 
 Usage: CLAUDE_CODE_OAUTH_TOKEN=... python3 recap_server.py [--port 5094]
 """
+import concurrent.futures
 import json
 import os
 import re
@@ -42,6 +43,20 @@ CLAUDE_TIMEOUT = int(os.environ.get("RECAP_CLAUDE_TIMEOUT", "540"))  # seconds
 # /v1/recap returns it verbatim instead of invoking the LLM (used to rebuild a
 # video from an already-validated script without paying for a fresh ~9min pass).
 CANNED_PATH = os.environ.get("RECAP_CANNED", "")
+
+# Chunked beats generation: a single claude pass over a long transcript stalls —
+# its reasoning blows up super-linearly (~20 cues OK in ~80s, >=40 cues times out),
+# so split the transcript into small windows, narrate each independently and in
+# parallel, then merge by cue order. RECAP_CHUNK_CUES=0 restores the old single shot.
+CHUNK_CUES = int(os.environ.get("RECAP_CHUNK_CUES", "15"))
+CHUNK_TIMEOUT = int(os.environ.get("RECAP_CHUNK_TIMEOUT", "200"))  # per-chunk seconds
+# all tools off: this task needs none; shaves time and avoids any tool-call stall.
+NO_TOOLS = "Edit,Bash,Write,Read,Glob,Grep,WebSearch,WebFetch,Task,NotebookEdit,TodoWrite"
+# Unified-names glossary: one web-enabled pass identifies the work and its standard
+# target-language proper nouns, fed into EVERY chunk so names stay correct and
+# consistent (instead of each chunk re-inventing/transliterating ASR mishearings).
+GLOSSARY_ON = os.environ.get("RECAP_GLOSSARY", "1") != "0"
+GLOSSARY_TIMEOUT = int(os.environ.get("RECAP_GLOSSARY_TIMEOUT", "300"))
 
 _sem = threading.Semaphore(CONCURRENCY)
 
@@ -80,18 +95,17 @@ def build_prompt(target_lang, max_minutes, max_chars):
     )
 
 
-def run_claude(prompt, transcript):
+def run_claude(prompt, transcript, timeout=CLAUDE_TIMEOUT, allowed=None, max_turns=1):
     cmd = [
         CLAUDE_BIN, "-p", prompt,
         "--model", CLAUDE_MODEL,
         # NOTE: no --bare — minimal mode skips loading the ~/.claude OAuth creds,
         # so claude reports "Not logged in" when relying on the interactive login.
-        "--max-turns", "1",
-        "--disallowedTools", "Edit,Bash,Write",
+        "--max-turns", str(max_turns),
         "--output-format", "json",
-    ]
+    ] + (["--allowedTools", allowed] if allowed else ["--disallowedTools", NO_TOOLS])
     proc = subprocess.run(
-        cmd, input=transcript, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT
+        cmd, input=transcript, capture_output=True, text=True, timeout=timeout
     )
     if proc.returncode != 0:
         raise RuntimeError(
@@ -136,6 +150,98 @@ def normalize_beats(parsed):
         if cues and text:
             out.append({"cues": cues, "text": text})
     return out
+
+
+def build_chunk_prompt(target_lang, max_chars, part_idx, num_parts, glossary=""):
+    gl = ("【统一译名表，人名/地名/势力名一律严格照此使用，不要自创或音译】：\n"
+          + glossary + "\n\n") if glossary else ""
+    return (
+        gl
+        + "你是影视解说编剧。下面（通过输入提供）是一部影片其中一个片段的逐句转写"
+        f"（全片第 {part_idx}/{num_parts} 段），每行格式 `N [mm:ss] 内容`，N 是全局句子编号。"
+        "以【画面：…】开头的行是无对白画面描述（动作/战斗/龙/登场/死亡/名场面），"
+        "与台词同等重要，可选其编号来呈现名场面。\n"
+        "转写由语音识别生成，可能有错词/错名/乱码短句；请依上下文还原真实剧情、忽略乱码，"
+        "若认得作品请用其在目标语言中的通用译名。\n"
+        f"任务：只为『这一段』写连贯、口语化、生动的 {target_lang} 第三人称剧情解说，"
+        "按时间顺序拆成几个 beat。每个 beat 选 1–3 个『相邻』的真实编号（对应约 5–12 秒），"
+        "解说词长度与片段时长相称（约每秒 5 字）。覆盖本段关键剧情与画面，跳过寒暄/重复/口水话。"
+        f"本段解说总字数控制在约 {max_chars} 字以内。\n"
+        "只输出 JSON，不要解释或代码块：\n"
+        '{"beats":[{"cues":[12,13],"text":"……解说词……"}, …]}\n'
+        "cues 必须是上面这段里真实出现的编号（整数），按出现顺序。"
+    )
+
+
+def _chunk_lines(transcript, k):
+    lines = [ln for ln in transcript.splitlines() if re.match(r"\s*\d+\s", ln)]
+    return [lines[i:i + k] for i in range(0, len(lines), k)]
+
+
+def build_glossary(transcript, target_lang, logf):
+    """One web-enabled pass: identify the work and return its standard target-language
+    proper nouns, so every chunk narrates with unified, correct names (not ASR errors)."""
+    lines = [ln for ln in transcript.splitlines() if re.match(r"\s*\d+\s", ln)]
+    pic = [ln for ln in lines if "【画面" in ln]
+    sample = "\n".join(lines[:80] + pic[:40])
+    prompt = (
+        "下面是某影视作品转写的片段（语音识别，可能有错词、错名、乱码短句；"
+        "以【画面：…】开头的行是无对白画面的客观描述）。请用 WebSearch / WebFetch 联网"
+        "判断这是哪部影视作品（剧名 + 第几季第几集），并据此给出其在 "
+        f"{target_lang} 中的【统一标准译名表】：主要人物、地点、势力的通用标准译名，"
+        "以及转写里明显听错的专有名词 → 正确译名的对应。只输出简洁的译名表本身"
+        "（每行一条，如『错听名/特征 → 标准译名』或『标准译名（一句说明）』），不要写解说词。"
+        "若联网无法确定作品，就基于上下文给出自洽一致的译名表。"
+    )
+    try:
+        g = run_claude(prompt, sample, GLOSSARY_TIMEOUT, allowed="WebSearch,WebFetch", max_turns=20).strip()
+        try:
+            open("/tmp/recap_glossary.txt", "w", encoding="utf-8").write(g)
+        except Exception:  # noqa: BLE001
+            pass
+        logf("glossary built: %d chars", len(g))
+        return g
+    except Exception as e:  # noqa: BLE001
+        logf("glossary failed (%s); chunks proceed without it", str(e)[:100])
+        return ""
+
+
+def run_chunked(transcript, target_lang, max_chars, logf):
+    """Narrate the transcript window-by-window in parallel, then merge by cue order."""
+    chunks = _chunk_lines(transcript, CHUNK_CUES)
+    n = len(chunks)
+    if n == 0:
+        return []
+    glossary = build_glossary(transcript, target_lang, logf) if GLOSSARY_ON else ""
+    per_chars = max(120, max_chars // n)
+    results = [None] * n
+
+    def work(i):
+        prompt = build_chunk_prompt(target_lang, per_chars, i + 1, n, glossary)
+        text = "\n".join(chunks[i])
+        last = None
+        for _ in range(2):  # retry once: claude is non-deterministic, occasionally emits bad JSON
+            try:
+                return normalize_beats(extract_json(run_claude(prompt, text, CHUNK_TIMEOUT)))
+            except Exception as e:  # noqa: BLE001
+                last = e
+        raise last
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=CONCURRENCY) as ex:
+        futs = {ex.submit(work, i): i for i in range(n)}
+        done = 0
+        for fut in concurrent.futures.as_completed(futs):
+            i = futs[fut]
+            try:
+                results[i] = fut.result()
+            except Exception as e:  # noqa: BLE001
+                results[i] = []
+                logf("chunk %d/%d FAILED: %s", i + 1, n, str(e)[:100])
+            done += 1
+            logf("chunk %d/%d done (%d/%d total)", i + 1, n, done, n)
+    beats = [b for r in results if r for b in r]
+    beats.sort(key=lambda b: min(b["cues"]) if b["cues"] else 0)
+    return beats
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -194,18 +300,22 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:  # noqa: BLE001
                 self.log_message("canned load failed (%s); falling back to LLM", e)
 
-        prompt = build_prompt(target_lang, max_minutes, max_chars)
-        with _sem:
-            try:
-                result = run_claude(prompt, transcript)
-                beats = normalize_beats(extract_json(result))
-            except subprocess.TimeoutExpired:
-                self._send(504, {"error": "claude timed out"})
-                return
-            except Exception as e:  # noqa: BLE001
-                self.log_message("error: %s", e)
-                self._send(502, {"error": str(e)[:400]})
-                return
+        try:
+            if CHUNK_CUES > 0:
+                ncues = sum(1 for ln in transcript.splitlines() if re.match(r"\s*\d+\s", ln))
+                self.log_message("chunked: %d cues @ %d/chunk, concurrency=%d", ncues, CHUNK_CUES, CONCURRENCY)
+                beats = run_chunked(transcript, target_lang, max_chars, self.log_message)
+            else:
+                prompt = build_prompt(target_lang, max_minutes, max_chars)
+                with _sem:
+                    beats = normalize_beats(extract_json(run_claude(prompt, transcript)))
+        except subprocess.TimeoutExpired:
+            self._send(504, {"error": "claude timed out"})
+            return
+        except Exception as e:  # noqa: BLE001
+            self.log_message("error: %s", e)
+            self._send(502, {"error": str(e)[:400]})
+            return
         self.log_message("ok: %d beats from %d transcript chars", len(beats), len(transcript))
         self._send(200, {"beats": beats})
 

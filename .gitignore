@@ -127,3 +127,8 @@ coverage.out
 **/src-tauri/target/
 **/src-tauri/WixTools/
 **/src-tauri/Cargo.lock
+
+# Python bytecode
+__pycache__/
+*.pyc
+
