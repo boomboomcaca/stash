@@ -10,11 +10,10 @@ import { VideoJsPlayer } from "video.js";
 //        trigger a transcode reload). Browsers cap playbackRate (~16×) and a
 //        live transcode may not encode fast enough to sustain high rates, so
 //        the *effective* forward speed can be lower than requested.
-//      · Backward → the browser can't play at a negative rate, so we step
-//        currentTime backwards. Each step is a seek (expensive on transcoded
-//        sources), so the actual video frame is refreshed at a THROTTLED rate
-//        while a requestAnimationFrame loop keeps the on-screen time/OSD moving
-//        smoothly. Rewind is inherently a simulated scrub, not true playback.
+//      · Backward → the browser can't play at a negative rate, so we seek the
+//        playhead backwards (fastSeek to the nearest keyframe when the timeline
+//        is aligned; throttled precise seeks on offset transcodes). Rewind is a
+//        simulated scrub, not true playback.
 //  - Releasing the key (keyup), losing focus, or ~idleMs with no further
 //    repeat event (a dropped keyup) all restore the pre-hold rate and
 //    play/pause state.
@@ -30,15 +29,18 @@ interface HoldSeekState {
   rampTimer?: ReturnType<typeof setTimeout>;
   idleTimer?: ReturnType<typeof setTimeout>;
   raf?: number;
-  osd?: HTMLElement;
 }
 
 const RATES = [2, 4, 8, 16, 20]; // speed steps, ramps up while held
 const rampMs = 800; // time held before stepping up a gear
-// Rewind refreshes the actual video frame at most this often. Higher = fewer
-// transcode reloads / less stutter, at the cost of choppier frames. The OSD and
-// on-screen time still move smoothly every animation frame regardless.
-const rewindSeekIntervalMs = 200;
+// Rewind can't use playbackRate, so it seeks the playhead backwards. Seeking
+// within already-buffered data — the common case when rewinding over content
+// just watched (direct play keeps it all; VHS/transcode keep a window) — is
+// cheap, so we refresh nearly every frame for smooth motion. Seeking OUTSIDE
+// the buffer is expensive (re-fetch / transcode restart), so we throttle there
+// to avoid a reload storm and the stutter it causes.
+const bufferedSeekIntervalMs = 33; // ~30fps within buffered data (smooth)
+const uncachedSeekIntervalMs = 200; // throttled outside the buffer (avoid reloads)
 // If no further auto-repeat keydown arrives within this window we assume the
 // key was released but the keyup was lost, and stop. Auto-repeat fires every
 // ~30-50ms, so this only trips on a genuine release.
@@ -46,14 +48,22 @@ const idleMs = 500;
 
 const states = new WeakMap<VideoJsPlayer, HoldSeekState>();
 
-function formatTime(total: number): string {
-  const s = Math.max(0, Math.floor(total));
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = s % 60;
-  const mm = h > 0 ? String(m).padStart(2, "0") : String(m);
-  const ss = String(sec).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+function getVideoEl(player: VideoJsPlayer): HTMLVideoElement | null {
+  return player.el()?.querySelector("video") ?? null;
+}
+
+// True if time t (absolute playhead seconds) falls inside a buffered range,
+// i.e. seeking there is cheap and won't trigger a re-fetch / transcode restart.
+function isBuffered(player: VideoJsPlayer, t: number): boolean {
+  try {
+    const b = player.buffered();
+    for (let i = 0; i < b.length; i++) {
+      if (t >= b.start(i) && t <= b.end(i)) return true;
+    }
+  } catch {
+    // buffered() can throw on a torn-down tech; treat as not buffered
+  }
+  return false;
 }
 
 function scheduleRamp(player: VideoJsPlayer, state: HoldSeekState) {
@@ -88,20 +98,37 @@ function tick(player: VideoJsPlayer, state: HoldSeekState, ts: number) {
       stopHoldSeek(player);
       return;
     }
-    if (ts - state.lastSeekTs >= rewindSeekIntervalMs) {
-      player.currentTime(state.virtualTime);
-      state.lastSeekTs = ts;
+    const video = getVideoEl(player);
+    // When the native timeline matches the player timeline (direct play or an
+    // adaptive HLS/DASH source — NOT an offset transcode, where they differ by
+    // offsetStart), drive the native element directly.
+    const aligned =
+      !!video && Math.abs(video.currentTime - player.currentTime()) < 0.5;
+
+    if (aligned && typeof video.fastSeek === "function") {
+      // fastSeek jumps to the nearest keyframe — cheap, ideal for rewind — and
+      // bypasses the offset middleware and the React timeupdate churn, so frames
+      // refresh far more smoothly than precise per-frame seeks.
+      video.fastSeek(state.virtualTime);
+    } else {
+      // Offset transcode source: go through the offset-aware player.currentTime
+      // and throttle seeks outside the buffer to avoid transcode reload storms.
+      const minInterval = isBuffered(player, state.virtualTime)
+        ? bufferedSeekIntervalMs
+        : uncachedSeekIntervalMs;
+      if (ts - state.lastSeekTs >= minInterval) {
+        player.currentTime(state.virtualTime);
+        state.lastSeekTs = ts;
+      }
     }
   } else {
-    // forward playback advances currentTime natively; just mirror it
-    state.virtualTime = player.currentTime();
+    // forward playback advances currentTime natively; stop at the end
     if (player.ended()) {
       stopHoldSeek(player);
       return;
     }
   }
 
-  updateOsd(state);
   state.raf = requestAnimationFrame((t) => tick(player, state, t));
 }
 
@@ -128,7 +155,6 @@ function startHoldSeek(player: VideoJsPlayer, dir: 1 | -1) {
 
   scheduleRamp(player, state);
   armIdleWatchdog(player, state);
-  showOsd(player, state);
   state.raf = requestAnimationFrame((t) => tick(player, state, t));
 }
 
@@ -166,8 +192,6 @@ export function stopHoldSeek(player: VideoJsPlayer) {
   } else {
     player.play()?.catch(() => {});
   }
-
-  hideOsd(state);
 }
 
 export function holdSeekKeyup(player: VideoJsPlayer, e: KeyboardEvent) {
@@ -180,26 +204,4 @@ export function holdSeekKeyup(player: VideoJsPlayer, e: KeyboardEvent) {
       stopHoldSeek(player);
       break;
   }
-}
-
-function showOsd(player: VideoJsPlayer, state: HoldSeekState) {
-  const el = document.createElement("div");
-  el.className = "vjs-hold-seek-osd";
-  el.setAttribute("aria-hidden", "true");
-  state.osd = el;
-  updateOsd(state);
-  player.el().appendChild(el);
-}
-
-function updateOsd(state: HoldSeekState) {
-  if (!state.osd) return;
-  const arrow = state.dir === 1 ? "»»" : "««";
-  state.osd.textContent = `${arrow} ${RATES[state.level]}×  ${formatTime(
-    state.virtualTime
-  )}`;
-}
-
-function hideOsd(state: HoldSeekState) {
-  state.osd?.remove();
-  state.osd = undefined;
 }
