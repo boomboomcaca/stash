@@ -6,6 +6,7 @@ import {
   isPseudoFullscreen,
 } from "./util";
 import { handleHotkeys } from "./handleHotkeys";
+import { holdSeekKeyup, stopHoldSeek } from "./hold-seek";
 import { EnhancedSubtitleButton } from "./enhanced-subtitle-button";
 // Side-effect import: ensures the subtitleTrackMenu plugin/component is
 // registered with video.js. The named imports below are type-only and would
@@ -194,6 +195,15 @@ export function usePlayerSetup({
     vjs.focus();
     setPlayer(vjs);
 
+    // End hold-to-seek (variable-speed FF/rewind) on key release or focus loss.
+    // The keydown side is driven from handleHotkeys via video.js hotkeys.
+    const onHoldSeekKeyUp = (e: Event) =>
+      holdSeekKeyup(vjs, e as KeyboardEvent);
+    const onHoldSeekBlur = () => stopHoldSeek(vjs);
+    vjs.el().addEventListener("keyup", onHoldSeekKeyUp);
+    vjs.el().addEventListener("blur", onHoldSeekBlur, true);
+    window.addEventListener("blur", onHoldSeekBlur);
+
     // 初始化增强字幕按钮
     const subtitleButton = vjs.enhancedSubtitleButton({
       onToggle: (enabled: boolean) => {
@@ -308,6 +318,10 @@ export function usePlayerSetup({
 
     // Video player destructor
     return () => {
+      stopHoldSeek(vjs);
+      vjs.el()?.removeEventListener("keyup", onHoldSeekKeyUp);
+      vjs.el()?.removeEventListener("blur", onHoldSeekBlur, true);
+      window.removeEventListener("blur", onHoldSeekBlur);
       vjs.dispose();
       videoEl.remove();
       setPlayer(undefined);

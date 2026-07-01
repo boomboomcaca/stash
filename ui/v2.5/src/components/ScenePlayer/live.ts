@@ -14,12 +14,33 @@ interface ICue extends TextTrackCue {
 // delay before loading new source after setting currentTime
 const loadDelay = 200;
 
+// last-resort watchdog: if a reloaded transcode never reaches a terminal media
+// event (canplay/loadeddata/error), reset the seeking gate anyway so play() can
+// never be wedged forever. Generous because a cold transcode seek can be slow.
+const seekWatchdogMs = 30000;
+
 function offsetMiddleware(player: VideoJsPlayer) {
   // XXbiome-ignore lint/suspicious/noExplicitAny: allow access to private tech methods
   let tech: any;
   let source: ISource;
   let offsetStart: number | undefined;
   let seeking = 0;
+  // listeners/timer for the in-flight reload, so a superseded reload's handlers
+  // can be torn down before arming the next one (avoids a stale handler
+  // resetting `seeking` for the wrong request).
+  let seekWatchdog: ReturnType<typeof setTimeout> | undefined;
+  let detachSeekListeners: (() => void) | undefined;
+
+  function clearSeekSettlers() {
+    if (seekWatchdog !== undefined) {
+      clearTimeout(seekWatchdog);
+      seekWatchdog = undefined;
+    }
+    if (detachSeekListeners) {
+      detachSeekListeners();
+      detachSeekListeners = undefined;
+    }
+  }
 
   function initCues(cues: TextTrackCueList) {
     const offset = offsetStart ?? 0;
@@ -66,20 +87,46 @@ function offsetMiddleware(player: VideoJsPlayer) {
       player.poster("");
       tech.setSource(source);
       tech.setPlaybackRate(playbackRate);
-      tech.one("canplay", () => {
+
+      // tear down any listeners/timer from a previous, now-superseded reload
+      clearSeekSettlers();
+
+      // Reset the `seeking` gate on ANY terminal outcome, not just `canplay`.
+      // `seeking` blocks play() through callPlay()'s TERMINATOR; if the reloaded
+      // /stream.mp4?start= transcode errors, 500s, or never emits `canplay`
+      // (e.g. ffmpeg cannot seek to that offset / emits an unparseable initial
+      // fragment), leaving `seeking` set would permanently freeze the player
+      // after a seek. Settle on canplay/loadeddata/error and via a watchdog.
+      const settle = (success: boolean) => {
+        clearSeekSettlers();
         player.poster(poster);
-        if (seeking === 1 || tech.scrubbing()) {
+        if (success && (seeking === 1 || tech.scrubbing())) {
           tech.pause();
         }
         seeking = 0;
-      });
+      };
+      const onReady = () => settle(true);
+      const onError = () => settle(false);
+      detachSeekListeners = () => {
+        tech.off("canplay", onReady);
+        tech.off("loadeddata", onReady);
+        tech.off("error", onError);
+      };
+      tech.one("canplay", onReady);
+      tech.one("loadeddata", onReady); // some streams settle without a fresh canplay
+      tech.one("error", onError); // transcode/HTTP failure must not wedge play()
+      seekWatchdog = setTimeout(() => settle(false), seekWatchdogMs);
+
       tech.trigger("timeupdate");
       tech.trigger("pause");
       tech.trigger("seeking");
       tech.play();
     },
     loadDelay,
-    { leading: true }
+    // coalesce a burst of scrub seeks into ONE transcode restart at the final
+    // target. With leading:true a burst spawned two competing ffmpeg processes
+    // (the first immediately torn down), thrashing the CPU and slowing the seek.
+    { leading: false, trailing: true }
   );
 
   return {

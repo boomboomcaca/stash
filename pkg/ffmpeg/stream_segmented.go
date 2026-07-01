@@ -32,7 +32,12 @@ const (
 
 	segmentLength = 2
 
-	maxSegmentWait  = 15 * time.Second
+	// maximum time to wait for a segment file to be generated before returning
+	// an error. Must be generous enough to cover a transcode restart after a
+	// seek (old-process teardown + new ffmpeg spawn + input seek + first-segment
+	// encode) on slow CPUs / 4K / hardware-encoder init; too tight a value 500s
+	// the segment mid-seek and freezes playback.
+	maxSegmentWait  = 45 * time.Second
 	monitorInterval = 200 * time.Millisecond
 
 	// segment gap before counting a request as a seek and
@@ -873,15 +878,22 @@ func (s *waitingSegment) checkAvailable(now time.Time) bool {
 
 // ensureTranscode will start a new transcode process if the transcode
 // is more than maxSegmentGap behind the requested segment
-func (sm *StreamManager) ensureTranscode(stream *runningStream, segment *waitingSegment) bool {
+func (sm *StreamManager) ensureTranscode(stream *runningStream, segment *waitingSegment, now time.Time) bool {
 	segmentIdx := segment.idx
 	tp := stream.tp
 	if tp == nil {
 		sm.startTranscode(stream, segmentIdx, segment.available)
 		return true
 	} else if segmentIdx < tp.segment || tp.segment+maxSegmentGap < segmentIdx {
-		// only stop the transcode process here - it will be restarted only
-		// after the old process exits as stream.tp will then be nil.
+		// A seek was detected. Stop the current transcode; it is restarted only
+		// after the old process exits (stream.tp becomes nil on a later tick).
+		// Reset the wait deadline on the pending segments so their maxSegmentWait
+		// budget is measured from this restart rather than their original request
+		// time - otherwise a seek that lands on a slow-to-encode segment can time
+		// out almost immediately, 500, and freeze playback.
+		for _, ws := range stream.waitingSegments {
+			ws.accessed = now
+		}
 		sm.stopTranscode(stream)
 		return true
 	}
@@ -907,7 +919,7 @@ func (sm *StreamManager) monitorStreams() {
 			if segment.done.Load() || segment.checkAvailable(now) {
 				remove = true
 			} else if !transcodeStarted {
-				transcodeStarted = sm.ensureTranscode(stream, segment)
+				transcodeStarted = sm.ensureTranscode(stream, segment, now)
 			}
 			if !remove {
 				temp = append(temp, segment)

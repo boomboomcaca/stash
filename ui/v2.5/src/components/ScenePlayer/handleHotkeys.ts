@@ -1,6 +1,7 @@
 import { VideoJsPlayer } from "video.js";
 import { togglePseudoFullscreen } from "./util";
 import { IEnhancedSubtitleNavigation } from "./types";
+import { holdSeekKeydown } from "./hold-seek";
 
 export function handleHotkeys(
   player: VideoJsPlayer,
@@ -280,20 +281,33 @@ export function handleHotkeys(
   }
 
   // Handle normal seek when control bar is visible or enhanced subtitles not active
-  let seekFactor = 10;
+  let seekFactor = 5;
   if (event.shiftKey) {
     seekFactor = 5;
   } else if (event.ctrlKey || event.altKey) {
     seekFactor = 60;
   }
+  // Holding an arrow (auto-repeat) enters variable-speed fast-forward/rewind
+  // instead of firing many discrete jumps per second. Only for the bare arrow
+  // keys — with a modifier we keep discrete stepping but ignore the repeats so
+  // a held Ctrl/Shift+arrow can't run away either.
+  const bareArrow = !event.shiftKey && !event.ctrlKey && !event.altKey;
   switch (event.which) {
     case 39: // right arrow
     case 68: // d
-      seekStep(seekFactor);
+      if (event.repeat) {
+        if (bareArrow) holdSeekKeydown(player, 1);
+      } else {
+        seekStep(seekFactor);
+      }
       break;
     case 37: // left arrow
     case 65: // a
-      seekStep(-seekFactor);
+      if (event.repeat) {
+        if (bareArrow) holdSeekKeydown(player, -1);
+      } else {
+        seekStep(-seekFactor);
+      }
       break;
   }
 

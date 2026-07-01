@@ -1100,3 +1100,27 @@ body.vjs-pseudo-fullscreen {
     }
   }
 }
+
+// Hold-to-seek OSD: shows the current fast-forward/rewind speed (»» 2× / «« 4×)
+// while an arrow key is held. Appended to the video-js element by hold-seek.ts.
+.vjs-hold-seek-osd {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 0.4rem;
+  color: #fff;
+  display: flex;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  justify-content: center;
+  left: 50%;
+  letter-spacing: 0.05em;
+  padding: 0.4rem 1rem;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  user-select: none;
+  white-space: nowrap;
+  z-index: 10;
+}
