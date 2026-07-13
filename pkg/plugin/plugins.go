@@ -311,6 +311,9 @@ func (c Cache) RunPlugin(ctx context.Context, pluginID string, args OperationInp
 
 	// find the plugin
 	plugin := c.getPlugin(pluginID)
+	if plugin == nil {
+		return nil, fmt.Errorf("no plugin with ID %s", pluginID)
+	}
 
 	pluginInput := buildPluginInput(plugin, nil, serverConnection, args)
 

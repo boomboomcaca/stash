@@ -133,15 +133,20 @@ func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter 
 		if err := s.deleteFiles(ctx, scene, fileDeleter, deleteSubtitles); err != nil {
 			return err
 		}
-	}
-
-	// Delete subtitle files independently if requested
-	if deleteSubtitles && !deleteFile {
-		if err := s.deleteSubtitlesOnly(ctx, scene, fileDeleter); err != nil {
+	} else if destroyFileEntry {
+		// destroy the file DB entries without removing files from disk - only
+		// when we did NOT already delete the files above (deleteFiles already
+		// destroys the entries, so running this too would double-destroy and
+		// roll back the whole delete).
+		if err := s.destroyFileEntries(ctx, scene); err != nil {
 			return err
 		}
-	} else if destroyFileEntry {
-		if err := s.destroyFileEntries(ctx, scene); err != nil {
+	}
+
+	// Delete subtitle files independently if requested. Only meaningful when we
+	// are not deleting the whole file, which already sweeps its subtitles.
+	if deleteSubtitles && !deleteFile {
+		if err := s.deleteSubtitlesOnly(ctx, scene, fileDeleter); err != nil {
 			return err
 		}
 	}

@@ -281,6 +281,7 @@ func requestDub(ctx context.Context, srt string, duration float64, voice, bgAudi
 		}()
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, pr)
 		if err != nil {
+			_ = pr.CloseWithError(err) // unblock the multipart writer goroutine parked on pw.Write
 			return "", false, err
 		}
 		req.Header.Set("Content-Type", mw.FormDataContentType())
@@ -568,14 +569,28 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 		// next cue's start, so windows tile the timeline without overlap or split.
 		t1 := math.Min(t0+chunk, totalDur)
 		if t1 < totalDur {
-			next := totalDur
+			// Only snap the window end forward when a cue actually straddles the
+			// nominal cut (start < cut < end). Snapping unconditionally would
+			// stretch the window across a dialogue gap all the way to the next
+			// cue (or EOF), defeating the chunk-size cap and producing an
+			// oversized synthesis request / background-audio upload.
+			straddle := false
 			for _, c := range cues {
-				if c.start >= t0+chunk-0.01 {
-					next = c.start
+				if c.start < t0+chunk-0.01 && c.end > t0+chunk+0.01 {
+					straddle = true
 					break
 				}
 			}
-			t1 = math.Min(next, totalDur)
+			if straddle {
+				next := totalDur
+				for _, c := range cues {
+					if c.start >= t0+chunk-0.01 {
+						next = c.start
+						break
+					}
+				}
+				t1 = math.Min(next, totalDur)
+			}
 		}
 		if t1 <= t0 {
 			t1 = math.Min(t0+chunk, totalDur)
@@ -698,6 +713,7 @@ func postDubChunk(ctx context.Context, srt string, duration float64, voice, bgAu
 		}()
 		req, err = http.NewRequestWithContext(ctx, http.MethodPost, serviceURL, pr)
 		if err != nil {
+			_ = pr.CloseWithError(err) // unblock the multipart writer goroutine parked on pw.Write
 			return "", err
 		}
 		req.Header.Set("Content-Type", mw.FormDataContentType())

@@ -104,9 +104,13 @@ def run_claude(prompt, transcript, timeout=CLAUDE_TIMEOUT, allowed=None, max_tur
         "--max-turns", str(max_turns),
         "--output-format", "json",
     ] + (["--allowedTools", allowed] if allowed else ["--disallowedTools", NO_TOOLS])
-    proc = subprocess.run(
-        cmd, input=transcript, capture_output=True, text=True, timeout=timeout
-    )
+    # Throttle here so ALL callers (glossary, chunk workers, single-shot) share
+    # one process-wide cap on concurrent `claude -p` subprocesses. The chunked
+    # path previously bypassed the single-shot's outer _sem guard entirely.
+    with _sem:
+        proc = subprocess.run(
+            cmd, input=transcript, capture_output=True, text=True, timeout=timeout
+        )
     if proc.returncode != 0:
         raise RuntimeError(
             f"claude exited {proc.returncode}: {proc.stderr.strip()[:400]}"
@@ -307,8 +311,8 @@ class Handler(BaseHTTPRequestHandler):
                 beats = run_chunked(transcript, target_lang, max_chars, self.log_message)
             else:
                 prompt = build_prompt(target_lang, max_minutes, max_chars)
-                with _sem:
-                    beats = normalize_beats(extract_json(run_claude(prompt, transcript)))
+                # _sem is now acquired inside run_claude; don't double-acquire here.
+                beats = normalize_beats(extract_json(run_claude(prompt, transcript)))
         except subprocess.TimeoutExpired:
             self._send(504, {"error": "claude timed out"})
             return

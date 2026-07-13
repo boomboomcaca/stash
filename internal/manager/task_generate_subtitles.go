@@ -411,6 +411,10 @@ func (t *GenerateSubtitlesTask) transcribe(ctx context.Context, audioPath, lang 
 	serviceURL := config.GetInstance().GetSubtitleGenerationURL() + subtitleTranscribePath
 
 	pr, pw := io.Pipe()
+	// Ensure the pipe reader is closed on every return path (esp. the
+	// NewRequestWithContext error below) so the writer goroutine unblocks with
+	// io.ErrClosedPipe and releases its goroutine + open file descriptor.
+	defer pr.Close()
 	mw := multipart.NewWriter(pw)
 	contentType := mw.FormDataContentType()
 

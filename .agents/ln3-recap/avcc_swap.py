@@ -161,6 +161,13 @@ def main():
             struct.pack_into(">I", moov, sf, old_sz + delta)
         # splice the new (larger) avcC in place of the old
         new_moov = bytearray(moov[:apos]) + good + bytes(moov[apos+asize:])
+        # the moov box is itself an ancestor of avcC but find_avcc started at
+        # offset 8 (inside moov) so offset 0 was never in `anc`; bump moov's own
+        # size field too, otherwise its declared size is `delta` bytes short and
+        # its (now-larger) trak child overflows moov's boundary → malformed MP4.
+        moov_szf = struct.unpack(">I", new_moov[0:4])[0]
+        if moov_szf not in (0, 1):        # skip extends-to-EOF (0) and 64-bit (1)
+            struct.pack_into(">I", new_moov, 0, moov_szf + delta)
         # if moov precedes mdat, growing it shifts every chunk: fix stco/co64
         moov_at_front = (ms + msz) < fs
         if moov_at_front and delta != 0:

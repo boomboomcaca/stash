@@ -79,7 +79,10 @@ def main():
     wavs=[]; t0=0.0; k=0
     while t0 < total - 0.05:
         t1=min(t0+CHUNK, total); dur=t1-t0
-        sub=[c for c in cues if c['st'] < t1-0.01 and c['en'] > t0+0.01]
+        # own each cue by the chunk its START falls in, so a cue straddling the
+        # chunk boundary is dubbed once (in its start chunk), not duplicated at
+        # the seam. Its tail past t1 is truncated by the clip on the next line.
+        sub=[c for c in cues if t0-0.01 <= c['st'] < t1-0.01]
         cs=os.path.join(work,f'c{k}.srt')
         with open(cs,'w',encoding='utf-8') as f:
             for i,c in enumerate(sub,1):

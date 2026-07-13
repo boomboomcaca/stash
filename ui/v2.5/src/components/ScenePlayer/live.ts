@@ -42,6 +42,10 @@ function offsetMiddleware(player: VideoJsPlayer) {
     }
   }
 
+  // Cancel any in-flight reload watchdog/listeners when the player is disposed,
+  // so an orphaned 30s timer can't fire settle() on a torn-down player.
+  player.on("dispose", clearSeekSettlers);
+
   function initCues(cues: TextTrackCueList) {
     const offset = offsetStart ?? 0;
     for (let j = 0; j < cues.length; j++) {
