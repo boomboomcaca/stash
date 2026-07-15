@@ -60,6 +60,10 @@ GLOSSARY_TIMEOUT = int(os.environ.get("RECAP_GLOSSARY_TIMEOUT", "300"))
 
 _sem = threading.Semaphore(CONCURRENCY)
 
+# Serialises consumption of the one-shot RECAP_CANNED override so concurrent
+# requests can't both read it before it is renamed away.
+_canned_lock = threading.Lock()
+
 
 def build_prompt(target_lang, max_minutes, max_chars):
     return (
@@ -306,15 +310,26 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             max_chars = max_minutes * 300
 
-        if CANNED_PATH and os.path.exists(CANNED_PATH):
-            try:
-                with open(CANNED_PATH, encoding="utf-8") as fh:
-                    beats = normalize_beats(json.load(fh))
-                self.log_message("canned: %d beats from %s", len(beats), CANNED_PATH)
-                self._send(200, {"beats": beats})
-                return
-            except Exception as e:  # noqa: BLE001
-                self.log_message("canned load failed (%s); falling back to LLM", e)
+        if CANNED_PATH:
+            # Truly one-shot: read and immediately rename the file (under a lock)
+            # so it is consumed exactly once. Otherwise the override stuck for the
+            # whole process lifetime and EVERY later request — including other
+            # videos — silently got this video's beats, cutting them by cue
+            # numbers that don't belong to their transcript.
+            with _canned_lock:
+                if os.path.exists(CANNED_PATH):
+                    try:
+                        with open(CANNED_PATH, encoding="utf-8") as fh:
+                            beats = normalize_beats(json.load(fh))
+                        try:
+                            os.rename(CANNED_PATH, CANNED_PATH + ".used")
+                        except OSError:
+                            pass
+                        self.log_message("canned: %d beats from %s (one-shot; consumed)", len(beats), CANNED_PATH)
+                        self._send(200, {"beats": beats})
+                        return
+                    except Exception as e:  # noqa: BLE001
+                        self.log_message("canned load failed (%s); falling back to LLM", e)
 
         try:
             if CHUNK_CUES > 0:

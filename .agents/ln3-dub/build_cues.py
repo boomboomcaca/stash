@@ -43,6 +43,9 @@ for idx in sorted(en, key=lambda x: int(x)):
     c['speaker'] = spk.get(idx, 1)
     cues.append(c)
 
+if not cues:
+    sys.exit("no cues parsed from the corrected en SRT — check the input file")
+
 with open('cues.json', 'w', encoding='utf-8') as f:
     json.dump(cues, f, ensure_ascii=False, indent=0)
 

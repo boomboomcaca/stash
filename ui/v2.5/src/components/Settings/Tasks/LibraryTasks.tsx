@@ -117,6 +117,11 @@ export const LibraryTasks: React.FC = () => {
       phashes: true,
       previews: true,
       markers: true,
+      // Seed translate so the "Translate captions" checkbox (rendered checked
+      // via `?? true`) actually sends true. Left undefined, an untouched box
+      // sent no value and the backend silently fell back to the global setting,
+      // so a visibly-checked box could produce no translation.
+      translate: true,
       previewOptions: {
         previewSegments: 0,
         previewSegmentDuration: 0,

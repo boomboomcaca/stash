@@ -133,6 +133,12 @@ function tick(player: VideoJsPlayer, state: HoldSeekState, ts: number) {
 }
 
 function startHoldSeek(player: VideoJsPlayer, dir: 1 | -1) {
+  // Forward-seeking from the very end would restart playback from 0 (calling
+  // play() on an ended element rewinds it per the HTML media spec). With a held
+  // key auto-repeating keydowns, that turns into an endless replay loop, so
+  // treat forward hold-seek at the end as a no-op.
+  if (dir === 1 && player.ended()) return;
+
   const now = performance.now();
   const state: HoldSeekState = {
     dir,
@@ -189,7 +195,9 @@ export function stopHoldSeek(player: VideoJsPlayer) {
   player.playbackRate(state.savedRate);
   if (state.wasPaused) {
     player.pause();
-  } else {
+  } else if (!player.ended()) {
+    // Don't resume when we stopped because playback reached the end: play() on
+    // an ended element would seek back to 0 and replay.
     player.play()?.catch(() => {});
   }
 }

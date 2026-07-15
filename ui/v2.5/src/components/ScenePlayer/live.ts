@@ -81,6 +81,9 @@ function offsetMiddleware(player: VideoJsPlayer) {
 
   const loadSource = debounce(
     (seconds: number) => {
+      // The player may have been disposed during the trailing debounce window;
+      // touching tech/player below would then throw on nulled internals.
+      if (player.isDisposed()) return;
       const srcUrl = new URL(source.src);
       srcUrl.searchParams.set("start", seconds.toString());
       source.src = srcUrl.toString();
@@ -104,7 +107,13 @@ function offsetMiddleware(player: VideoJsPlayer) {
       const settle = (success: boolean) => {
         clearSeekSettlers();
         player.poster(poster);
-        if (success && (seeking === 1 || tech.scrubbing())) {
+        // Honour the paused-before-seek intent on EVERY settle path, not just
+        // success. If a cold transcode seek takes longer than the watchdog, the
+        // watchdog runs settle(false) and detaches the canplay listener; without
+        // pausing here the pending tech.play() from the reload would resume a
+        // scene the user had paused. Calling pause() also aborts that pending
+        // play() so a late canplay can't auto-start it.
+        if (seeking === 1 || tech.scrubbing()) {
           tech.pause();
         }
         seeking = 0;
@@ -132,6 +141,10 @@ function offsetMiddleware(player: VideoJsPlayer) {
     // (the first immediately torn down), thrashing the CPU and slowing the seek.
     { leading: false, trailing: true }
   );
+
+  // A trailing-debounced reload can still be pending when the player is
+  // disposed; cancel it so it can't run setSource/play() on a torn-down tech.
+  player.on("dispose", () => loadSource.cancel());
 
   return {
     setTech(newTech: videojs.Tech) {

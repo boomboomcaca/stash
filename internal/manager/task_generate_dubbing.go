@@ -204,16 +204,29 @@ func dubScriptPath(videoPath, lang string) string {
 // if none is found. Used by the pace-refit re-translation so it works even when
 // the detected source language differs from the configured default.
 func findSourceDubScript(videoPath, target string) string {
+	// List the directory instead of filepath.Glob: the video basename is
+	// user-controlled and commonly contains glob metacharacters (e.g. release
+	// tags like "[1080p]"), which would turn the pattern into a character class —
+	// matching nothing (or erroring on an unbalanced bracket) and silently
+	// disabling the pace refit this helper exists to enable.
+	dir := filepath.Dir(videoPath)
 	ext := filepath.Ext(videoPath)
-	base := strings.TrimSuffix(videoPath, ext)
-	matches, err := filepath.Glob(base + ".*.srt.dub")
+	prefix := filepath.Base(strings.TrimSuffix(videoPath, ext)) + "."
+	targetName := filepath.Base(dubScriptPath(videoPath, target))
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return ""
 	}
-	targetScript := dubScriptPath(videoPath, target)
-	for _, m := range matches {
-		if m != targetScript {
-			return m
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if name == targetName {
+			continue
+		}
+		if strings.HasPrefix(name, prefix) && strings.HasSuffix(name, ".srt.dub") {
+			return filepath.Join(dir, name)
 		}
 	}
 	return ""
@@ -440,6 +453,14 @@ func dubSingleRequest(ctx context.Context, videoPath, srt string, duration float
 				if strings.Contains(recut2, "-->") {
 					_ = os.WriteFile(dubCaptionPath, []byte(recut2), 0644)
 					displayCaption = dubCaptionPath
+				} else if displayCaption == dubCaptionPath {
+					// The refit re-dub wrote fresh audio to dubAudioPath but
+					// returned no re-cut caption. The caption still on disk was
+					// timed to the first dub's (now-overwritten) audio, so muxing
+					// it against the refit audio would drift; drop it and let
+					// muxDub fall back to audio-only.
+					_ = os.Remove(dubCaptionPath)
+					displayCaption = ""
 				}
 			} else if terr != nil {
 				logger.Warnf("[dubbing] refit re-translation failed (%v); keeping the first dub", terr)

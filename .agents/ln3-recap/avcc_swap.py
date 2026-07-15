@@ -79,6 +79,28 @@ def top_moov(buf_head, filesize, f):
     raise SystemExit("no moov found")
 
 
+def top_box_start(filesize, f, want):
+    """Return the start offset of the first top-level box of type `want`, else None."""
+    pos = 0
+    while pos + 8 <= filesize:
+        f.seek(pos)
+        hdr = f.read(16)
+        if len(hdr) < 8:
+            break
+        size = struct.unpack(">I", hdr[0:4])[0]
+        typ = hdr[4:8]
+        if size == 1:
+            size = struct.unpack(">Q", hdr[8:16])[0]
+        elif size == 0:
+            size = filesize - pos
+        if typ == want:
+            return pos
+        if size <= 0:
+            break
+        pos += size
+    return None
+
+
 def read_avcc_box(path):
     import os
     fs = os.path.getsize(path)
@@ -145,6 +167,7 @@ def main():
         fs = os.path.getsize(rep)
         with open(rep, "rb") as f:
             ms, msz = top_moov(None, fs, f)
+            mdat_start = top_box_start(fs, f, b"mdat")
             f.seek(ms)
             moov = bytearray(f.read(msz))
         r = find_avcc(moov, 8, len(moov), [])
@@ -168,8 +191,13 @@ def main():
         moov_szf = struct.unpack(">I", new_moov[0:4])[0]
         if moov_szf not in (0, 1):        # skip extends-to-EOF (0) and 64-bit (1)
             struct.pack_into(">I", new_moov, 0, moov_szf + delta)
-        # if moov precedes mdat, growing it shifts every chunk: fix stco/co64
-        moov_at_front = (ms + msz) < fs
+        # If moov precedes mdat, growing moov shifts mdat (written verbatim in the
+        # suffix) by delta, so every stco/co64 chunk offset must be bumped. Detect
+        # this by mdat's actual position, NOT by "is there anything after moov":
+        # a trailing free/uuid box after moov (layout ftyp+mdat+moov+free) would
+        # otherwise be misread as moov-at-front and corrupt a file whose mdat sits
+        # in the verbatim prefix and never moved.
+        moov_at_front = mdat_start is not None and mdat_start > ms
         if moov_at_front and delta != 0:
             patched = patch_chunk_offsets(new_moov, 8, len(new_moov), delta)
             print(f"moov-at-front: bumped {patched} chunk offsets by {delta}")
