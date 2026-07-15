@@ -50,11 +50,14 @@ def parse_srt_index(path):
 
 
 def ts(t):
-    if t < 0:
-        t = 0
-    h = int(t // 3600); m = int(t % 3600 // 60); s = int(t % 60); ms = int(round((t - int(t)) * 1000))
-    if ms == 1000:
-        s += 1; ms = 0
+    # Work in integer milliseconds so rounding carries all the way up: the old
+    # "s += 1" on ms==1000 could turn 59s into 60s and emit an illegal
+    # "HH:MM:60,000" timestamp when the accumulated float offset landed in
+    # [x.9995, x+1).
+    tms = max(0, int(round(t * 1000)))
+    h, r = divmod(tms, 3600000)
+    m, r = divmod(r, 60000)
+    s, ms = divmod(r, 1000)
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
 
@@ -100,22 +103,24 @@ def post_dub(text, dur, voice, out):
 
 def dub_trim(text, work, tag, voice):
     raw = os.path.join(work, f"raw_{tag}.wav")
+    sp = os.path.join(work, f"sp_{tag}.wav")
     last = None
     for att in range(1, 7):
         try:
             post_dub(text, nchars(text) / 3.0 + 3.0, voice, raw)
-            last = None
-            break
+            # Trim + probe inside the retry: a 200 response whose body is not
+            # decodable audio (e.g. a JSON/HTML error body, or a multipart with
+            # no audio part) makes this ffmpeg call fail. That must retry and
+            # ultimately degrade like a network failure, not raise an uncaught
+            # CalledProcessError that aborts the entire render.
+            run("ffmpeg", "-nostdin", "-v", "error", "-y", "-i", raw, "-af", SIL,
+                "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", sp)
+            return sp, probe(sp)
         except Exception as e:  # noqa: BLE001
             last = e
             print(f"    dub {tag} attempt {att}: {str(e)[:60]}", flush=True)
             time.sleep(att * 3)
-    if last:
-        return None, 0.0
-    sp = os.path.join(work, f"sp_{tag}.wav")
-    run("ffmpeg", "-nostdin", "-v", "error", "-y", "-i", raw, "-af", SIL,
-        "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", sp)
-    return sp, probe(sp)
+    return None, 0.0
 
 
 def concat_wavs(parts, work, tag, gap=0.08):
@@ -259,6 +264,9 @@ def main():
         lst = out + ".txt"; open(lst, "w", encoding="utf-8").write("\n".join(f"file '{p}'" for p in parts))
         run("ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", lst, "-c", "copy", out)
         os.remove(lst)
+    if not clips:
+        sys.exit("render_recap: no beats matched any transcript cue — check that "
+                 "the beats' cue numbers line up with the numbered SRT")
     rv = os.path.join(work, "rv.mp4"); concat_mp4(clips, rv)
     narr_all = concat_wavs(narrs, work, "narr", gap=0.0)
 

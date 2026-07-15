@@ -39,8 +39,13 @@ cues.sort(key=lambda c: c[0])
 
 
 def fmt(t):
-    ms = int(round((t-int(t))*1000)); t = int(t)
-    return f"{t//3600:02d}:{t%3600//60:02d}:{t%60:02d},{ms:03d}"
+    # Integer-ms math so a value like 194.9996 carries cleanly instead of
+    # formatting ms=1000 as the illegal 4-digit ",1000" timestamp.
+    tms = max(0, int(round(t * 1000)))
+    h, r = divmod(tms, 3600000)
+    m, r = divmod(r, 60000)
+    s, ms = divmod(r, 1000)
+    return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
 
 with open(SRT, "w", encoding="utf-8") as f:

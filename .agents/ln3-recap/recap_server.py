@@ -141,6 +141,18 @@ def extract_json(text):
     raise ValueError("no JSON object found in model output")
 
 
+def _to_cue(c):
+    # Accept ints, int-valued floats (LLMs sometimes emit 12.0), and numeric
+    # strings ("12", "12.0"); drop anything non-numeric or <= 0. The old
+    # str(c).lstrip("-").isdigit() test silently dropped every float cue while
+    # letting "-3" through as a negative index.
+    try:
+        v = int(float(c))
+    except (TypeError, ValueError):
+        return None
+    return v if v > 0 else None
+
+
 def normalize_beats(parsed):
     beats = parsed.get("beats") if isinstance(parsed, dict) else parsed
     if not isinstance(beats, list):
@@ -149,7 +161,7 @@ def normalize_beats(parsed):
     for b in beats:
         if not isinstance(b, dict):
             continue
-        cues = [int(c) for c in (b.get("cues") or []) if isinstance(c, (int, float, str)) and str(c).strip().lstrip("-").isdigit()]
+        cues = [v for v in (_to_cue(c) for c in (b.get("cues") or [])) if v is not None]
         text = str(b.get("text", "")).strip()
         if cues and text:
             out.append({"cues": cues, "text": text})

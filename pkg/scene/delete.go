@@ -3,6 +3,7 @@ package scene
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -310,8 +311,23 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 		// generated alongside the captions; they end in ".dub" (not a subtitle
 		// extension) so the loop above misses them, and they would otherwise be
 		// orphaned when the video and its subtitles are deleted.
-		if dubScripts, derr := filepath.Glob(filepath.Join(videoDir, videoBase+".*.dub")); derr == nil {
-			for _, match := range dubScripts {
+		//
+		// Match by reading the directory rather than with filepath.Glob: videoBase
+		// is a user-controlled filename that commonly contains glob metacharacters
+		// (e.g. "Show [1080p]"), which turn the pattern into a character class —
+		// silently matching a *different* video's dub scripts while leaving this
+		// video's own behind, or erroring out entirely on an unbalanced bracket.
+		dubPrefix := videoBase + "."
+		if entries, derr := os.ReadDir(videoDir); derr == nil {
+			for _, entry := range entries {
+				if entry.IsDir() {
+					continue
+				}
+				name := entry.Name()
+				if !strings.HasPrefix(name, dubPrefix) || !strings.HasSuffix(name, ".dub") {
+					continue
+				}
+				match := filepath.Join(videoDir, name)
 				alreadyMarked := false
 				for _, marked := range captionFiles {
 					if marked == match {

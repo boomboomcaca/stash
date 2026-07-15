@@ -258,10 +258,23 @@ func (lw *LibraryWatcher) processAccumulatedEvents() {
 	// queue. The running task already covers any genuine change, so wait until
 	// stash is idle before triggering anything.
 	if lw.busy() {
+		// Defer rather than discard. The running task (or the watcher's own
+		// scan→clean→generate cascade) may make file changes we would otherwise
+		// react to — e.g. the SceneRename plugin renaming media during a scan —
+		// which is why we don't trigger while busy. But clearing the map here
+		// also threw away genuine external changes (a file dropped into a library
+		// folder while a long job runs), which then stayed invisible until the
+		// next unrelated event. Instead, keep the accumulated events and push
+		// their debounce deadline forward so they are only acted on once stash
+		// has been idle for a full debounce window: self-induced churn stops when
+		// the task ends, while real changes survive to be scanned.
 		lw.eventsMutex.Lock()
-		lw.events = make(map[string]time.Time)
+		now := time.Now()
+		for path := range lw.events {
+			lw.events[path] = now
+		}
 		lw.eventsMutex.Unlock()
-		logger.Debug("Library watcher: stash busy, deferring auto-scan and discarding self-induced events")
+		logger.Debug("Library watcher: stash busy, deferring auto-scan until idle")
 		return
 	}
 

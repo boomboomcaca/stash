@@ -283,6 +283,7 @@ type waitingSegment struct {
 	file        string
 	path        string
 	accessed    time.Time
+	restarted   bool
 	available   chan error
 	done        atomic.Bool
 }
@@ -891,8 +892,20 @@ func (sm *StreamManager) ensureTranscode(stream *runningStream, segment *waiting
 		// budget is measured from this restart rather than their original request
 		// time - otherwise a seek that lands on a slow-to-encode segment can time
 		// out almost immediately, 500, and freeze playback.
+		//
+		// Extend each segment's deadline at most once, though: when two pending
+		// segments more than maxSegmentGap apart share a stream (e.g. two clients
+		// on the same scene, one of them seeking), this branch fires every tick
+		// and, if it refreshed the deadline unconditionally, would perpetually
+		// defeat maxSegmentWait — spawning and killing ffmpeg a few times a second
+		// forever with neither request ever completing or timing out. Resetting
+		// only once keeps maxSegmentWait a hard upper bound so a stale segment
+		// eventually times out and breaks the ping-pong.
 		for _, ws := range stream.waitingSegments {
-			ws.accessed = now
+			if !ws.restarted {
+				ws.accessed = now
+				ws.restarted = true
+			}
 		}
 		sm.stopTranscode(stream)
 		return true
