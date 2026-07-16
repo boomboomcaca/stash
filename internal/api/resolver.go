@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"sync"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/stashapp/stash/internal/build"
@@ -41,6 +42,7 @@ type Resolver struct {
 	groupService   manager.GroupService
 
 	hookExecutor  hookExecutor
+	ollamaOnce    sync.Once
 	ollamaService *ollama.Service
 }
 
@@ -49,7 +51,7 @@ func (r *Resolver) scraperCache() *scraper.Cache {
 }
 
 func (r *Resolver) getOllamaService() *ollama.Service {
-	if r.ollamaService == nil {
+	r.ollamaOnce.Do(func() {
 		// Initialize with default config, could be loaded from persistent storage
 		config := ollama.DefaultConfig()
 
@@ -59,7 +61,7 @@ func (r *Resolver) getOllamaService() *ollama.Service {
 		// }
 
 		r.ollamaService = ollama.NewService(config)
-	}
+	})
 	return r.ollamaService
 }
 

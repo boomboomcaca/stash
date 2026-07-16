@@ -60,7 +60,8 @@ export const DeleteScenesDialog: React.FC<IDeleteSceneDialogProps> = (
       ids: props.selected.map((scene) => scene.id),
       delete_file: deleteFile,
       delete_generated: deleteGenerated,
-      delete_subtitles: deleteSubtitles,
+      // never request subtitle deletion when the checkbox isn't offered
+      delete_subtitles: hasSubtitles && deleteSubtitles,
     };
   }
 

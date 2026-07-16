@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/http/pprof"
 	"net/url"
@@ -54,6 +55,7 @@ const (
 type Server struct {
 	http.Server
 	displayAddress string
+	httpsServer    *http.Server
 
 	manager *manager.Manager
 }
@@ -361,18 +363,23 @@ func (s *Server) Start() error {
 		httpsAddr := s.Addr
 		if httpsPort > 0 {
 			// Use configured HTTPS port
-			if strings.Contains(httpsAddr, ":") {
-				parts := strings.Split(httpsAddr, ":")
-				if len(parts) == 2 {
-					httpsAddr = parts[0] + ":" + strconv.Itoa(httpsPort)
-				}
-			} else {
-				httpsAddr += ":" + strconv.Itoa(httpsPort)
+			host, _, err := net.SplitHostPort(s.Addr)
+			if err != nil {
+				// address has no port
+				host = s.Addr
 			}
+			httpsAddr = net.JoinHostPort(host, strconv.Itoa(httpsPort))
 		}
-		// If httpsPort is 0, use the same address as HTTP (s.Addr)
 
-		httpsServer := &http.Server{
+		// If httpsPort is unset or resolves to the same address as HTTP,
+		// serve HTTPS only on that address rather than racing two listeners
+		// for the same port
+		if httpsAddr == s.Addr {
+			logger.Infof("Starting HTTPS server on " + s.Addr)
+			return s.ListenAndServeTLS("", "")
+		}
+
+		s.httpsServer = &http.Server{
 			Addr:         httpsAddr,
 			Handler:      s.Handler,
 			TLSConfig:    s.TLSConfig,
@@ -381,7 +388,7 @@ func (s *Server) Start() error {
 
 		go func() {
 			logger.Infof("Starting HTTPS server on " + httpsAddr)
-			if err := httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+			if err := s.httpsServer.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 				logger.Errorf("HTTPS server error: %v", err)
 			}
 		}()
@@ -414,6 +421,21 @@ func (s *Server) Shutdown() {
 		}
 	} else {
 		logger.Info("HTTP server shutdown gracefully")
+	}
+
+	if s.httpsServer != nil {
+		if err := s.httpsServer.Shutdown(ctx); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				logger.Warnf("HTTPS server shutdown timeout, forcing close")
+				if closeErr := s.httpsServer.Close(); closeErr != nil {
+					logger.Errorf("Error forcing HTTPS server close: %v", closeErr)
+				}
+			} else {
+				logger.Errorf("Error shutting down HTTPS server: %v", err)
+			}
+		} else {
+			logger.Info("HTTPS server shutdown gracefully")
+		}
 	}
 }
 
@@ -739,9 +761,11 @@ func BaseURLMiddleware(next http.Handler) http.Handler {
 			if extURL, err := url.Parse(externalHost); err == nil {
 				// Check if request host matches external host (domain access)
 				reqHost := r.Host
-				if colonIdx := strings.LastIndex(reqHost, ":"); colonIdx != -1 {
-					reqHost = reqHost[:colonIdx]
+				if h, _, err := net.SplitHostPort(reqHost); err == nil {
+					reqHost = h
 				}
+				// strip brackets from portless IPv6 hosts to match Hostname()'s form
+				reqHost = strings.Trim(reqHost, "[]")
 				extHost := extURL.Hostname()
 				// Only use externalHost if accessing via the external domain
 				if reqHost == extHost {

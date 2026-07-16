@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/stashapp/stash/pkg/logger"
 )
@@ -101,8 +102,15 @@ func MetricsMiddleware() func(next http.Handler) http.Handler {
 					r.Method, r.URL.Path, duration, ww.Status())
 			}
 
-			// Update endpoint-specific metrics
-			endpoint := r.Method + " " + r.URL.Path
+			// Update endpoint-specific metrics, keyed by the matched route
+			// pattern rather than the raw path so per-scene/segment paths
+			// (and arbitrary 404 probes) don't grow the map without bound
+			endpoint := r.Method + " <unmatched>"
+			if rctx := chi.RouteContext(r.Context()); rctx != nil {
+				if pattern := rctx.RoutePattern(); pattern != "" {
+					endpoint = r.Method + " " + pattern
+				}
+			}
 			value, _ := globalMetrics.requestsByEndpoint.LoadOrStore(endpoint, &EndpointMetrics{})
 			endpointMetrics := value.(*EndpointMetrics)
 

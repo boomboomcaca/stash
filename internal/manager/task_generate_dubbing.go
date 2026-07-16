@@ -65,6 +65,12 @@ func (t *GenerateDubbingTask) required(ctx context.Context) bool {
 	if _, err := os.Stat(srtPath); err != nil {
 		return false
 	}
+	// the target-named caption is the *source* caption when the detected source
+	// language equals the target (no translation ran); dubScene skips those, so
+	// don't queue them.
+	if !hasNonTargetSubtitleSource(f.Path, target) {
+		return false
+	}
 	return true
 }
 
@@ -124,6 +130,17 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		return nil
 	}
 
+	// When the detected source language equals the translate target, no
+	// translation ran and the target-named caption/script read above IS the
+	// source transcript — "dubbing" would re-synthesize the video's own
+	// dialogue in its own language. A real translation always leaves the
+	// detected source language's caption beside the target one; skip when no
+	// such sibling exists.
+	if !hasNonTargetSubtitleSource(videoPath, target) {
+		logger.Infof("[dubbing] %s caption for %s appears to be the source language (no translation found); skipping", target, videoPath)
+		return nil
+	}
+
 	if duration <= 0 {
 		logger.Warnf("[dubbing] unknown/zero duration for %s; skipping", videoPath)
 		return nil
@@ -176,6 +193,14 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 		displayCaption = dc
 	}
 
+	if displayCaption == "" {
+		// This run produced no usable re-cut caption, but an overwrite re-dub
+		// may have left a previous run's sidecar behind — timed to audio we
+		// just replaced, it would drift against the new voice track (the same
+		// hazard the refit branch handles). Remove it and mux audio-only.
+		_ = os.Remove(dubCaptionPath)
+	}
+
 	// mux the dubbed audio over the original video into the sidecar file;
 	// the soft-sub track is always the CLEAN caption, never the tagged script
 	if err := muxDub(ctx, videoPath, dubAudioPath, displayCaption, target, outPath); err != nil {
@@ -196,6 +221,42 @@ func dubOutputPath(videoPath, lang string) string {
 // clean display caption; deliberately not ".srt" so caption scans ignore it.
 func dubScriptPath(videoPath, lang string) string {
 	return video.GetCaptionPath(videoPath, lang, "srt") + ".dub"
+}
+
+// hasNonTargetSubtitleSource reports whether videoPath has a sibling caption or
+// dub script ("<base>.<lang>.srt" / "<base>.<lang>.srt.dub") in a language
+// other than target. GenerateSubtitlesTask always writes the detected
+// source-language caption before translating, so its absence means the
+// target-named caption IS the source caption (detected source language ==
+// target) and no translation ever ran.
+func hasNonTargetSubtitleSource(videoPath, target string) bool {
+	dir := filepath.Dir(videoPath)
+	ext := filepath.Ext(videoPath)
+	prefix := filepath.Base(strings.TrimSuffix(videoPath, ext)) + "."
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return false
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasPrefix(name, prefix) {
+			continue
+		}
+		lang := strings.TrimSuffix(strings.TrimPrefix(name, prefix), ".dub")
+		if !strings.HasSuffix(lang, ".srt") {
+			continue
+		}
+		lang = strings.TrimSuffix(lang, ".srt")
+		// a single dot-free language token; anything else belongs to a sibling
+		// or derived video ("movie.2.en.srt", "movie.zh-dub.zh.srt")
+		if lang != "" && lang != target && !strings.Contains(lang, ".") {
+			return true
+		}
+	}
+	return false
 }
 
 // findSourceDubScript returns the tagged dub-script whose language is NOT the
@@ -226,7 +287,14 @@ func findSourceDubScript(videoPath, target string) string {
 			continue
 		}
 		if strings.HasPrefix(name, prefix) && strings.HasSuffix(name, ".srt.dub") {
-			return filepath.Join(dir, name)
+			// the segment between the basename and ".srt.dub" must be a single
+			// language token: "movie.2.en.srt.dub" belongs to the sibling video
+			// "movie.2.mp4", not to "movie.mp4" — returning it would re-dub this
+			// video with another video's dialogue.
+			lang := strings.TrimSuffix(strings.TrimPrefix(name, prefix), ".srt.dub")
+			if lang != "" && !strings.Contains(lang, ".") {
+				return filepath.Join(dir, name)
+			}
 		}
 	}
 	return ""
@@ -610,7 +678,20 @@ func synthDubChunked(ctx context.Context, videoPath, srt string, totalDur float6
 						break
 					}
 				}
-				t1 = math.Min(next, totalDur)
+				// Extend only far enough to contain the straddling cue(s).
+				// Snapping all the way to the next cue's start would stretch
+				// the window across a dialogue gap (or to EOF when the
+				// straddler is the last cue), recreating exactly the oversized
+				// request the chunking exists to prevent. No cue starts in
+				// (cut, next), so ending the window at the straddler's end
+				// still assigns every cue to exactly one window.
+				straddleEnd := t0 + chunk
+				for _, c := range cues {
+					if c.start < t0+chunk-0.01 && c.end > straddleEnd {
+						straddleEnd = c.end
+					}
+				}
+				t1 = math.Min(math.Min(next, straddleEnd), totalDur)
 			}
 		}
 		if t1 <= t0 {
@@ -862,6 +943,16 @@ func muxDub(ctx context.Context, videoPath, dubAudioPath, srtPath, lang, outPath
 		args = append(args, "-c:s", "mov_text", "-metadata:s:s:0", "language="+lang)
 	}
 	args = args.Overwrite()
-	args = args.Output(outPath)
-	return instance.FFMpeg.Generate(ctx, args)
+	// Mux to a temp name and rename into place on success: ffmpeg leaves a
+	// partial file behind on error/cancel, which would otherwise sit at outPath
+	// forever — suppressing regeneration (required()/the non-overwrite guards
+	// only stat the path) and getting scanned in as a corrupt video. Keep the
+	// .mp4 extension so ffmpeg still infers the container.
+	tmpOut := outPath + ".part.mp4"
+	args = args.Output(tmpOut)
+	if err := instance.FFMpeg.Generate(ctx, args); err != nil {
+		_ = os.Remove(tmpOut)
+		return err
+	}
+	return os.Rename(tmpOut, outPath)
 }

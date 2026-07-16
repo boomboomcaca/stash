@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import * as GQL from "src/core/generated-graphql";
 import { BooleanSetting, ModalSetting, SelectSetting } from "../Inputs";
 import {
@@ -51,6 +51,32 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
 
   const showSceneOptions = !type || type === "scene";
   const showImageOptions = !type || type === "image" || type === "gallery";
+
+  // An unset field is omitted from the mutation, letting the backend fall
+  // back to its own setting, so a control rendered with a display default
+  // (e.g. `translate ?? true`) could silently send nothing. Seed those
+  // defaults into the options object so the value sent always matches what
+  // is displayed.
+  useEffect(() => {
+    if (!showSceneOptions) return;
+
+    const translate = options.translate ?? true;
+    const subtitleLanguage = options.subtitleLanguage ?? "en";
+    const recapLanguage = options.recapLanguage ?? "zh";
+
+    if (
+      translate !== options.translate ||
+      subtitleLanguage !== options.subtitleLanguage ||
+      recapLanguage !== options.recapLanguage
+    ) {
+      setOptionsState({
+        ...options,
+        translate,
+        subtitleLanguage,
+        recapLanguage,
+      });
+    }
+  }, [options, setOptionsState, showSceneOptions]);
 
   return (
     <>

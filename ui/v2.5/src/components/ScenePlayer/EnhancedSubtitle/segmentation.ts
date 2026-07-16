@@ -32,8 +32,10 @@ export class WordSegmenter {
     // produce Chinese "words" when the cue is segmented as Latin.
     const letterClass =
       "[A-Za-z\\u00C0-\\u024F\\u0370-\\u03FF\\u0400-\\u04FF\\p{M}\\p{N}]";
+    // Word-internal joiners include the typographic apostrophe (U+2019) and
+    // modifier letter apostrophe (U+02BC) so "don’t" stays one word.
     const wordRegex = new RegExp(
-      `${letterClass}+(?:['\\-]${letterClass}+)*`,
+      `${letterClass}+(?:['\\u2019\\u02BC\\-]${letterClass}+)*`,
       "gu"
     );
     let match = wordRegex.exec(text);

@@ -283,7 +283,11 @@ func renderRecapViaScript(ctx context.Context, script string, beats []recapBeat,
 	}
 	dubURL := config.GetInstance().GetDubbingURL() + dubbingPath
 
-	args := []string{script, beatsPath, srtPath, videoPath, outPath,
+	// Have the script render to a temp name and rename into place on success,
+	// so a failed or cancelled render never leaves a partial file at outPath
+	// (which would suppress regeneration and be scanned in as a corrupt video).
+	tmpOut := outPath + ".part.mp4"
+	args := []string{script, beatsPath, srtPath, videoPath, tmpOut,
 		"--dub-url", dubURL, "--bedvol", bedvol}
 	if voice != "" {
 		args = append(args, "--voice", voice)
@@ -294,12 +298,13 @@ func renderRecapViaScript(ctx context.Context, script string, beats []recapBeat,
 		logger.Debugf("[recap] render_recap: %s", strings.TrimSpace(string(out)))
 	}
 	if runErr != nil {
+		_ = os.Remove(tmpOut)
 		return fmt.Errorf("%w: %s", runErr, strings.TrimSpace(string(out)))
 	}
-	if _, serr := os.Stat(outPath); serr != nil {
+	if _, serr := os.Stat(tmpOut); serr != nil {
 		return fmt.Errorf("render script produced no output file: %w", serr)
 	}
-	return nil
+	return os.Rename(tmpOut, outPath)
 }
 
 // recapOutputPath returns "<dir>/<name>.<lang>-recap.mp4".

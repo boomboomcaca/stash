@@ -288,10 +288,14 @@ def main():
     for (s, e, t) in disp:
         lns = lines_of(t); tot = sum(len(x) for x in lns) or 1; tt = s
         for i, ln in enumerate(lns):
-            d = e if i == len(lns) - 1 else tt + (e - s) * (len(ln) / tot)
+            # Clamp to e so tt never overshoots: earlier 0.6s bumps can exhaust the
+            # span, and an unclamped d would make the next cue end before it starts.
+            d = e if i == len(lns) - 1 else min(e, tt + (e - s) * (len(ln) / tot))
             if d - tt < 0.6:
                 d = min(e, tt + 0.6)
-            rows.append((tt, d, ln)); tt = d
+            if d > tt:
+                rows.append((tt, d, ln))
+            tt = d
     srtp = os.path.join(work, "disp.srt")
     with open(srtp, "w", encoding="utf-8") as f:
         for i, (s, e, ln) in enumerate(rows, 1):

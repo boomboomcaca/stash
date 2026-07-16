@@ -115,6 +115,13 @@ export function useSubtitleParser({
           if (onSubtitlesLoaded) {
             onSubtitlesLoaded(cues);
           }
+        } else {
+          // Clear the previous track's cues so a failed load isn't masked
+          console.error(`Failed to load subtitles: HTTP ${response.status}`);
+          setParsedSubtitles(null);
+          if (onSubtitlesLoaded) {
+            onSubtitlesLoaded([]);
+          }
         }
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {

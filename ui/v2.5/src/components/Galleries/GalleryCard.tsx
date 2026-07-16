@@ -46,11 +46,17 @@ export const GalleryPreview: React.FC<IGalleryPreviewProps> = ({
       )}
       {gallery.image_count > 0 && (
         <GalleryPreviewScrubber
-          previewPath={withApiKey(gallery.paths.preview) ?? ""}
-          defaultPath={withApiKey(gallery.paths.cover) ?? ""}
+          previewPath={gallery.paths.preview ?? ""}
+          defaultPath={gallery.paths.cover ?? ""}
           imageCount={gallery.image_count}
           onClick={onScrubberClick}
-          onPathChanged={setImgSrc}
+          // apply the api key to the final URL, after the scrubber has
+          // appended the image index to previewPath
+          onPathChanged={(src) =>
+            setImgSrc(
+              typeof src === "string" ? withApiKey(src) ?? undefined : src
+            )
+          }
           disabled={disabled}
         />
       )}

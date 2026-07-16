@@ -204,6 +204,9 @@ export const createClient = () => {
   const headers: Record<string, string> = {};
   if (apiKey) {
     headers.ApiKey = apiKey;
+    // WebSocket 升级请求无法携带自定义请求头，服务端在升级时从
+    // apikey 查询参数读取密钥（pkg/session/session.go），所以附加到 URL 上
+    wsUrl.searchParams.set("apikey", apiKey);
   }
 
   const httpLink = createUploadLink({

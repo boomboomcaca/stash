@@ -48,12 +48,12 @@ export const clearStoredServerConfig = () => {
 };
 
 export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
-  const [serverUrl, setServerUrl] = useState(
-    getStoredServerUrl() || "https://joynet.dynv6.net:11111/"
-  );
-  const [useCredentials, setUseCredentials] = useState(true);
-  const [username, setUsername] = useState("boom");
-  const [password, setPassword] = useState("1q12qw");
+  const [serverUrl, setServerUrl] = useState(getStoredServerUrl() || "");
+  const [useCredentials, setUseCredentials] = useState(false);
+  // Never hardcode credentials here: this component is bundled and shipped, so
+  // any literal username/password would leak in the distributed build.
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [apiKey, setApiKey] = useState(getStoredApiKey() || "");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

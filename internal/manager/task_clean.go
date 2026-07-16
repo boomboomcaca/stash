@@ -111,6 +111,13 @@ func (j *cleanJob) cleanEmptyGalleries(ctx context.Context) {
 }
 
 func (j *cleanJob) cleanEmptyScenes(ctx context.Context) {
+	// file-less scenes have no path, so they can never belong to a
+	// path-scoped clean (e.g. watcher-triggered partial cleans) - only
+	// sweep them on full-library cleans
+	if len(j.input.Paths) > 0 {
+		return
+	}
+
 	const batchSize = 1000
 	var toClean []int
 	findFilter := models.BatchFindFilter(batchSize)

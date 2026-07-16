@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"time"
 
 	"github.com/remeh/sizedwaitgroup"
@@ -72,6 +73,11 @@ type Manager struct {
 	scanSubs       *subscriptionManager
 	LibraryWatcher *LibraryWatcher
 	MemoryManager  *utils.MemoryManager
+
+	// watchedStashPaths is the stash-path snapshot from the last RefreshConfig,
+	// used to detect path changes that require refreshing the library watcher.
+	// nil until the first RefreshConfig call.
+	watchedStashPaths []string
 }
 
 var instance *Manager
@@ -121,6 +127,18 @@ func (s *Manager) RefreshConfig() {
 
 		s.ImageThumbnailGenerateWaitGroup.Size = cfg.GetParallelTasksWithAutoDetection()
 	}
+
+	// re-sync the library watcher when the configured stash paths change.
+	// Skip the first call (postInit), where the watcher is started afterwards
+	// with the current paths.
+	stashPaths := make([]string, 0, len(cfg.GetStashPaths()))
+	for _, sp := range cfg.GetStashPaths() {
+		stashPaths = append(stashPaths, sp.Path)
+	}
+	if s.watchedStashPaths != nil && !slices.Equal(s.watchedStashPaths, stashPaths) {
+		s.RefreshLibraryWatcher()
+	}
+	s.watchedStashPaths = stashPaths
 }
 
 // RefreshPluginCache refreshes the plugin cache.

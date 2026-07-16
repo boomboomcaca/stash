@@ -28,7 +28,6 @@ import (
 	"github.com/stashapp/stash/pkg/scene"
 	"github.com/stashapp/stash/pkg/scene/generate"
 	"github.com/stashapp/stash/pkg/txn"
-	"github.com/stashapp/stash/pkg/utils"
 )
 
 type ScanJob struct {
@@ -38,8 +37,6 @@ type ScanJob struct {
 
 	fileQueue chan file.ScannedFile
 	count     int
-
-	unmatchedCaptionFiles utils.MutexField[[]string]
 }
 
 func (j *ScanJob) Execute(ctx context.Context, progress *job.Progress) error {
@@ -196,21 +193,8 @@ func (j *ScanJob) queueFileFunc(ctx context.Context, f models.FS, zipFile *file.
 				return fs.SkipDir
 			}
 
-			// we don't include caption files in the file scan, but we do need
-			// to handle them
-			if fsutil.MatchExtension(path, video.CaptionExts) {
-				fileRepo := j.scanner.Repository.File
-				matched := video.AssociateCaptions(ctx, path, j.scanner.Repository.TxnManager, fileRepo, fileRepo)
-
-				if !matched {
-					logger.Debugf("No matching video file found for caption file %s", path)
-					j.unmatchedCaptionFiles.SetFunc(func(files []string) []string {
-						return append(files, path)
-					})
-				}
-
-				return nil
-			}
+			// caption files are collected in scanFilter.pendingCaptions and
+			// associated after the scan, once all video files are processed
 
 			logger.Debugf("Skipping file %s", path)
 			return nil
@@ -349,31 +333,6 @@ func (j *ScanJob) handleFile(ctx context.Context, f file.ScannedFile, progress *
 	r, err := j.scanner.ScanFile(ctx, f)
 	if err != nil {
 		return err
-	}
-
-	// if this is a new video file, match it with any unmatched caption files
-	if r.New && len(j.unmatchedCaptionFiles.Get()) > 0 {
-		videoFile, _ := r.File.(*models.VideoFile)
-
-		if videoFile != nil {
-			// try to match any unmatched caption files to this video file
-			for _, captionPath := range j.unmatchedCaptionFiles.Get() {
-				if video.MatchesCaption(videoFile.Path, captionPath) {
-					video.AssociateCaptions(ctx, captionPath, j.scanner.Repository.TxnManager, j.scanner.Repository.File, j.scanner.Repository.File)
-
-					// remove from the unmatched list
-					j.unmatchedCaptionFiles.SetFunc(func(files []string) []string {
-						newFiles := make([]string, 0, len(files)-1)
-						for _, f := range files {
-							if f != captionPath {
-								newFiles = append(newFiles, f)
-							}
-						}
-						return newFiles
-					})
-				}
-			}
-		}
 	}
 
 	// clean captions - scene handler handles this as well, but
@@ -593,8 +552,12 @@ func (f *scanFilter) Accept(ctx context.Context, path string, info fs.FileInfo, 
 		return false
 	}
 
-	// exit early on cutoff
-	if info.Mode().IsRegular() && info.ModTime().Before(f.minModTime) {
+	// exit early on cutoff, but never skip caption files on mtime: an
+	// incremental scan may add a video next to a pre-existing (older) caption,
+	// and captions are collected into pendingCaptions and associated below
+	// regardless of when they last changed (association is idempotent).
+	if info.Mode().IsRegular() && info.ModTime().Before(f.minModTime) &&
+		!fsutil.MatchExtension(path, video.CaptionExts) {
 		return false
 	}
 

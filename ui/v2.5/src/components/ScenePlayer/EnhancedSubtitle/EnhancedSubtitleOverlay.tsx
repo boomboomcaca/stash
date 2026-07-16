@@ -415,6 +415,10 @@ export const EnhancedSubtitleOverlay: React.FC<
         },
         closeDictionary: () => setShowDictionary(false),
       });
+      // Clear the parent's ref on unmount so it never keeps a stale object
+      return () => {
+        onNavigationRef(null);
+      };
     }
   }, [
     onNavigationRef,

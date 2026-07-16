@@ -122,7 +122,7 @@ export function usePlayerEvents({
 
     player.on("ended", onComplete);
 
-    return () => player.off("ended");
+    return () => player.off("ended", onComplete);
   }, [getPlayer, onComplete]);
 
   useEffect(() => {

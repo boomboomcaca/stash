@@ -28,9 +28,9 @@ var (
 
 func getFavoritesFile() string {
 	favoritesFileOnce.Do(func() {
-		// Get config directory from stash config
+		// GetConfigPath already returns the config directory
 		configDir := config.GetInstance().GetConfigPath()
-		favoritesFile = filepath.Join(filepath.Dir(configDir), "favorites.json")
+		favoritesFile = filepath.Join(configDir, "favorites.json")
 	})
 	return favoritesFile
 }

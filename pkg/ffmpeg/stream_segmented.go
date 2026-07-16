@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/url"
@@ -757,6 +758,8 @@ func (sm *StreamManager) startTranscode(stream *runningStream, segment int, done
 			if n > 0 {
 				if len(errStr)+n > maxBufferSize {
 					errStr = append(errStr, []byte("... (truncated)")...)
+					// keep draining to EOF so ffmpeg never blocks on a full pipe
+					_, _ = io.Copy(io.Discard, stderr)
 					break
 				}
 				errStr = append(errStr, stderrBuf[:n]...)
@@ -773,6 +776,8 @@ func (sm *StreamManager) startTranscode(stream *runningStream, segment int, done
 			if n > 0 {
 				if len(outStr)+n > maxBufferSize {
 					outStr = append(outStr, []byte("... (truncated)")...)
+					// keep draining to EOF so ffmpeg never blocks on a full pipe
+					_, _ = io.Copy(io.Discard, stdout)
 					break
 				}
 				outStr = append(outStr, stdoutBuf[:n]...)

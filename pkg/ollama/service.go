@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -189,14 +190,26 @@ type DictionaryDefinition struct {
 
 // Service provides Ollama functionality
 type Service struct {
+	// mu guards config and httpClient, which are replaced (never mutated in
+	// place) by UpdateConfig while requests are in flight.
+	mu         sync.RWMutex
 	config     *OllamaConfig
 	httpClient *http.Client
 	logger     *logrus.Entry
 }
 
+// snapshot returns a consistent config/client pair for use by a single request.
+func (s *Service) snapshot() (*OllamaConfig, *http.Client) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.config, s.httpClient
+}
+
 // GenerateMistral generates text using Mistral AI chat completions API
 func (s *Service) GenerateMistral(ctx context.Context, prompt string, sysPrompt string) (string, error) {
-	apiKey := s.config.MistralAPIKey
+	config, client := s.snapshot()
+
+	apiKey := config.MistralAPIKey
 	if apiKey == "" {
 		return "", fmt.Errorf("mistral API key is not configured. Please configure it in settings")
 	}
@@ -235,7 +248,7 @@ func (s *Service) GenerateMistral(ctx context.Context, prompt string, sysPrompt 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := s.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate text with Mistral: %w", err)
 	}
@@ -287,33 +300,40 @@ func NewService(config *OllamaConfig) *Service {
 
 // GetConfig returns the current configuration
 func (s *Service) GetConfig() *OllamaConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.config
 }
 
 // UpdateConfig updates the service configuration
 func (s *Service) UpdateConfig(config *OllamaConfig) {
 	if config != nil {
-		s.config = config
-
-		// Update HTTP client timeout
 		timeout := time.Duration(config.Timeout) * time.Millisecond
 		if timeout < time.Second {
 			timeout = 30 * time.Second
 		}
-		s.httpClient.Timeout = timeout
+
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		s.config = config
+		// Replace the client rather than mutating the shared one, which may be
+		// in use by concurrent requests
+		s.httpClient = &http.Client{Timeout: timeout}
 	}
 }
 
 // IsAvailable checks if the Ollama service is available
 func (s *Service) IsAvailable(ctx context.Context) bool {
-	if !s.config.Enabled {
+	config, client := s.snapshot()
+
+	if !config.Enabled {
 		return false
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	versionURL, err := url.JoinPath(s.config.BaseURL, "/api/version")
+	versionURL, err := url.JoinPath(config.BaseURL, "/api/version")
 	if err != nil {
 		s.logger.WithError(err).Error("Failed to build version URL")
 		return false
@@ -325,7 +345,7 @@ func (s *Service) IsAvailable(ctx context.Context) bool {
 		return false
 	}
 
-	resp, err := s.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		s.logger.WithError(err).Debug("Ollama service not available")
 		return false
@@ -337,7 +357,9 @@ func (s *Service) IsAvailable(ctx context.Context) bool {
 
 // GetModels retrieves the list of available models from Ollama
 func (s *Service) GetModels(ctx context.Context) ([]string, error) {
-	tagsURL, err := url.JoinPath(s.config.BaseURL, "/api/tags")
+	config, client := s.snapshot()
+
+	tagsURL, err := url.JoinPath(config.BaseURL, "/api/tags")
 	if err != nil {
 		return nil, fmt.Errorf("failed to build tags URL: %w", err)
 	}
@@ -347,7 +369,7 @@ func (s *Service) GetModels(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to create tags request: %w", err)
 	}
 
-	resp, err := s.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get models: %w", err)
 	}
@@ -372,11 +394,13 @@ func (s *Service) GetModels(ctx context.Context) ([]string, error) {
 
 // Generate generates text using Ollama chat API with think mode disabled
 func (s *Service) Generate(ctx context.Context, prompt string, model string, sysPrompt string) (string, error) {
+	config, client := s.snapshot()
+
 	if model == "" {
-		model = s.config.Model
+		model = config.Model
 	}
 
-	chatURL, err := url.JoinPath(s.config.BaseURL, "/api/chat")
+	chatURL, err := url.JoinPath(config.BaseURL, "/api/chat")
 	if err != nil {
 		return "", fmt.Errorf("failed to build chat URL: %w", err)
 	}
@@ -423,7 +447,7 @@ func (s *Service) Generate(ctx context.Context, prompt string, model string, sys
 		"think":      false,
 	}).Debug("Generating text with Ollama (think disabled)")
 
-	resp, err := s.httpClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate text: %w", err)
 	}
@@ -499,7 +523,7 @@ func (s *Service) getSystemPrompt(language string) string {
 	if strings.ToLower(language) == "en" {
 		return "English only. Plain text, no Markdown. Keep each item to one sentence. Be concise."
 	}
-	sysPrompt := s.config.SystemPrompt
+	sysPrompt := s.GetConfig().SystemPrompt
 	if sysPrompt == "" {
 		sysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
 	}
@@ -520,7 +544,7 @@ Format (plain text only):
 ● Context Meaning:
 ● Collocations: xxx`
 	} else {
-		promptTemplate = s.config.PromptTemplate
+		promptTemplate = s.GetConfig().PromptTemplate
 	}
 
 	if contextStr == "" {

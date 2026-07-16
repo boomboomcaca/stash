@@ -232,6 +232,15 @@ def run_chunked(transcript, target_lang, max_chars, logf):
     n = len(chunks)
     if n == 0:
         return []
+    # Widen windows when the budget can't fund every chunk at the 120-char floor,
+    # otherwise the merged script totals n*120 chars and blows past max_chars.
+    max_n = max(1, max_chars // 120)
+    if n > max_n:
+        ncues = sum(len(c) for c in chunks)
+        k = -(-ncues // max_n)  # ceil-div
+        chunks = _chunk_lines(transcript, k)
+        n = len(chunks)
+        logf("budget-tight: widened chunks to %d cues/chunk (%d chunks)", k, n)
     glossary = build_glossary(transcript, target_lang, logf) if GLOSSARY_ON else ""
     per_chars = max(120, max_chars // n)
     results = [None] * n

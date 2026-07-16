@@ -114,19 +114,15 @@ func (d *FileDeleter) MarkMarkerFiles(scene *models.Scene, seconds int) error {
 // Destroy deletes a scene and its associated relationships from the
 // database.
 func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter *FileDeleter, deleteGenerated, deleteFile, deleteSubtitles, destroyFileEntry bool) error {
-	// Only delete markers if we're actually deleting the scene
-	// If only deleting subtitles or generated files, keep the markers
-	if deleteFile {
-		mqb := s.MarkerRepository
-		markers, err := mqb.FindBySceneID(ctx, scene.ID)
-		if err != nil {
-			return err
-		}
+	mqb := s.MarkerRepository
+	markers, err := mqb.FindBySceneID(ctx, scene.ID)
+	if err != nil {
+		return err
+	}
 
-		for _, m := range markers {
-			if err := DestroyMarker(ctx, scene, m, mqb, fileDeleter); err != nil {
-				return err
-			}
+	for _, m := range markers {
+		if err := DestroyMarker(ctx, scene, m, mqb, fileDeleter); err != nil {
+			return err
 		}
 	}
 
@@ -158,12 +154,8 @@ func (s *Service) Destroy(ctx context.Context, scene *models.Scene, fileDeleter 
 		}
 	}
 
-	// Only destroy the scene record if we're actually deleting the scene file
-	// If only deleting subtitles or generated files, keep the scene record
-	if deleteFile {
-		if err := s.Repository.Destroy(ctx, scene.ID); err != nil {
-			return err
-		}
+	if err := s.Repository.Destroy(ctx, scene.ID); err != nil {
+		return err
 	}
 
 	return nil
@@ -257,76 +249,54 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 			}
 		}
 
-		// Also check for common subtitle file patterns that might not be in database
-		videoPath := f.Base().Path
-		videoDir := filepath.Dir(videoPath)
-		videoBase := strings.TrimSuffix(filepath.Base(videoPath), filepath.Ext(videoPath))
-
-		// Check for common subtitle extensions using the centralized SubtitleExts list
-		for _, extWithoutDot := range video.SubtitleExts {
-			ext := "." + extWithoutDot
-			// Check for files with same basename + language code + extension
-			pattern := filepath.Join(videoDir, videoBase+".*"+ext)
-			matches, err := filepath.Glob(pattern)
-			if err == nil {
-				for _, match := range matches {
-					// Deliberately broad: "<base>.*<ext>" also matches the derived
-					// captions ("<base>.zh-dub.zh.srt") and other related subtitles.
-					// Deleting a video with its files should sweep ALL subtitles tied
-					// to it, leaving no orphans behind.
-					// Check if this file is not already marked for deletion
-					alreadyMarked := false
-					for _, marked := range captionFiles {
-						if marked == match {
-							alreadyMarked = true
-							break
-						}
-					}
-					if !alreadyMarked {
-						captionFiles = append(captionFiles, match)
-						logger.Infof("Marking additional subtitle file for deletion: %s", match)
-					}
-				}
-			}
-
-			// Also check for files with same basename + extension (no language code)
-			simplePattern := filepath.Join(videoDir, videoBase+ext)
-			exists, _ := fsutil.FileExists(simplePattern)
-			if exists {
-				alreadyMarked := false
-				for _, marked := range captionFiles {
-					if marked == simplePattern {
-						alreadyMarked = true
-						break
-					}
-				}
-				if !alreadyMarked {
-					captionFiles = append(captionFiles, simplePattern)
-					logger.Infof("Marking simple subtitle file for deletion: %s", simplePattern)
-				}
-			}
-		}
-
-		// Also sweep the intermediate tagged dub-scripts ("<base>.<lang>.srt.dub")
-		// generated alongside the captions; they end in ".dub" (not a subtitle
-		// extension) so the loop above misses them, and they would otherwise be
-		// orphaned when the video and its subtitles are deleted.
+		// Also sweep subtitle files that might not be in the database, plus the
+		// intermediate tagged dub-scripts ("<base>.<lang>.srt.dub") generated
+		// alongside the captions.
+		//
+		// Deliberately broad: "<base>.<anything><ext>" also matches the derived
+		// captions ("<base>.zh-dub.zh.srt") and other related subtitles.
+		// Deleting a video with its files should sweep ALL subtitles tied to
+		// it, leaving no orphans behind.
 		//
 		// Match by reading the directory rather than with filepath.Glob: videoBase
 		// is a user-controlled filename that commonly contains glob metacharacters
 		// (e.g. "Show [1080p]"), which turn the pattern into a character class —
-		// silently matching a *different* video's dub scripts while leaving this
+		// silently matching a *different* video's subtitles while leaving this
 		// video's own behind, or erroring out entirely on an unbalanced bracket.
-		dubPrefix := videoBase + "."
+		videoPath := f.Base().Path
+		videoDir := filepath.Dir(videoPath)
+		videoBase := strings.TrimSuffix(filepath.Base(videoPath), filepath.Ext(videoPath))
+
+		taggedPrefix := videoBase + "."
 		if entries, derr := os.ReadDir(videoDir); derr == nil {
 			for _, entry := range entries {
 				if entry.IsDir() {
 					continue
 				}
 				name := entry.Name()
-				if !strings.HasPrefix(name, dubPrefix) || !strings.HasSuffix(name, ".dub") {
+
+				matched := false
+				for _, extWithoutDot := range video.SubtitleExts {
+					ext := "." + extWithoutDot
+					// same basename + extension, with or without a language code
+					if name == videoBase+ext ||
+						(strings.HasPrefix(name, taggedPrefix) && strings.HasSuffix(name, ext)) {
+						matched = true
+						break
+					}
+				}
+
+				// dub-scripts end in ".dub" (not a subtitle extension), so the
+				// loop above misses them
+				if !matched &&
+					strings.HasPrefix(name, taggedPrefix) && strings.HasSuffix(name, ".dub") {
+					matched = true
+				}
+
+				if !matched {
 					continue
 				}
+
 				match := filepath.Join(videoDir, name)
 				alreadyMarked := false
 				for _, marked := range captionFiles {
@@ -337,7 +307,7 @@ func (s *Service) deleteCaptionFiles(ctx context.Context, f models.File, fileDel
 				}
 				if !alreadyMarked {
 					captionFiles = append(captionFiles, match)
-					logger.Infof("Marking intermediate dub-script for deletion: %s", match)
+					logger.Infof("Marking subtitle/dub-script file for deletion: %s", match)
 				}
 			}
 		}

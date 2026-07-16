@@ -65,21 +65,24 @@ export function useSubtitleDrag({
       const deltaX = e.clientX - dragStartRef.current.x;
       const deltaY = e.clientY - dragStartRef.current.y;
 
+      // Use the just-determined mode for this event; the dragMode state is
+      // stale in this closure until the next render
+      let mode = dragMode;
       if (!dragStartRef.current.hasDeterminedMode) {
         const threshold = 10;
         const absX = Math.abs(deltaX);
         const absY = Math.abs(deltaY);
 
         if (absX > threshold || absY > threshold) {
-          const newMode = absX > absY ? "size" : "position";
-          setDragMode(newMode);
+          mode = absX > absY ? "size" : "position";
+          setDragMode(mode);
           dragStartRef.current.hasDeterminedMode = true;
         } else {
           return;
         }
       }
 
-      if (dragMode === "position") {
+      if (mode === "position") {
         const newY = dragStartRef.current.startY + deltaY;
         const containerHeight = window.innerHeight;
         const containerWidth = window.innerWidth;
@@ -89,7 +92,7 @@ export function useSubtitleDrag({
           ? containerHeight * 0.8
           : containerHeight * 0.2;
         setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
-      } else if (dragMode === "size") {
+      } else if (mode === "size") {
         const sensitivity = 0.003;
         const newSize =
           dragStartRef.current.startFontSize - deltaX * sensitivity;
@@ -112,21 +115,24 @@ export function useSubtitleDrag({
       const deltaX = touch.clientX - dragStartRef.current.x;
       const deltaY = touch.clientY - dragStartRef.current.y;
 
+      // Use the just-determined mode for this event; the dragMode state is
+      // stale in this closure until the next render
+      let mode = dragMode;
       if (!dragStartRef.current.hasDeterminedMode) {
         const threshold = 1;
         const absX = Math.abs(deltaX);
         const absY = Math.abs(deltaY);
 
         if (absX > threshold || absY > threshold) {
-          const newMode = absX > absY ? "size" : "position";
-          setDragMode(newMode);
+          mode = absX > absY ? "size" : "position";
+          setDragMode(mode);
           dragStartRef.current.hasDeterminedMode = true;
         } else {
           return;
         }
       }
 
-      if (dragMode === "position") {
+      if (mode === "position") {
         const newY = dragStartRef.current.startY + deltaY;
         const containerHeight = window.innerHeight;
         const containerWidth = window.innerWidth;
@@ -136,7 +142,7 @@ export function useSubtitleDrag({
           ? containerHeight * 0.8
           : containerHeight * 0.2;
         setDragPosition({ y: Math.max(minY, Math.min(maxY, newY)) });
-      } else if (dragMode === "size") {
+      } else if (mode === "size") {
         const sensitivity = 0.003;
         const newSize =
           dragStartRef.current.startFontSize - deltaX * sensitivity;

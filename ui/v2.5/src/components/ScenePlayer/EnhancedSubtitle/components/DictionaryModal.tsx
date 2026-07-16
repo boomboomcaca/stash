@@ -168,7 +168,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         setSelectedActionIndex(
           selectedActionIndexRef.current > 0
             ? selectedActionIndexRef.current - 1
-            : 3
+            : 4
         );
         return;
       }
@@ -182,7 +182,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         e.preventDefault();
         e.stopPropagation();
         setSelectedActionIndex(
-          selectedActionIndexRef.current < 3
+          selectedActionIndexRef.current < 4
             ? selectedActionIndexRef.current + 1
             : 0
         );
@@ -201,11 +201,13 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
         const currentIndex = selectedActionIndexRef.current;
         if (currentIndex === 0) {
           // 直接通过回车或空格来切换AI提供商
-          const nextProvider = aiProvider === "mistral" ? "ollama" : "mistral";
+          const nextProvider =
+            localAiProviderRef.current === "mistral" ? "ollama" : "mistral";
           setLocalAiProvider(nextProvider);
           setAiProviderRef.current(nextProvider);
         } else if (currentIndex === 1) {
-          const nextLang = targetLanguage === "en" ? "zh" : "en";
+          const nextLang =
+            localTargetLanguageRef.current === "en" ? "zh" : "en";
           setLocalTargetLanguage(nextLang);
           setTargetLanguageRef.current(nextLang);
         } else if (currentIndex === 2) {
@@ -259,13 +261,7 @@ export const DictionaryModal: React.FC<IDictionaryModalProps> = ({
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
     };
-  }, [
-    showDictionary,
-    setShowDictionary,
-    setSelectedActionIndex,
-    aiProvider,
-    targetLanguage,
-  ]);
+  }, [showDictionary, setShowDictionary, setSelectedActionIndex]);
 
   return (
     <Modal

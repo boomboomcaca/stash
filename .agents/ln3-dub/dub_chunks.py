@@ -17,8 +17,9 @@ REQ_TIMEOUT = 700          # per-chunk hard timeout (s) — bounded, never pins 
 RETRIES = 3
 
 def ts(t):
-    h=int(t//3600); m=int(t%3600//60); s=int(t%60); ms=int(round((t-int(t))*1000))
-    if ms==1000: s+=1; ms=0
+    # Integer milliseconds so rounding carries through s/m/h (no "00:02:60,000").
+    tms=max(0,int(round(t*1000)))
+    h,r=divmod(tms,3600000); m,r=divmod(r,60000); s,ms=divmod(r,1000)
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
 def parse_srt(path):

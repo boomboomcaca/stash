@@ -79,12 +79,17 @@ func (e *ThumbnailEncoder) GetThumbnail(f models.File, maxSize int) ([]byte, err
 	// First, check file size if possible - skip size check for now as it's complex with the current API
 	// We'll rely on the io.LimitReader to prevent excessive memory usage
 
-	// Use io.LimitReader to prevent reading more than maxBufferSize
-	limitedReader := io.LimitReader(reader, maxBufferSize)
+	// Read one byte past the limit so oversized files are detected and
+	// rejected rather than silently truncated and fed to the decoder
+	limitedReader := io.LimitReader(reader, maxBufferSize+1)
 
 	buf := new(bytes.Buffer)
 	if _, err := buf.ReadFrom(limitedReader); err != nil {
 		return nil, err
+	}
+
+	if buf.Len() > maxBufferSize {
+		return nil, fmt.Errorf("%w: file exceeds %d byte thumbnail limit", ErrNotSupportedForThumbnail, maxBufferSize)
 	}
 
 	data := buf.Bytes()

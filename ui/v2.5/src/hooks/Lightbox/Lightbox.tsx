@@ -439,6 +439,20 @@ export const LightboxComponent: React.FC<IProps> = ({
 
   const handleKey = useCallback(
     (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Escape") {
+        close();
+        return;
+      }
+      // don't hijack keys while typing in inputs (e.g. slideshow delay)
+      const target = e.target as HTMLElement | null;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        target?.isContentEditable
+      )
+        return;
       const key = e.key.toLowerCase();
       if (
         e.repeat &&
@@ -450,7 +464,6 @@ export const LightboxComponent: React.FC<IProps> = ({
         setInstant();
       if (e.key === "ArrowLeft" || key === "a") handleLeft();
       else if (e.key === "ArrowRight" || key === "d") handleRight();
-      else if (e.key === "Escape") close();
     },
     [setInstant, handleLeft, handleRight, close]
   );

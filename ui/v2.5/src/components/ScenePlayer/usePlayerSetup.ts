@@ -4,6 +4,8 @@ import {
   VIDEO_PLAYER_ID,
   togglePseudoFullscreen,
   isPseudoFullscreen,
+  enterPseudoFullscreen,
+  exitPseudoFullscreen,
 } from "./util";
 import { handleHotkeys } from "./handleHotkeys";
 import { holdSeekKeyup, stopHoldSeek } from "./hold-seek";
@@ -161,6 +163,7 @@ export function usePlayerSetup({
         },
         skipButtons: {},
         trackActivity: {},
+        wakeSentinel: {},
         vrMenu: {},
         abLoopPlugin: {
           start: 0,
@@ -263,7 +266,8 @@ export function usePlayerSetup({
     if (vjs.requestFullscreen) {
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       (vjs.requestFullscreen as any) = function () {
-        togglePseudoFullscreen(vjs);
+        // 保持进入语义（幂等），videojs-mobile-ui 旋转时会无条件调用
+        enterPseudoFullscreen(vjs);
         return Promise.resolve();
       };
     }
@@ -271,7 +275,7 @@ export function usePlayerSetup({
     if (vjs.exitFullscreen) {
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       (vjs.exitFullscreen as any) = function () {
-        togglePseudoFullscreen(vjs);
+        exitPseudoFullscreen(vjs);
         return Promise.resolve();
       };
     }
@@ -318,6 +322,8 @@ export function usePlayerSetup({
 
     // Video player destructor
     return () => {
+      // 退出伪全屏，清理模块级状态和 body 上的样式类（未处于伪全屏时为 no-op）
+      exitPseudoFullscreen(vjs);
       stopHoldSeek(vjs);
       vjs.el()?.removeEventListener("keyup", onHoldSeekKeyUp);
       vjs.el()?.removeEventListener("blur", onHoldSeekBlur, true);

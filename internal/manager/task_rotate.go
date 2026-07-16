@@ -49,12 +49,16 @@ func (j *RotateVideoJob) Execute(ctx context.Context, progress *job.Progress) er
 	logger.Infof("Rotating video %s by %d degrees", inputPath, j.Rotation)
 	progress.SetTotal(100)
 
-	// Create temp output file
-	dir := filepath.Dir(inputPath)
+	// Create temp output file in the generated tmp dir - writing it next to
+	// the source could clobber an existing library file, and a partial file
+	// left behind on failure would be ingested by the next scan
 	ext := filepath.Ext(inputPath)
-	baseName := filepath.Base(inputPath)
-	baseName = baseName[:len(baseName)-len(ext)]
-	tempOutput := filepath.Join(dir, fmt.Sprintf("%s_rotated%s", baseName, ext))
+	if err := instance.Paths.Generated.EnsureTmpDir(); err != nil {
+		return fmt.Errorf("creating tmp directory: %w", err)
+	}
+	tempOutput := instance.Paths.Generated.GetTmpPath(fmt.Sprintf("rotate_%d%s", scene.ID, ext))
+	// covers all failure paths; no-op after SafeMove succeeds
+	defer func() { _ = os.Remove(tempOutput) }()
 
 	// Get transpose filter value based on rotation
 	var transposeFilter string
@@ -110,8 +114,6 @@ func (j *RotateVideoJob) Execute(ctx context.Context, progress *job.Progress) er
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		logger.Errorf("ffmpeg error: %s", string(output))
-		// Clean up temp file if it exists
-		_ = os.Remove(tempOutput)
 		return fmt.Errorf("ffmpeg error: %w - %s", err, string(output))
 	}
 
@@ -121,7 +123,6 @@ func (j *RotateVideoJob) Execute(ctx context.Context, progress *job.Progress) er
 	// First, backup original (rename to .bak)
 	backupPath := inputPath + ".bak"
 	if err := os.Rename(inputPath, backupPath); err != nil {
-		_ = os.Remove(tempOutput)
 		return fmt.Errorf("failed to backup original file: %w", err)
 	}
 

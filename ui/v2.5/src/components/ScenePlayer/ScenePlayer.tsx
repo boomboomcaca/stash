@@ -559,7 +559,8 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           // 拖拽开始时，记录播放状态并暂停
           if (!draggingState.current.isDragging) {
             draggingState.current.isDragging = true;
-            draggingState.current.wasPlaying = !player.paused();
+            // onScrubberScroll 已经先暂停了播放器，所以这里要用暂停前的快照
+            draggingState.current.wasPlaying = !pausedBeforeScrubber.current;
             if (draggingState.current.wasPlaying) {
               player.pause();
             }

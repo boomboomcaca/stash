@@ -1410,12 +1410,12 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       // 更新视频的实际时间位置
       // 注意：在拖动过程中，currentTime 的更新可能会触发 Video.js 的用户活动检测
       // 但我们通过修改 reportUserActivity 来阻止这个行为
+      // 必须走 player API 而不是原生 video 元素：转码流（offset 中间件）下
+      // 原生时间轴是相对片段的，直接写原生 currentTime 会把偏移量算两次
+      this.player.currentTime(currentProgress);
       const videoElement = this.player
         .el()
         .querySelector("video") as HTMLVideoElement;
-      if (videoElement) {
-        videoElement.currentTime = currentProgress;
-      }
 
       // 手动触发 timeupdate 事件，让进度条更新，但不触发用户活动（通过 reportUserActivity 拦截）
       try {

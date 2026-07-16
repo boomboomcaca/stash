@@ -10,7 +10,6 @@ import (
 	"github.com/stashapp/stash/internal/manager"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/session"
-	"github.com/stashapp/stash/pkg/signedurl"
 )
 
 func convertVideoFile(f models.File) (*models.VideoFile, error) {
@@ -118,9 +117,10 @@ func (r *sceneResolver) Paths(ctx context.Context, obj *models.Scene) (*ScenePat
 			return nil, fmt.Errorf("user ID not found")
 		}
 
-		// Sign the stream prefix
+		// Sign the stream prefix. Sign the server-local path (no proxy
+		// prefix): verification derives the prefix from the local request path.
 		streamURL := builder.GetStreamURL("")
-		streamURL.RawQuery = signedParams(config, *userID, signedurl.DerivePrefix(streamURL.Path)).Encode()
+		streamURL.RawQuery = signedParams(config, *userID, "/scene/"+builder.SceneID+"/stream").Encode()
 		streamPath = streamURL.String()
 
 		// Sign the caption prefix
@@ -327,7 +327,8 @@ func (r *sceneResolver) SceneStreams(ctx context.Context, obj *models.Scene) ([]
 		if userID == nil {
 			return nil, fmt.Errorf("user ID not found")
 		}
-		streamURL.RawQuery = signedParams(config, *userID, signedurl.DerivePrefix(streamURL.Path)).Encode()
+		// sign the server-local path (no proxy prefix) to match verification
+		streamURL.RawQuery = signedParams(config, *userID, "/scene/"+builder.SceneID+"/stream").Encode()
 	} else {
 		apiKey := config.GetAPIKey()
 		if apiKey != "" {
