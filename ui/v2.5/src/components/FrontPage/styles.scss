@@ -101,7 +101,11 @@
 
 .scene-skeleton {
   max-width: 320px;
-  min-height: 365px;
+
+  /* must match the rendered .scene-card height (320x253 at zoom-1), otherwise
+     every card slot collapses ~112px when data arrives and the front page
+     accumulates massive CLS (measured 0.89 with the 365px placeholder) */
+  min-height: 253px;
   min-width: 320px;
 
   @media (max-width: 576px) {
