@@ -314,10 +314,46 @@ export function usePlayerSetup({
       if (vol) vol.setAttribute("aria-hidden", "true");
     };
 
+    // video.js 内置的字幕样式设置(TextTrackSettings)里的 <select> 由库生成:
+    // 无 id/name,且原生 aria-labelledby 有一半指向不存在的元素(video.js 的
+    // 缺陷),Chrome 因此报 "no label" / "should have id or name"。这里给每个
+    // select 补一个稳定的 id,并按其 video.js 组件类名直接设一个可靠的 aria-label
+    // (覆盖坏掉的 aria-labelledby),让屏幕阅读器和表单审计都能识别。
+    const TRACK_SETTING_LABELS: Record<string, string> = {
+      "vjs-fg-color": "Text color",
+      "vjs-text-opacity": "Text opacity",
+      "vjs-bg-color": "Background color",
+      "vjs-bg-opacity": "Background opacity",
+      "vjs-window-color": "Window color",
+      "vjs-window-opacity": "Window opacity",
+      "vjs-font-percent": "Font size",
+      "vjs-edge-style": "Text edge style",
+      "vjs-font-family": "Font family",
+    };
+    const labelTrackSettings = () => {
+      const selects = vjs
+        .el()
+        ?.querySelectorAll<HTMLSelectElement>(".vjs-track-setting select");
+      selects?.forEach((sel, i) => {
+        if (!sel.id && !sel.name) sel.id = `vjs-track-setting-${i}`;
+        if (sel.getAttribute("aria-label")) return;
+        // The identifying class sits on the .vjs-track-setting wrapper for the
+        // primary selects and on a nested .vjs-opacity wrapper for the opacity
+        // ones — check the nearest wrapper first.
+        const wrapper =
+          sel.closest(".vjs-opacity") ?? sel.closest(".vjs-track-setting");
+        const key = Object.keys(TRACK_SETTING_LABELS).find((k) =>
+          wrapper?.classList.contains(k)
+        );
+        if (key) sel.setAttribute("aria-label", TRACK_SETTING_LABELS[key]);
+      });
+    };
+
     // 如果控制栏还未初始化，等待ready事件
     vjs.ready(() => {
       interceptFullscreenButton();
       hideVolumeA11y();
+      labelTrackSettings();
     });
 
     // Video player destructor

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { Button, Form } from "react-bootstrap";
 import { TruncatedText } from "src/components/Shared/TruncatedText";
@@ -35,12 +35,32 @@ interface ISliderProps {
   displayValue: string;
 }
 
+let sliderIdCounter = 0;
+
 const Slider: React.FC<ISliderProps> = (sliderProps: ISliderProps) => {
+  // Give every range input a stable id/name and an accessible name so screen
+  // readers (and Chrome's form audit) can identify it: prefer the semantic
+  // class (e.g. "brightness-slider"), falling back to a generated id for the
+  // sliders that pass no className (blur/rotate/scale/aspect). useId() isn't
+  // available on React 17, so use a mount-stable counter for the fallback.
+  const fallbackId = useRef<string>();
+  if (!fallbackId.current) {
+    sliderIdCounter += 1;
+    fallbackId.current = `filter-slider-${sliderIdCounter}`;
+  }
+  const sliderId = sliderProps.className
+    ? sliderProps.className.split(" ")[0]
+    : fallbackId.current;
   return (
     <div className="row form-group">
-      <span className="col-sm-3">{sliderProps.title}</span>
+      <label className="col-sm-3" htmlFor={sliderId}>
+        {sliderProps.title}
+      </label>
       <span className="col-sm-7">
         <Form.Control
+          id={sliderId}
+          name={sliderId}
+          aria-label={sliderProps.title}
           className={`filter-slider d-inline-flex ml-sm-3 ${sliderProps.className}`}
           type="range"
           min={sliderProps.range.min}
