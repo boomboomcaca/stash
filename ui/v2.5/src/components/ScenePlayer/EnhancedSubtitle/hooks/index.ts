@@ -1,6 +1,5 @@
 export {
   useSubtitleSettings,
-  loadConfig,
   type AutoPauseMode,
 } from "./useSubtitleSettings";
 export { useSubtitleDrag } from "./useSubtitleDrag";

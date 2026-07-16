@@ -20,7 +20,6 @@ interface IEnhancedSubtitleOverlayProps {
   isVisible: boolean;
   language?: string;
   isFullscreen?: boolean;
-  onToggleVisibility: () => void;
   onPausePlayer?: () => void;
   getPlayerPaused?: () => boolean;
   resetFontSizeTrigger?: number;
@@ -28,7 +27,6 @@ interface IEnhancedSubtitleOverlayProps {
   onCurrentCueChange?: (index: number) => void;
   onAPDoubleClick?: () => void;
   onPlay?: () => void;
-  onSeekToCue?: (cueIndex: number) => void;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onGetPlayer?: () => any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

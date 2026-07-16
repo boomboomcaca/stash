@@ -29,10 +29,3 @@ export interface ISegmentationOptions {
   enablePunctuation: boolean;
   minWordLength: number;
 }
-
-export interface ISubtitleTrackInfo {
-  language: string;
-  label: string;
-  src: string;
-  isActive: boolean;
-}

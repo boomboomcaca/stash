@@ -471,9 +471,6 @@ func planRecapClips(beats []recapBeat, cues []dubCue, videoDur, maxDur float64) 
 		if start < 0 {
 			start = 0
 		}
-		if videoDur > 0 && end > videoDur {
-			end = videoDur
-		}
 		// Size each clip to the spoken length of its narration rather than the raw
 		// cue span: clips whose cues are tight get EXTENDED so the synthesized
 		// speech is never cut off mid-sentence, and clips whose cues sprawl get

@@ -104,12 +104,12 @@ function offsetMiddleware(player: VideoJsPlayer) {
       // (e.g. ffmpeg cannot seek to that offset / emits an unparseable initial
       // fragment), leaving `seeking` set would permanently freeze the player
       // after a seek. Settle on canplay/loadeddata/error and via a watchdog.
-      const settle = (success: boolean) => {
+      const settle = () => {
         clearSeekSettlers();
         player.poster(poster);
         // Honour the paused-before-seek intent on EVERY settle path, not just
         // success. If a cold transcode seek takes longer than the watchdog, the
-        // watchdog runs settle(false) and detaches the canplay listener; without
+        // watchdog runs settle() and detaches the canplay listener; without
         // pausing here the pending tech.play() from the reload would resume a
         // scene the user had paused. Calling pause() also aborts that pending
         // play() so a late canplay can't auto-start it.
@@ -118,17 +118,15 @@ function offsetMiddleware(player: VideoJsPlayer) {
         }
         seeking = 0;
       };
-      const onReady = () => settle(true);
-      const onError = () => settle(false);
       detachSeekListeners = () => {
-        tech.off("canplay", onReady);
-        tech.off("loadeddata", onReady);
-        tech.off("error", onError);
+        tech.off("canplay", settle);
+        tech.off("loadeddata", settle);
+        tech.off("error", settle);
       };
-      tech.one("canplay", onReady);
-      tech.one("loadeddata", onReady); // some streams settle without a fresh canplay
-      tech.one("error", onError); // transcode/HTTP failure must not wedge play()
-      seekWatchdog = setTimeout(() => settle(false), seekWatchdogMs);
+      tech.one("canplay", settle);
+      tech.one("loadeddata", settle); // some streams settle without a fresh canplay
+      tech.one("error", settle); // transcode/HTTP failure must not wedge play()
+      seekWatchdog = setTimeout(settle, seekWatchdogMs);
 
       tech.trigger("timeupdate");
       tech.trigger("pause");

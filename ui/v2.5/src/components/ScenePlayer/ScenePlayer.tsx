@@ -670,9 +670,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                 isVisible={showEnhancedSubtitles}
                 isFullscreen={fullscreen}
                 language={subtitleLanguage}
-                onToggleVisibility={() =>
-                  setShowEnhancedSubtitles(!showEnhancedSubtitles)
-                }
                 onPausePlayer={() => getPlayer()?.pause()}
                 getPlayerPaused={() => getPlayer()?.paused() ?? true}
                 resetFontSizeTrigger={resetFontSizeTrigger}
@@ -680,12 +677,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                 onCurrentCueChange={handleCurrentCueChange}
                 onAPDoubleClick={toggleControlBarLock}
                 onPlay={() => getPlayer()?.play()}
-                onSeekToCue={(cueIndex) => {
-                  const player = getPlayer();
-                  if (player && subtitleCues[cueIndex]) {
-                    player.currentTime(subtitleCues[cueIndex].startTime);
-                  }
-                }}
                 onGetPlayer={getPlayer}
                 onNavigationRef={handleNavigationRef}
               />

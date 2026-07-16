@@ -13,7 +13,7 @@ interface ISubtitleSettings {
 }
 
 // Helper: Load config from localStorage with type safety
-export const loadConfig = <T>(
+const loadConfig = <T>(
   key: string,
   defaultValue: T,
   parser?: (value: string) => T

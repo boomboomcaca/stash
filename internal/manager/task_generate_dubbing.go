@@ -186,7 +186,7 @@ func dubScene(ctx context.Context, videoPath string, duration float64, overwrite
 			}
 		}
 	} else {
-		dc, err := dubSingleRequest(ctx, videoPath, string(srtBytes), duration, captionPath, dubCaptionPath, target, dubAudioPath)
+		dc, err := dubSingleRequest(ctx, videoPath, string(srtBytes), duration, dubCaptionPath, target, dubAudioPath)
 		if err != nil {
 			return err
 		}
@@ -458,10 +458,10 @@ func streamMultipartDub(body io.Reader, boundary, outPath string) (string, error
 // dubSingleRequest dubs the whole video in one request (short videos). It sends
 // the scene's background audio for remix, applies the dub service's recut
 // display caption, and performs the one-shot pace-refit re-dub. It returns the
-// display caption path to mux.
-func dubSingleRequest(ctx context.Context, videoPath, srt string, duration float64, captionPath, dubCaptionPath, target, dubAudioPath string) (string, error) {
+// display caption path to mux. The parent caption is intentionally never shown
+// on the dubbed video.
+func dubSingleRequest(ctx context.Context, videoPath, srt string, duration float64, dubCaptionPath, target, dubAudioPath string) (string, error) {
 	cfg := config.GetInstance()
-	_ = captionPath // parent caption is intentionally never shown on the dubbed video
 	// Default to NO caption: only the audio-aligned re-cut becomes the display
 	// caption below; otherwise the dub is muxed with no soft-sub.
 	displayCaption := ""
@@ -608,9 +608,6 @@ func chunkDubSRT(cues []dubCue, t0, t1 float64) (string, int) {
 		a := c.start - t0
 		if a < 0 {
 			a = 0
-		}
-		if a > dur {
-			a = dur
 		}
 		e := c.end - t0
 		if e > dur {

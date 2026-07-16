@@ -101,14 +101,6 @@ func autoDetectOllamaURL() string {
 	return "http://localhost:11434"
 }
 
-// OllamaRequest represents a request to Ollama API
-type OllamaRequest struct {
-	Model   string                 `json:"model"`
-	Prompt  string                 `json:"prompt"`
-	Stream  bool                   `json:"stream"`
-	Options map[string]interface{} `json:"options,omitempty"`
-}
-
 // OllamaChatMessage represents a message in chat format
 type OllamaChatMessage struct {
 	Role    string `json:"role"`
@@ -122,21 +114,6 @@ type OllamaChatRequest struct {
 	Stream   bool                   `json:"stream"`
 	Think    bool                   `json:"think"`
 	Options  map[string]interface{} `json:"options,omitempty"`
-}
-
-// OllamaResponse represents a response from Ollama API
-type OllamaResponse struct {
-	Model              string    `json:"model"`
-	CreatedAt          time.Time `json:"created_at"`
-	Response           string    `json:"response"`
-	Done               bool      `json:"done"`
-	Context            []int     `json:"context,omitempty"`
-	TotalDuration      int64     `json:"total_duration,omitempty"`
-	LoadDuration       int64     `json:"load_duration,omitempty"`
-	PromptEvalCount    int       `json:"prompt_eval_count,omitempty"`
-	PromptEvalDuration int64     `json:"prompt_eval_duration,omitempty"`
-	EvalCount          int       `json:"eval_count,omitempty"`
-	EvalDuration       int64     `json:"eval_duration,omitempty"`
 }
 
 // OllamaChatResponse represents a chat response from Ollama API
@@ -165,11 +142,6 @@ type OllamaModel struct {
 // OllamaModelsResponse represents the response from /api/tags
 type OllamaModelsResponse struct {
 	Models []OllamaModel `json:"models"`
-}
-
-// OllamaVersionResponse represents the response from /api/version
-type OllamaVersionResponse struct {
-	Version string `json:"version"`
 }
 
 // DictionaryEntry represents a dictionary entry for word explanation

@@ -5,7 +5,6 @@ interface IDragState {
   y: number;
   startY: number;
   x: number;
-  startX: number;
   startFontSize: number;
   hasDeterminedMode: boolean;
   initialX: number;
@@ -26,7 +25,6 @@ interface IUseDragProps {
 interface IUseDragResult {
   isDragging: boolean;
   dragMode: "position" | "size";
-  dragStartRef: React.MutableRefObject<IDragState>;
   handleAPMouseDown: (e: React.MouseEvent) => void;
   handleAPTouchStart: (e: React.TouchEvent) => void;
   handleAPClick: (e: React.MouseEvent) => void;
@@ -50,7 +48,6 @@ export function useSubtitleDrag({
     y: 0,
     startY: 0,
     x: 0,
-    startX: 0,
     startFontSize: 1.0,
     hasDeterminedMode: false,
     initialX: 0,
@@ -196,7 +193,6 @@ export function useSubtitleDrag({
         y: e.clientY,
         startY: dragPosition.y,
         x: e.clientX,
-        startX: 0,
         startFontSize: fontSize,
         hasDeterminedMode: false,
         initialX: e.clientX,
@@ -220,7 +216,6 @@ export function useSubtitleDrag({
         y: touch.clientY,
         startY: dragPosition.y,
         x: touch.clientX,
-        startX: 0,
         startFontSize: fontSize,
         hasDeterminedMode: false,
         initialX: touch.clientX,
@@ -296,7 +291,6 @@ export function useSubtitleDrag({
   return {
     isDragging,
     dragMode,
-    dragStartRef,
     handleAPMouseDown,
     handleAPTouchStart,
     handleAPClick,
