@@ -132,3 +132,4 @@ coverage.out
 __pycache__/
 *.pyc
 
+.tmp_frames/
