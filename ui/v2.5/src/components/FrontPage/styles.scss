@@ -102,10 +102,15 @@
 .scene-skeleton {
   max-width: 320px;
 
-  /* must match the rendered .scene-card height (320x253 at zoom-1), otherwise
-     every card slot collapses ~112px when data arrives and the front page
-     accumulates massive CLS (measured 0.89 with the 365px placeholder) */
-  min-height: 253px;
+  /* Reserve the TALLER scene-card height (320x295 at zoom-1). Scene cards are
+     253px without a metadata footer and 295px with one (rating/tags/organized
+     icons). Matching the skeleton and the loaded cards (see the
+     `.recommendation-row .scene-card` rule below) to the taller value keeps
+     every row a constant height, so a row whose scenes carry a footer no longer
+     shifts the rows beneath it when data replaces the skeletons. This takes the
+     front-page CLS from ~0.4 (253px skeleton) toward ~0, at the cost of a little
+     whitespace under footer-less cards. (Upstream was 365px → CLS ~0.89.) */
+  min-height: 295px;
   min-width: 320px;
 
   @media (max-width: 576px) {
@@ -113,6 +118,14 @@
     min-height: 25.2rem;
     min-width: 20rem;
   }
+}
+
+/* Match loaded scene cards in the front-page carousels to the reserved skeleton
+   height (see `.scene-skeleton` above), so the skeleton→data swap and each row's
+   height stay constant and rows below don't shift. Scoped to `.recommendation-row`
+   so scene lists elsewhere keep their natural (variable) card heights. */
+.recommendation-row .scene-card {
+  min-height: 295px;
 }
 
 .group-skeleton {
