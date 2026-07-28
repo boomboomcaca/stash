@@ -213,12 +213,30 @@ type scriptScraper struct {
 }
 
 func (s *scriptScraper) runScraperScript(ctx context.Context, command []string, inString string, out interface{}) error {
+	if len(command) == 0 {
+		return errors.New("empty scraper command")
+	}
+
+	var releasePython func()
+	if python.IsPythonCommand(command[0]) {
+		var err error
+		releasePython, err = python.AcquireExecution(ctx)
+		if err != nil {
+			return fmt.Errorf("acquire Python execution lease: %w", err)
+		}
+		defer releasePython()
+	}
+
 	var cmd *exec.Cmd
 	if python.IsPythonCommand(command[0]) {
+		runtimeID := s.globalConfig.GetPythonRuntimeID()
 		pythonPath := s.globalConfig.GetPythonPath()
-		p, err := python.Resolve(pythonPath)
+		p, err := python.ResolveSelection(runtimeID, pythonPath)
 
 		if err != nil {
+			if runtimeID != "" {
+				return err
+			}
 			logger.Warnf("%s", err)
 		} else {
 			cmd = p.Command(ctx, command[1:])
@@ -228,7 +246,7 @@ func (s *scriptScraper) runScraperScript(ctx context.Context, command []string, 
 	}
 
 	if cmd == nil {
-		// if could not find python, just use the command args as-is
+		// Preserve legacy command lookup only when there is no managed selection.
 		cmd = stashExec.CommandContext(ctx, command[0], command[1:]...)
 	}
 

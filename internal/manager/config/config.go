@@ -27,6 +27,7 @@ import (
 	"github.com/stashapp/stash/pkg/logger"
 	"github.com/stashapp/stash/pkg/models"
 	"github.com/stashapp/stash/pkg/models/paths"
+	"github.com/stashapp/stash/pkg/python"
 	"github.com/stashapp/stash/pkg/sliceutil"
 	"github.com/stashapp/stash/pkg/utils"
 )
@@ -254,7 +255,9 @@ const (
 	// stash-box options
 	StashBoxes = "stash_boxes"
 
-	PythonPath = "python_path"
+	PythonPath      = "python_path"
+	PythonRuntimeID = "python.runtime_id"
+	PythonIndexes   = "python.indexes"
 
 	// plugin options
 	PluginsPath          = "plugins_path"
@@ -591,6 +594,10 @@ func (i *Config) Write() error {
 	i.Lock()
 	defer i.Unlock()
 
+	return i.writeLocked()
+}
+
+func (i *Config) writeLocked() error {
 	data, err := i.marshal()
 	if err != nil {
 		return err
@@ -1214,6 +1221,70 @@ func (i *Config) GetDisabledPlugins() []string {
 
 func (i *Config) GetPythonPath() string {
 	return i.getString(PythonPath)
+}
+func (i *Config) GetPythonRuntimeID() string {
+	return i.getString(PythonRuntimeID)
+}
+
+func (i *Config) GetPythonIndexes() []python.Index {
+	var indexes []python.Index
+	if err := i.unmarshalKey(PythonIndexes, &indexes); err != nil || len(indexes) == 0 {
+		return python.DefaultIndexes()
+	}
+	normalized, err := python.ValidateIndexes(indexes)
+	if err != nil {
+		logger.Warnf("invalid Python package indexes in configuration: %v", err)
+		return python.DefaultIndexes()
+	}
+	return normalized
+}
+
+func (i *Config) UpdatePythonSelection(runtimeID, executable string) error {
+	i.Lock()
+	defer i.Unlock()
+
+	oldRuntime, hadRuntime := i.main.Get(PythonRuntimeID), i.main.Exists(PythonRuntimeID)
+	oldPath, hadPath := i.main.Get(PythonPath), i.main.Exists(PythonPath)
+	i.set(PythonRuntimeID, runtimeID)
+	i.set(PythonPath, executable)
+	if err := i.writeLocked(); err != nil {
+		restoreConfigValue(i, PythonRuntimeID, oldRuntime, hadRuntime)
+		restoreConfigValue(i, PythonPath, oldPath, hadPath)
+		return err
+	}
+	return nil
+}
+
+func (i *Config) UpdatePythonIndexes(indexes []python.Index) error {
+	normalized, err := python.ValidateIndexes(indexes)
+	if err != nil {
+		return err
+	}
+
+	i.Lock()
+	defer i.Unlock()
+	oldIndexes, hadIndexes := i.main.Get(PythonIndexes), i.main.Exists(PythonIndexes)
+	i.set(PythonIndexes, normalized)
+	if err := i.writeLocked(); err != nil {
+		restoreConfigValue(i, PythonIndexes, oldIndexes, hadIndexes)
+		return err
+	}
+	return nil
+}
+
+func (i *Config) SetPythonExternalPath(executable string) {
+	i.Lock()
+	defer i.Unlock()
+	i.set(PythonRuntimeID, nil)
+	i.set(PythonPath, executable)
+}
+
+func restoreConfigValue(config *Config, key string, value interface{}, existed bool) {
+	if existed {
+		config.set(key, value)
+	} else {
+		config.set(key, nil)
+	}
 }
 
 func (i *Config) GetHost() string {
