@@ -176,7 +176,7 @@ export const LibraryTasks: React.FC = () => {
     }
   }, [configuration, configRead, taskDefaults, loading]);
 
-  function configureDefaults(partial: Record<string, {}>) {
+  function configureDefaults(partial: Record<string, object>) {
     saveUI({ taskDefaults: { ...partial } });
   }
 
@@ -316,32 +316,13 @@ export const LibraryTasks: React.FC = () => {
     setDialogOpen({ generate: false });
   }
 
-  // XXbiome-ignore @typescript-eslint/no-unused-vars
   async function runGenerate(paths?: string[]) {
+    const general = configuration?.general;
+
     try {
       await mutateMetadataGenerate({
         ...generateOptions,
         paths,
-      });
-
-      Toast.success(
-        intl.formatMessage(
-          { id: "config.tasks.added_job_to_queue" },
-          { operation_name: intl.formatMessage({ id: "actions.generate" }) }
-        )
-      );
-    } catch (e) {
-      Toast.error(e);
-    }
-  }
-
-  async function onGenerateClicked() {
-    try {
-      // insert preview options here instead of loading them
-      const general = configuration?.general;
-
-      await mutateMetadataGenerate({
-        ...generateOptions,
         previewOptions: {
           ...generateOptions.previewOptions,
           previewSegments:
@@ -361,6 +342,7 @@ export const LibraryTasks: React.FC = () => {
             generateOptions.previewOptions?.previewPreset,
         },
       });
+
       Toast.success(
         intl.formatMessage(
           { id: "config.tasks.added_job_to_queue" },
@@ -508,7 +490,7 @@ export const LibraryTasks: React.FC = () => {
               <Button
                 variant="secondary"
                 type="submit"
-                onClick={() => onGenerateClicked()}
+                onClick={() => runGenerate()}
               >
                 <FormattedMessage id="actions.generate" />
               </Button>

@@ -47,9 +47,9 @@ import { EnhancedSubtitleOverlay } from "./EnhancedSubtitle";
 import ScreenUtils from "src/utils/screen";
 import { PatchComponent } from "src/patch";
 
-// @ts-ignore
+// @ts-expect-error
 import airplay from "@silvermine/videojs-airplay";
-// @ts-ignore
+// @ts-expect-error
 import chromecast from "@silvermine/videojs-chromecast";
 import abLoopPlugin from "videojs-abloop";
 
@@ -130,6 +130,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     const enhancedSubtitleButtonRef = useRef<HTMLButtonElement>(null);
     const auto = useRef(false);
     const isMouseOverActionsRef = useRef(false);
+    // durable autostart intent: unlike `auto`, this is not consumed by the
+    // one-shot play effect, so it survives source failover (e.g. transcode fallback)
+    const autostartIntent = useRef(false);
     const interactiveReady = useRef(false);
     const showEnhancedSubtitlesRef = useRef(showEnhancedSubtitles);
     const enhancedSubtitleNavigationRef =
@@ -384,6 +387,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       setSubtitleLanguage,
       setSubtitleTrackOptions,
       auto,
+      autostartIntent,
       started,
     });
 
@@ -450,7 +454,6 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     }, [
       getPlayer,
       scene,
-      vrTag,
       trackActivity,
       minimumPlayPercent,
       sceneIncrementPlayCount,
@@ -636,8 +639,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
     }
 
-    const isPortrait =
-      file && file.height && file.width && file.height > file.width;
+    const isPortrait = file?.height && file?.width && file.height > file.width;
 
     return (
       <div

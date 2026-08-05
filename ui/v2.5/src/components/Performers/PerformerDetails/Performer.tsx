@@ -82,12 +82,12 @@ const PerformerTabs: React.FC<{
 }> = ({ tabKey, performer, abbreviateCounter }) => {
   const populatedDefaultTab = useMemo(() => {
     let ret: TabKey = "scenes";
-    if (performer.scene_count == 0) {
-      if (performer.gallery_count != 0) {
+    if (performer.scene_count === 0) {
+      if (performer.gallery_count !== 0) {
         ret = "galleries";
-      } else if (performer.image_count != 0) {
+      } else if (performer.image_count !== 0) {
         ret = "images";
-      } else if (performer.group_count != 0) {
+      } else if (performer.group_count !== 0) {
         ret = "groups";
       }
     }
@@ -95,7 +95,7 @@ const PerformerTabs: React.FC<{
     return ret;
   }, [performer]);
 
-  const { setTabKey } = useTabKey({
+  const { activeTabKey, setTabKey } = useTabKey({
     tabKey,
     validTabs,
     defaultTabKey: populatedDefaultTab,
@@ -114,16 +114,12 @@ const PerformerTabs: React.FC<{
     };
   });
 
-  // #6798 - if Tabs renders while tabKey is undefined, it doesn't render correctly
-  // when it is subsequently set to a valid value.
-  if (!tabKey) return null;
-
   return (
     <Tabs
       id="performer-tabs"
       mountOnEnter
       unmountOnExit
-      activeKey={tabKey}
+      activeKey={activeTabKey}
       onSelect={setTabKey}
     >
       <Tab
@@ -137,7 +133,7 @@ const PerformerTabs: React.FC<{
         }
       >
         <PerformerScenesPanel
-          active={tabKey === "scenes"}
+          active={activeTabKey === "scenes"}
           performer={performer}
         />
       </Tab>
@@ -153,7 +149,7 @@ const PerformerTabs: React.FC<{
         }
       >
         <PerformerGalleriesPanel
-          active={tabKey === "galleries"}
+          active={activeTabKey === "galleries"}
           performer={performer}
         />
       </Tab>
@@ -169,7 +165,7 @@ const PerformerTabs: React.FC<{
         }
       >
         <PerformerImagesPanel
-          active={tabKey === "images"}
+          active={activeTabKey === "images"}
           performer={performer}
         />
       </Tab>
@@ -185,7 +181,7 @@ const PerformerTabs: React.FC<{
         }
       >
         <PerformerGroupsPanel
-          active={tabKey === "groups"}
+          active={activeTabKey === "groups"}
           performer={performer}
         />
       </Tab>
@@ -201,7 +197,7 @@ const PerformerTabs: React.FC<{
         }
       >
         <PerformerAppearsWithPanel
-          active={tabKey === "appearswith"}
+          active={activeTabKey === "appearswith"}
           performer={performer}
         />
       </Tab>

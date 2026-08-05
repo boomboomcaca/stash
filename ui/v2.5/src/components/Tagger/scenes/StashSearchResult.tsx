@@ -64,7 +64,7 @@ const getDurationStatus = (
 
   const matchCount = durations.filter((duration) => duration <= 5).length;
 
-  let match;
+  let match: JSX.Element | undefined;
   if (matchCount > 0)
     match = (
       <FormattedMessage
@@ -133,21 +133,22 @@ const getFingerprintStatus = (
   scene: IScrapedScene,
   stashScene: GQL.SlimSceneDataFragment
 ) => {
-  const checksumMatch = scene.fingerprints?.some((f) =>
-    stashScene.files.some((ff) =>
-      ff.fingerprints.some(
-        (fp) =>
-          fp.value === f.hash && (fp.type === "oshash" || fp.type === "md5")
-      )
-    )
-  );
+  const oshashMatches =
+    scene.fingerprints?.filter(
+      (f) =>
+        f.algorithm === "OSHASH" &&
+        stashScene.files.some((ff) =>
+          ff.fingerprints.some(
+            (fp) => fp.type === "oshash" && fp.value === f.hash
+          )
+        )
+    ) ?? [];
 
-  const allPhashes = stashScene.files.reduce(
-    (pv: Pick<GQL.Fingerprint, "type" | "value">[], cv) => {
-      return [...pv, ...cv.fingerprints.filter((f) => f.type === "phash")];
-    },
-    []
-  );
+  const allPhashes: Pick<GQL.Fingerprint, "type" | "value">[] = [];
+
+  for (const file of stashScene.files) {
+    allPhashes.push(...file.fingerprints.filter((f) => f.type === "phash"));
+  }
 
   const phashMatches = matchPhashes(allPhashes, scene.fingerprints ?? []);
 
@@ -166,7 +167,22 @@ const getFingerprintStatus = (
     </div>
   );
 
-  if (checksumMatch || phashMatches.length > 0)
+  const oshashList = (
+    <div className="m-2">
+      {oshashMatches.map((fp) => (
+        <div key={fp.hash}>
+          <b>{fp.hash}</b>
+          {", "}
+          <FormattedMessage
+            id="component_tagger.results.hash_submissions"
+            values={{ count: fp.submissions }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (oshashMatches.length > 0 || phashMatches.length > 0)
     return (
       <div>
         {phashMatches.length > 0 && (
@@ -177,33 +193,35 @@ const getFingerprintStatus = (
               content={phashList}
               className="PHashPopover"
             >
-              {phashMatches.length > 1 ? (
-                <FormattedMessage
-                  id="component_tagger.results.phash_matches"
-                  values={{
-                    count: phashMatches.length,
-                  }}
-                />
-              ) : (
-                <FormattedMessage
-                  id="component_tagger.results.hash_matches"
-                  values={{
-                    hash_type: <FormattedMessage id="media_info.phash" />,
-                  }}
-                />
-              )}
+              <FormattedMessage
+                id="component_tagger.results.hash_matches"
+                values={{
+                  count: phashMatches.length,
+                  hash_type: <FormattedMessage id="media_info.phash" />,
+                }}
+              />
             </HoverPopover>
           </div>
         )}
-        {checksumMatch && (
+        {oshashMatches.length > 0 && (
           <div className="font-weight-bold">
-            <SuccessIcon className="mr-2" />
-            <FormattedMessage
-              id="component_tagger.results.hash_matches"
-              values={{
-                hash_type: <FormattedMessage id="media_info.md5" />,
-              }}
-            />
+            <SuccessIcon className="SceneTaggerIcon" />
+            <HoverPopover
+              placement="bottom"
+              content={oshashList}
+              className="PHashPopover"
+            >
+              <FormattedMessage
+                id="component_tagger.results.hash_matches"
+                values={{
+                  count: oshashMatches.reduce(
+                    (sum, fp) => sum + fp.submissions,
+                    0
+                  ),
+                  hash_type: <FormattedMessage id="media_info.oshash" />,
+                }}
+              />
+            </HoverPopover>
           </div>
         )}
       </div>
@@ -347,7 +365,7 @@ const StashSearchResult: React.FC<IStashSearchResultProps> = ({
       return remoteField;
     }
 
-    let imgData;
+    let imgData: string | undefined;
     if (!excludedFields.cover_image && config.setCoverImage) {
       const imgurl = scene.image;
       if (imgurl) {

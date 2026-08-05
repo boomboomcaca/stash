@@ -20,7 +20,7 @@ const loadDelay = 200;
 const seekWatchdogMs = 30000;
 
 function offsetMiddleware(player: VideoJsPlayer) {
-  // XXbiome-ignore lint/suspicious/noExplicitAny: allow access to private tech methods
+  // biome-ignore lint/suspicious/noExplicitAny: allow access to private tech methods
   let tech: any;
   let source: ISource;
   let offsetStart: number | undefined;
@@ -214,7 +214,7 @@ function offsetMiddleware(player: VideoJsPlayer) {
       }
 
       // types for createTimeRanges are incorrect, should be number[][] not TimeRange[]
-      // XXbiome-ignore lint/suspicious/noExplicitAny: intentional
+      // biome-ignore lint/suspicious/noExplicitAny: intentional
       return videojs.createTimeRanges(timeRanges as any);
     },
     currentTime(seconds: number) {

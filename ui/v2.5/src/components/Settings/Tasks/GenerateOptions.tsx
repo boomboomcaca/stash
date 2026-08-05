@@ -125,7 +125,7 @@ export const GenerateOptions: React.FC<IGenerateOptions> = ({
                 <VideoPreviewInput value={value ?? {}} setValue={setValue} />
               )}
               renderValue={() => {
-                return <></>;
+                return null;
               }}
             />
           ) : undefined}

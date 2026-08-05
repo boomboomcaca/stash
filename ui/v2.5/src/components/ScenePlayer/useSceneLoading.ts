@@ -33,6 +33,7 @@ interface IUseSceneLoadingProps {
     preserveOff?: boolean
   ) => void;
   auto: React.MutableRefObject<boolean>;
+  autostartIntent: React.MutableRefObject<boolean>;
   started: React.MutableRefObject<boolean>;
 }
 
@@ -82,6 +83,7 @@ export function useSceneLoading({
   setSubtitleLanguage,
   setSubtitleTrackOptions,
   auto,
+  autostartIntent,
   started,
 }: IUseSceneLoadingProps) {
   const intl = useIntl();
@@ -169,6 +171,15 @@ export function useSceneLoading({
       autoplay ||
       (interfaceConfig?.autostartVideo ?? false) ||
       initialTimestamp > 0;
+    autostartIntent.current = auto.current;
+
+    // let the source selector know whether playback is intended, so it doesn't
+    // auto-start during source failover/preload (e.g. transcode fallback in Safari).
+    // uses autostartIntent (not auto) because auto is cleared by the one-shot play
+    // effect before failover occurs; started covers mid-playback source swaps.
+    sourceSelector.setShouldAutoplay(
+      () => autostartIntent.current || started.current
+    );
 
     const alwaysStartFromBeginning =
       uiConfig?.alwaysStartFromBeginning ?? false;
@@ -213,6 +224,7 @@ export function useSceneLoading({
     setReady,
     setTime,
     auto,
+    autostartIntent,
     started,
     sceneId,
   ]);
@@ -310,9 +322,7 @@ export function useSceneLoading({
             (o) => o.lang === prevSelected.lang && o.type === prevSelected.type
           )
         : undefined) ??
-      (keepLang
-        ? trackOptions.find((o) => o.lang === keepLang)
-        : undefined) ??
+      (keepLang ? trackOptions.find((o) => o.lang === keepLang) : undefined) ??
       trackOptions.find((o) => o.lang === languageCode) ??
       trackOptions[0];
 

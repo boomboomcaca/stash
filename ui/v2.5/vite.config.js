@@ -8,7 +8,7 @@ const isTauri = process.env.TAURI_ENV_PLATFORM !== undefined;
 
 // https://vitejs.dev/config/
 export default defineConfig(() => {
-  let plugins = [
+  const plugins = [
     react({
       babel: {
         compact: true,
