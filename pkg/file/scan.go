@@ -70,6 +70,33 @@ type Scanner struct {
 	Rescan bool
 
 	folderPathToID sync.Map
+
+	// caseSensitiveCache memoizes filesystem case sensitivity keyed by directory.
+	// Determining case sensitivity requires two os.Stat calls; without caching we
+	// paid that (plus a redundant case-insensitive FindByPath) for every file on
+	// case-insensitive filesystems. Case sensitivity is a property of the mounted
+	// filesystem, so keying by directory is safe even when stash paths span
+	// multiple filesystems. Values are bool.
+	caseSensitiveCache sync.Map
+}
+
+// isPathCaseSensitive returns whether the filesystem backing path is case
+// sensitive, caching the result per directory. Only successful determinations
+// are cached; on error it falls back to the FS each call, matching the previous
+// per-call behaviour (callers treat an error as "assume case sensitive").
+func (s *Scanner) isPathCaseSensitive(fs models.FS, path string) (bool, error) {
+	dir := filepath.Dir(path)
+	if v, ok := s.caseSensitiveCache.Load(dir); ok {
+		return v.(bool), nil
+	}
+
+	cs, err := fs.IsPathCaseSensitive(path)
+	if err != nil {
+		return cs, err
+	}
+
+	s.caseSensitiveCache.Store(dir, cs)
+	return cs, nil
 }
 
 // FingerprintCalculator calculates a fingerprint for the provided file.
@@ -168,7 +195,7 @@ func (s *Scanner) ScanFolder(ctx context.Context, file ScannedFile) (*models.Fol
 		// case insensitive searching
 		// assume case sensitive if in zip
 		if f == nil && file.ZipFileID == nil {
-			caseSensitive, _ := file.FS.IsPathCaseSensitive(file.Path)
+			caseSensitive, _ := s.isPathCaseSensitive(file.FS, file.Path)
 
 			if !caseSensitive {
 				f, err = s.Repository.Folder.FindByPath(ctx, path, false)
@@ -373,7 +400,7 @@ func (s *Scanner) ScanFile(ctx context.Context, f ScannedFile) (*ScanFileResult,
 		// case insensitive search
 		// assume case sensitive if in zip
 		if ff == nil && f.ZipFileID == nil {
-			caseSensitive, _ := f.FS.IsPathCaseSensitive(f.Path)
+			caseSensitive, _ := s.isPathCaseSensitive(f.FS, f.Path)
 
 			if !caseSensitive {
 				ff, err = s.Repository.File.FindByPath(ctx, f.Path, false)

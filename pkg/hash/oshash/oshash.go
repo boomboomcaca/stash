@@ -30,6 +30,33 @@ func sumBytes(buf []byte) (uint64, error) {
 	return sum, nil
 }
 
+// ChunkSize is the number of bytes read from the head and tail of a file when
+// computing an oshash. Callers that stream a file for another purpose (e.g. a
+// full-file MD5) can capture the first and last ChunkSize bytes and pass them
+// to FromHeadTail instead of re-reading the file.
+const ChunkSize = chunkSize
+
+// FileChunkSize returns the actual head/tail length used for a file of the
+// given size. It is ChunkSize for normal files, but is clamped to the largest
+// multiple of 8 not exceeding the file size for very small files.
+func FileChunkSize(fileSize int64) int64 {
+	fileChunkSize := chunkSize
+	if fileSize < fileChunkSize {
+		fileChunkSize = (fileSize / 8) * 8
+	}
+	return fileChunkSize
+}
+
+// FromHeadTail computes the oshash from the file size and the first and last
+// FileChunkSize(size) bytes of the file. head and tail must each be exactly
+// FileChunkSize(size) bytes long.
+func FromHeadTail(size int64, head []byte, tail []byte) (string, error) {
+	if size <= 8 {
+		return "", fmt.Errorf("cannot calculate oshash where size < 8 (%d)", size)
+	}
+	return oshash(size, head, tail)
+}
+
 func oshash(size int64, head []byte, tail []byte) (string, error) {
 	headSum, err := sumBytes(head)
 	if err != nil {

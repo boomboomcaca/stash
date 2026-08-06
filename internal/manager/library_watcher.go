@@ -17,17 +17,35 @@ import (
 	"github.com/stashapp/stash/pkg/logger"
 )
 
+// pendingChange tracks the timing of accumulated file-system events for a
+// single directory. lastEvent is pushed forward on every new event (and while
+// stash is busy) so the debounce window measures quiet time; firstSeen records
+// when the directory first became dirty and is never moved, so a directory that
+// keeps being deferred because stash is busy is still acted on once maxDefer
+// has elapsed since it first changed.
+type pendingChange struct {
+	firstSeen time.Time
+	lastEvent time.Time
+}
+
 // LibraryWatcher monitors library directories for file system changes
 // and automatically triggers scan and cleanup tasks when changes are detected.
 type LibraryWatcher struct {
 	watcher      *fsnotify.Watcher
 	manager      *Manager
 	debounceTime time.Duration
-	events       map[string]time.Time
-	eventsMutex  sync.RWMutex
-	ctx          context.Context
-	cancel       context.CancelFunc
-	wg           sync.WaitGroup
+	// maxDefer bounds how long a dirty directory may be deferred while stash is
+	// busy. Without it, the watcher's own scan/clean/generate cascade keeps the
+	// job queue non-empty, which reset every pending directory's timer each tick
+	// and starved genuine external changes indefinitely. Once a directory has
+	// been dirty for maxDefer it is scanned on the next idle cycle regardless of
+	// how recently its lastEvent was pushed.
+	maxDefer    time.Duration
+	events      map[string]*pendingChange
+	eventsMutex sync.RWMutex
+	ctx         context.Context
+	cancel      context.CancelFunc
+	wg          sync.WaitGroup
 }
 
 // NewLibraryWatcher creates a new LibraryWatcher instance
@@ -44,7 +62,8 @@ func NewLibraryWatcher(manager *Manager) (*LibraryWatcher, error) {
 		manager: manager,
 
 		debounceTime: 30 * time.Second, // Increased debounce time for network mounts
-		events:       make(map[string]time.Time),
+		maxDefer:     5 * time.Minute,  // Upper bound on busy-deferral so real changes aren't starved
+		events:       make(map[string]*pendingChange),
 		ctx:          ctx,
 		cancel:       cancel,
 	}, nil
@@ -60,12 +79,23 @@ func (lw *LibraryWatcher) Start() error {
 	}
 
 	// Add all library paths to the watcher
+	totalFailed := 0
 	for _, stashPath := range stashPaths {
-		if err := lw.addPathRecursively(stashPath.Path); err != nil {
+		failed, err := lw.addPathRecursively(stashPath.Path)
+		totalFailed += failed
+		if err != nil {
 			logger.Warnf("Failed to add library path %s to watcher: %v", stashPath.Path, err)
 			continue
 		}
 		logger.Infof("Monitoring library path: %s", stashPath.Path)
+	}
+
+	// Surface silent watch failures as a single summary. On Linux these usually
+	// mean the inotify watch limit (fs.inotify.max_user_watches) was exhausted,
+	// which leaves whole subtrees silently unwatched — the most common reason
+	// "new files aren't triggering a scan" for large libraries.
+	if totalFailed > 0 {
+		logger.Errorf("Library watcher: %d directories could not be watched; changes in them will NOT trigger auto-scan. On Linux this is usually the inotify watch limit (fs.inotify.max_user_watches) — consider increasing it.", totalFailed)
 	}
 
 	// Start the event processing goroutine
@@ -93,15 +123,20 @@ func (lw *LibraryWatcher) Stop() error {
 	return nil
 }
 
-// addPathRecursively adds a directory and all its subdirectories to the watcher
-func (lw *LibraryWatcher) addPathRecursively(path string) error {
+// addPathRecursively adds a directory and all its subdirectories to the watcher.
+// It returns the number of directories that could not be watched (e.g. because
+// the inotify watch limit was exhausted); the caller can surface a summary so
+// these silent failures are visible.
+func (lw *LibraryWatcher) addPathRecursively(path string) (int, error) {
 	// Add the main path
 	if err := lw.watcher.Add(path); err != nil {
-		return err
+		return 1, err
 	}
 
+	failed := 0
+
 	// Recursively add subdirectories
-	return filepath.Walk(path, func(dirPath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(path, func(dirPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			logger.Warnf("Error walking directory %s: %v", dirPath, err)
 			return nil // Continue walking
@@ -109,12 +144,15 @@ func (lw *LibraryWatcher) addPathRecursively(path string) error {
 
 		if info.IsDir() {
 			if err := lw.watcher.Add(dirPath); err != nil {
+				failed++
 				logger.Warnf("Failed to add subdirectory %s to watcher: %v", dirPath, err)
 			}
 		}
 
 		return nil
 	})
+
+	return failed, err
 }
 
 // processEvents handles file system events from the watcher
@@ -212,9 +250,17 @@ func (lw *LibraryWatcher) handleEvent(event fsnotify.Event) {
 		info, err := os.Stat(event.Name)
 		if err == nil && info.IsDir() {
 			logger.Infof("New directory detected, adding to watcher: %s", event.Name)
-			if err := lw.addPathRecursively(event.Name); err != nil {
+			if _, err := lw.addPathRecursively(event.Name); err != nil {
 				logger.Warnf("Failed to add new directory %s to watcher: %v", event.Name, err)
 			}
+
+			// Close the inotify race: when a whole directory tree is dropped in
+			// at once (e.g. copying a folder into the library), the files inside
+			// it may already exist by the time the watch is installed above, so
+			// their Create events never arrive. Re-record the new directory as
+			// dirty here so its current contents are picked up on the next
+			// debounce cycle regardless of whether per-file events were seen.
+			lw.recordDirty(event.Name)
 		}
 	}
 
@@ -226,11 +272,23 @@ func (lw *LibraryWatcher) handleEvent(event fsnotify.Event) {
 		dir = event.Name
 	}
 
-	lw.eventsMutex.Lock()
-	lw.events[dir] = time.Now()
-	lw.eventsMutex.Unlock()
+	lw.recordDirty(dir)
 
 	logger.Debugf("File system event detected: %s in %s", event.Op, dir)
+}
+
+// recordDirty marks a directory as changed, starting its debounce timer if it
+// is not already pending. firstSeen is only set the first time the directory
+// becomes dirty so the maxDefer bound measures from the original change.
+func (lw *LibraryWatcher) recordDirty(dir string) {
+	now := time.Now()
+	lw.eventsMutex.Lock()
+	if pc, ok := lw.events[dir]; ok {
+		pc.lastEvent = now
+	} else {
+		lw.events[dir] = &pendingChange{firstSeen: now, lastEvent: now}
+	}
+	lw.eventsMutex.Unlock()
 }
 
 // busy reports whether stash currently has any queued or running job. The
@@ -257,6 +315,8 @@ func (lw *LibraryWatcher) processAccumulatedEvents() {
 	// watcher sees again: an endless scan→rename→scan loop that floods the task
 	// queue. The running task already covers any genuine change, so wait until
 	// stash is idle before triggering anything.
+	now := time.Now()
+
 	if lw.busy() {
 		// Defer rather than discard. The running task (or the watcher's own
 		// scan→clean→generate cascade) may make file changes we would otherwise
@@ -268,29 +328,47 @@ func (lw *LibraryWatcher) processAccumulatedEvents() {
 		// their debounce deadline forward so they are only acted on once stash
 		// has been idle for a full debounce window: self-induced churn stops when
 		// the task ends, while real changes survive to be scanned.
+		//
+		// Pushing lastEvent forward on every busy tick could, on its own, defer a
+		// directory forever if stash is never idle for a full debounce window
+		// (the watcher's own cascade keeps the queue busy). So we only defer
+		// directories that first became dirty less than maxDefer ago; any that
+		// have been waiting longer are forced through below even while busy, so
+		// genuine external changes can't be starved indefinitely.
 		lw.eventsMutex.Lock()
-		now := time.Now()
-		for path := range lw.events {
-			lw.events[path] = now
+		var forced []string
+		for path, pc := range lw.events {
+			if now.Sub(pc.firstSeen) >= lw.maxDefer {
+				forced = append(forced, path)
+				delete(lw.events, path)
+			} else {
+				pc.lastEvent = now
+			}
 		}
 		lw.eventsMutex.Unlock()
-		logger.Debug("Library watcher: stash busy, deferring auto-scan until idle")
+
+		if len(forced) == 0 {
+			logger.Debug("Library watcher: stash busy, deferring auto-scan until idle")
+			return
+		}
+
+		logger.Infof("Library watcher: %d path(s) deferred beyond max wait; scanning despite busy queue", len(forced))
+		lw.triggerScanAndCleanup(forced)
 		return
 	}
 
 	lw.eventsMutex.Lock()
-	defer lw.eventsMutex.Unlock()
-
-	now := time.Now()
 	var pathsToScan []string
 
-	// Collect paths that need scanning
-	for path, timestamp := range lw.events {
-		if now.Sub(timestamp) >= lw.debounceTime {
+	// Collect paths that need scanning: either quiet for a full debounce window,
+	// or dirty for longer than maxDefer regardless of recent activity.
+	for path, pc := range lw.events {
+		if now.Sub(pc.lastEvent) >= lw.debounceTime || now.Sub(pc.firstSeen) >= lw.maxDefer {
 			pathsToScan = append(pathsToScan, path)
 			delete(lw.events, path)
 		}
 	}
+	lw.eventsMutex.Unlock()
 
 	if len(pathsToScan) == 0 {
 		return
@@ -462,7 +540,7 @@ func (lw *LibraryWatcher) RefreshPaths() error {
 
 	lw.watcher = watcher
 	lw.eventsMutex.Lock()
-	lw.events = make(map[string]time.Time)
+	lw.events = make(map[string]*pendingChange)
 	lw.eventsMutex.Unlock()
 
 	// Create new context

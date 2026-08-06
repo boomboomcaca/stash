@@ -4,6 +4,7 @@ package md5
 import (
 	"crypto/md5"
 	"fmt"
+	"hash"
 	"io"
 	"os"
 )
@@ -41,4 +42,26 @@ func FromReader(src io.Reader) (string, error) {
 	}
 	checksum := h.Sum(nil)
 	return fmt.Sprintf("%x", checksum), nil
+}
+
+// Hasher incrementally computes an MD5 checksum. Callers that already stream a
+// file's bytes for another purpose can Write those bytes here and read the
+// checksum via Sum, avoiding a second pass over the file.
+type Hasher struct {
+	h hash.Hash
+}
+
+// NewHasher returns a Hasher ready to accept data via Write.
+func NewHasher() *Hasher {
+	return &Hasher{h: md5.New()}
+}
+
+// Write feeds data into the running checksum. It never returns an error.
+func (m *Hasher) Write(p []byte) (int, error) {
+	return m.h.Write(p)
+}
+
+// Sum returns the hex-encoded MD5 checksum of all data written so far.
+func (m *Hasher) Sum() string {
+	return fmt.Sprintf("%x", m.h.Sum(nil))
 }
