@@ -179,8 +179,8 @@ export const ServerConfig: React.FC<IServerConfigProps> = ({ onConnected }) => {
         e instanceof Error
           ? e.message
           : typeof e === "string"
-          ? e
-          : JSON.stringify(e);
+            ? e
+            : JSON.stringify(e);
       setError(`登录失败: ${errorMsg || "未知错误"}`);
     } finally {
       setLoading(false);

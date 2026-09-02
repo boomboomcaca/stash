@@ -15,9 +15,9 @@ interface IUseSceneLoadingProps {
   file: GQL.VideoFileDataFragment | undefined;
   sceneId: React.MutableRefObject<string | undefined>;
   interactiveClient: { pause: () => void };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
   uiConfig: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
   interfaceConfig: any;
   autoplay: boolean | undefined;
   initialTimestamp: number;
@@ -416,5 +416,5 @@ export function useSceneLoading({
       const markers = player.markers();
       markers.clearMarkers();
     };
-  }, [getPlayer, scene, uiConfig, loadMarkers]);
+  }, [getPlayer, scene, loadMarkers]);
 }

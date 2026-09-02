@@ -205,6 +205,7 @@ export function useTextSelection({
   }, [extractSelectedText, copyToClipboard]);
 
   // Clear selection when tokens change (new subtitle cue)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: textTokens is an intentional trigger: reset the selection whenever a new cue's tokens arrive
   useEffect(() => {
     setDragSelectedIndices(new Set());
     setIsDragSelecting(false);

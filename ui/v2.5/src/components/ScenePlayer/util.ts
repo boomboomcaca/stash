@@ -26,7 +26,9 @@ export function enterPseudoFullscreen(player: videojs.Player): void {
   document.body.classList.add(PSEUDO_FULLSCREEN_CLASS);
 
   // 触发全屏事件
-  pseudoFullscreenListeners.forEach((listener) => listener(true));
+  pseudoFullscreenListeners.forEach((listener) => {
+    listener(true);
+  });
   player.trigger("fullscreenchange");
 }
 
@@ -41,7 +43,9 @@ export function exitPseudoFullscreen(player: videojs.Player): void {
   document.body.classList.remove(PSEUDO_FULLSCREEN_CLASS);
 
   // 触发全屏事件
-  pseudoFullscreenListeners.forEach((listener) => listener(false));
+  pseudoFullscreenListeners.forEach((listener) => {
+    listener(false);
+  });
   player.trigger("fullscreenchange");
 }
 

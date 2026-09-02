@@ -14,6 +14,16 @@ interface IUseSubtitleParserResult {
   parsedSubtitles: IParsedSubtitle | null;
 }
 
+// Parse VTT timestamp to seconds
+function parseVTTTime(timeStr: string): number {
+  const [hours, minutes, seconds] = timeStr.split(":");
+  return (
+    parseInt(hours, 10) * 3600 +
+    parseInt(minutes, 10) * 60 +
+    parseFloat(seconds)
+  );
+}
+
 export function useSubtitleParser({
   subtitleTrack,
   onSubtitlesLoaded,
@@ -21,14 +31,6 @@ export function useSubtitleParser({
   const [parsedSubtitles, setParsedSubtitles] =
     useState<IParsedSubtitle | null>(null);
   const subtitleCacheRef = useRef<Map<string, ISubtitleCue[]>>(new Map());
-
-  // Parse VTT timestamp to seconds
-  const parseVTTTime = (timeStr: string): number => {
-    const [hours, minutes, seconds] = timeStr.split(":");
-    return (
-      parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseFloat(seconds)
-    );
-  };
 
   // Parse VTT subtitles
   const parseVTT = useCallback((vttContent: string): ISubtitleCue[] => {

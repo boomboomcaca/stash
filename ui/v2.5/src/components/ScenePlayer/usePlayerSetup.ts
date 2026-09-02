@@ -23,7 +23,7 @@ import { IEnhancedSubtitleNavigation } from "./types";
 
 interface IUsePlayerSetupProps {
   videoRef: React.RefObject<HTMLDivElement>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
   uiConfig: any;
   currentSubtitleTrack: string | null;
   showEnhancedSubtitles: boolean;
@@ -74,6 +74,7 @@ export function usePlayerSetup({
   }, [_player]);
 
   // Initialize VideoJS player
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the videojs instance is created once; callbacks and refs are read through refs on purpose so the player is not re-created
   useEffect(() => {
     const options: VideoJsPlayerOptions = {
       id: VIDEO_PLAYER_ID,
@@ -187,7 +188,7 @@ export function usePlayerSetup({
 
     const vjs = videojs(videoEl, options);
 
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
     const settings = (vjs as any).textTrackSettings;
     settings.setValues({
       backgroundColor: "#000",
@@ -264,8 +265,8 @@ export function usePlayerSetup({
     // const originalIsFullscreen = vjs.isFullscreen?.bind(vjs);
 
     if (vjs.requestFullscreen) {
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      (vjs.requestFullscreen as any) = function () {
+      // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
+      (vjs.requestFullscreen as any) = () => {
         // 保持进入语义（幂等），videojs-mobile-ui 旋转时会无条件调用
         enterPseudoFullscreen(vjs);
         return Promise.resolve();
@@ -273,17 +274,15 @@ export function usePlayerSetup({
     }
 
     if (vjs.exitFullscreen) {
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-      (vjs.exitFullscreen as any) = function () {
+      // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
+      (vjs.exitFullscreen as any) = () => {
         exitPseudoFullscreen(vjs);
         return Promise.resolve();
       };
     }
 
     if (vjs.isFullscreen) {
-      vjs.isFullscreen = function () {
-        return isPseudoFullscreen();
-      };
+      vjs.isFullscreen = () => isPseudoFullscreen();
     }
 
     // 拦截全屏按钮的点击事件（延迟执行，确保控制栏已初始化）
@@ -293,11 +292,11 @@ export function usePlayerSetup({
         const fullscreenToggle = controlBar.getChild("FullscreenToggle");
         if (fullscreenToggle) {
           const originalHandleClick =
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
             (fullscreenToggle as any).handleClick?.bind(fullscreenToggle);
           if (originalHandleClick) {
-            /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-            (fullscreenToggle as any).handleClick = function () {
+            // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
+            (fullscreenToggle as any).handleClick = () => {
               togglePseudoFullscreen(vjs);
             };
           }
@@ -373,7 +372,6 @@ export function usePlayerSetup({
     };
     // empty deps - only init once
     // showAbLoopControls is necessary to re-init the player when the config changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uiConfig?.showAbLoopControls]);
 
   // 同步增强字幕按钮状态

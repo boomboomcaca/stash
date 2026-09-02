@@ -56,7 +56,7 @@ class SubtitleTrackMenuButton extends MenuButton {
       selectable: true,
       selected: this.selectedSrc === null,
     });
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
     (offItem as any).handleClick = () => {
       this.selectTrack(null);
     };
@@ -68,7 +68,7 @@ class SubtitleTrackMenuButton extends MenuButton {
         selectable: true,
         selected: this.selectedSrc === opt.src,
       });
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
       (item as any).handleClick = () => {
         this.selectTrack(opt);
       };
@@ -122,10 +122,9 @@ function subtitleTrackMenu(
   this: videojs.Player,
   options: ISubtitleTrackMenuOptions = {}
 ) {
-  const player = this;
-  const button = new SubtitleTrackMenuButton(player, options);
+  const button = new SubtitleTrackMenuButton(this, options);
 
-  const controlBar = player.getChild("ControlBar");
+  const controlBar = this.getChild("ControlBar");
   if (controlBar) {
     // place just before the enhanced-subtitle button / fullscreen toggle
     const anchor =

@@ -115,7 +115,7 @@ export function useMediaSession({
     actionHandlers.forEach(([action, handler]) => {
       try {
         navigator.mediaSession.setActionHandler(action, handler);
-      } catch (error) {
+      } catch {
         // ignore unsupported actions
       }
     });

@@ -191,7 +191,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
           setShowEnhancedSubtitles(false);
         }
       },
-      [setShowEnhancedSubtitles]
+      []
     );
 
     const { getPlayer, sceneId } = usePlayerSetup({
@@ -587,7 +587,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
                 new Event("timeupdate", { bubbles: true })
               );
             }
-          } catch (error) {}
+          } catch {}
 
           // 更新本地时间状态以确保UI同步
           setTime(seconds);

@@ -268,8 +268,8 @@ export function useSubtitleDrag({
             autoPauseMode === "off"
               ? "favorites"
               : autoPauseMode === "favorites"
-              ? "all"
-              : "off";
+                ? "all"
+                : "off";
           setAutoPauseMode(nextMode);
           if (nextMode === "off") {
             setIsAutoPaused(false);

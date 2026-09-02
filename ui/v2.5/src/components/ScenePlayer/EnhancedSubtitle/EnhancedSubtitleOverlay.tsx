@@ -27,9 +27,9 @@ interface IEnhancedSubtitleOverlayProps {
   onCurrentCueChange?: (index: number) => void;
   onAPDoubleClick?: () => void;
   onPlay?: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
   onGetPlayer?: () => any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
   onNavigationRef?: (ref: any) => void;
 }
 
@@ -480,8 +480,8 @@ export const EnhancedSubtitleOverlay: React.FC<
         lang === "zh"
           ? cueLines[lineIdx] || "\u00A0"
           : lineBuffer.length > 0
-          ? lineBuffer
-          : "\u00A0";
+            ? lineBuffer
+            : "\u00A0";
       lineElements.push(
         <div key={`line-${lineIdx}`} className={`subtitle-line lang-${lang}`}>
           {content}
@@ -611,8 +611,8 @@ export const EnhancedSubtitleOverlay: React.FC<
             autoPauseMode === "all"
               ? "auto-pause-active"
               : autoPauseMode === "favorites"
-              ? "auto-pause-favorites"
-              : ""
+                ? "auto-pause-favorites"
+                : ""
           }`}
           onMouseDown={handleAPMouseDown}
           onTouchStart={handleAPTouchStart}

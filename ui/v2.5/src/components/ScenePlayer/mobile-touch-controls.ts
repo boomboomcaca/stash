@@ -124,7 +124,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private exitWordNavigationMode: (() => void) | null = null;
   private handleWordSelection: (() => Promise<void>) | null = null;
   private isInWordNavigationMode: (() => boolean) | null = null;
-  private isDraggingMode: boolean = false; // 标记是否正在拖动
 
   // 词典回调
   private isDictionaryVisible: (() => boolean) | null = null;
@@ -146,7 +145,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
   private readonly VERTICAL_SWIPE_THRESHOLD = 30; // 垂直滑动切换字幕的阈值（像素）
 
   // 单词滑动选择相关常量
-  private readonly WORD_SWIPE_THRESHOLD = 25; // 触发单词选择的滑动距离阈值（像素）
   private readonly WORD_SWIPE_STEP = 40; // 每个单词切换需要的滑动距离（像素）
   private readonly WORD_SWIPE_VELOCITY_THRESHOLD = 0.3; // 快速滑动的速度阈值
   private wordSwipeStartTime: number = 0; // 记录滑动开始时间
@@ -424,7 +422,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
   // 移除倍速反馈元素
   private removeSpeedFeedbackElement(): void {
-    if (this.speedFeedbackElement && this.speedFeedbackElement.parentNode) {
+    if (this.speedFeedbackElement?.parentNode) {
       this.speedFeedbackElement.parentNode.removeChild(
         this.speedFeedbackElement
       );
@@ -779,8 +777,8 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     const now = Date.now();
     const timeSinceLastTap = now - this.state.lastTapTime;
     const distance = Math.sqrt(
-      Math.pow(x - this.state.lastTapPosition.x, 2) +
-        Math.pow(y - this.state.lastTapPosition.y, 2)
+      (x - this.state.lastTapPosition.x) ** 2 +
+        (y - this.state.lastTapPosition.y) ** 2
     );
 
     // 如果距离上次点击时间在检测范围内且距离足够近，增加点击计数
@@ -1008,7 +1006,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
         } else {
           // 如果增强字幕未启用，进入拖拽进度模式
           this.state.isDragging = true;
-          this.isDraggingMode = true; // 标记正在拖动
 
           // 记录拖拽前的播放状态和静音状态并暂停播放
           this.state.wasPlayingBeforeDrag = !this.player.paused();
@@ -1333,7 +1330,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     // 100px -> ~60s
     // 200px -> ~318s (5分半)
     // 300px -> ~840s (14分钟)
-    let seekSeconds = Math.pow(absDelta / DAMPING, EXPONENT);
+    let seekSeconds = (absDelta / DAMPING) ** EXPONENT;
 
     // 安全限制：单次滑动最大不超过视频时长的 75% 或 45分钟
     const maxSeek = Math.min(duration * 0.75, 2700);
@@ -1356,9 +1353,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
 
     // 由于视频时间已经在拖拽过程中实时更新，这里不需要重复设置
     // 只需要恢复播放状态和重置视觉反馈
-
-    // 清除拖动模式标志
-    this.isDraggingMode = false;
 
     // 恢复原始的 reportUserActivity
     if (this.originalReportUserActivity) {
@@ -1446,20 +1440,6 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
       }
     } catch {
       // 忽略错误
-    }
-  }
-
-  private formatTime(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
-        .toString()
-        .padStart(2, "0")}`;
-    } else {
-      return `${minutes}:${secs.toString().padStart(2, "0")}`;
     }
   }
 
@@ -1570,7 +1550,7 @@ class MobileTouchControlsPlugin extends videojs.getPlugin("plugin") {
     this.removeSpeedFeedbackElement();
 
     // 清理快进/快退反馈元素
-    if (this.seekFeedbackElement && this.seekFeedbackElement.parentNode) {
+    if (this.seekFeedbackElement?.parentNode) {
       this.seekFeedbackElement.parentNode.removeChild(this.seekFeedbackElement);
       this.seekFeedbackElement = null;
     }

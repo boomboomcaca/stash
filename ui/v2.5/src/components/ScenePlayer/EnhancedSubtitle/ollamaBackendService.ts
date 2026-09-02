@@ -107,16 +107,12 @@ export class OllamaBackendService {
    * Get current Ollama status and configuration from backend
    */
   async getStatus(): Promise<IBackendOllamaStatus> {
-    try {
-      const result = await this.client.query({
-        query: OLLAMA_STATUS_QUERY,
-        fetchPolicy: "network-only", // Always fetch fresh data
-      });
+    const result = await this.client.query({
+      query: OLLAMA_STATUS_QUERY,
+      fetchPolicy: "network-only", // Always fetch fresh data
+    });
 
-      return result.data.ollamaStatus;
-    } catch (error) {
-      throw error;
-    }
+    return result.data.ollamaStatus;
   }
 
   /**
@@ -126,7 +122,7 @@ export class OllamaBackendService {
     try {
       const status = await this.getStatus();
       return status.available;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -138,7 +134,7 @@ export class OllamaBackendService {
     try {
       const status = await this.getStatus();
       return status.models;
-    } catch (error) {
+    } catch {
       return [];
     }
   }
@@ -149,18 +145,14 @@ export class OllamaBackendService {
   async updateConfig(
     config: IBackendOllamaConfig
   ): Promise<IBackendOllamaConfig> {
-    try {
-      const result = await this.client.mutate({
-        mutation: CONFIGURE_OLLAMA_MUTATION,
-        variables: {
-          input: config,
-        },
-      });
+    const result = await this.client.mutate({
+      mutation: CONFIGURE_OLLAMA_MUTATION,
+      variables: {
+        input: config,
+      },
+    });
 
-      return result.data.configureOllama;
-    } catch (error) {
-      throw error;
-    }
+    return result.data.configureOllama;
   }
 
   /**
@@ -170,21 +162,17 @@ export class OllamaBackendService {
     prompt: string,
     model?: string
   ): Promise<IOllamaGenerateResult> {
-    try {
-      const result = await this.client.mutate({
-        mutation: OLLAMA_GENERATE_MUTATION,
-        variables: {
-          input: {
-            prompt,
-            model: model || undefined,
-          },
+    const result = await this.client.mutate({
+      mutation: OLLAMA_GENERATE_MUTATION,
+      variables: {
+        input: {
+          prompt,
+          model: model || undefined,
         },
-      });
+      },
+    });
 
-      return result.data.ollamaGenerate;
-    } catch (error) {
-      throw error;
-    }
+    return result.data.ollamaGenerate;
   }
 
   /**
@@ -197,24 +185,20 @@ export class OllamaBackendService {
     model?: string,
     provider?: string
   ): Promise<IBackendDictionaryEntry> {
-    try {
-      const result = await this.client.mutate({
-        mutation: OLLAMA_EXPLAIN_WORD_MUTATION,
-        variables: {
-          input: {
-            word,
-            context,
-            language,
-            model: model || undefined,
-            provider: provider || undefined,
-          },
+    const result = await this.client.mutate({
+      mutation: OLLAMA_EXPLAIN_WORD_MUTATION,
+      variables: {
+        input: {
+          word,
+          context,
+          language,
+          model: model || undefined,
+          provider: provider || undefined,
         },
-      });
+      },
+    });
 
-      return result.data.ollamaExplainWord;
-    } catch (error) {
-      throw error;
-    }
+    return result.data.ollamaExplainWord;
   }
 }
 

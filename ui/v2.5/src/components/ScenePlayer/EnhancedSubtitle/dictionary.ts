@@ -19,7 +19,7 @@ export class DictionaryService {
   private async checkOllamaAvailability() {
     try {
       this.ollamaAvailable = await ollamaBackendService.isAvailable();
-    } catch (error) {
+    } catch {
       // console.warn('Failed to check Ollama availability:', error);
       this.ollamaAvailable = false;
     }
@@ -82,7 +82,7 @@ export class DictionaryService {
             morphology: backendEntry.morphology,
             aiSource: backendEntry.aiSource,
           };
-        } catch (error) {
+        } catch {
           // console.warn('Ollama backend lookup failed:', error);
           const providerName = provider === "mistral" ? "Mistral" : "Ollama";
           entry = this.createBasicEntry(
@@ -125,7 +125,7 @@ export class DictionaryService {
       }
 
       return entry;
-    } catch (error) {
+    } catch {
       return this.createBasicEntry(word, language, "查词失败");
     }
   }

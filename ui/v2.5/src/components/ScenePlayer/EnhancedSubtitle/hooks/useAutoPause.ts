@@ -21,7 +21,7 @@ interface IUseAutoPauseProps {
   onPausePlayer?: () => void;
   getPlayerPaused?: () => boolean;
   onCurrentCueChange?: (index: number) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
   onGetPlayer?: () => any;
   // Ref to check if in word navigation mode (for auto-pause when subtitle ends)
   isInWordNavigationModeRef?: React.MutableRefObject<boolean>;
@@ -232,7 +232,6 @@ export function useAutoPause({
     clearAutoPauseTimeout,
     isAutoPaused,
     isInWordNavigationModeRef,
-    setIsAutoPaused,
   ]);
 
   const scheduleAutoPause = useCallback(
@@ -245,7 +244,7 @@ export function useAutoPause({
           if (player && typeof player.playbackRate === "function") {
             playbackRate = player.playbackRate() || 1;
           }
-        } catch (error) {
+        } catch {
           // ignore
         }
       }
@@ -313,6 +312,7 @@ export function useAutoPause({
     return { cue, cueIndex };
   }, [currentTime, parsedSubtitles, isAutoPaused]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: autoPauseMode is read via autoPauseModeRef inside scheduleAutoPause; listed so scheduling re-runs when the mode changes
   useEffect(() => {
     if (!parsedSubtitles) {
       setCurrentCue(null);

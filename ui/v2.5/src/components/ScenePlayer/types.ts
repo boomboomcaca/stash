@@ -94,7 +94,7 @@ declare module "video.js" {
     // Internal methods that are not in official type definitions
     // Note: VideoJS has this as a method, we're extending the interface
     // Must match the exact signature from VideoJS to avoid conflicts
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
     reportUserActivity: (event: any) => void;
 
     // Custom plugins

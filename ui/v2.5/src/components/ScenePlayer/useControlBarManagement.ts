@@ -32,17 +32,20 @@ export function useControlBarManagement({
     ((event?: Event) => void) | null
   >(null);
 
-  const clearUnlockTimer = () => {
+  const clearUnlockTimer = useCallback(() => {
     if (unlockTimerRef.current) {
       clearTimeout(unlockTimerRef.current);
       unlockTimerRef.current = null;
     }
-  };
+  }, []);
 
-  const setControlBarLock = (playerEl: HTMLElement, locked: boolean) => {
-    playerEl.classList.toggle("vjs-controls-locked-hidden", locked);
-    playerEl.classList.toggle("vjs-controls-unlocked-once", !locked);
-  };
+  const setControlBarLock = useCallback(
+    (playerEl: HTMLElement, locked: boolean) => {
+      playerEl.classList.toggle("vjs-controls-locked-hidden", locked);
+      playerEl.classList.toggle("vjs-controls-unlocked-once", !locked);
+    },
+    []
+  );
 
   const temporarilyUnlockControlBar = useCallback(() => {
     const player = getPlayer();
@@ -70,7 +73,13 @@ export function useControlBarManagement({
       }
       unlockTimerRef.current = null;
     }, 3000);
-  }, [getPlayer, showEnhancedSubtitlesRef, controlBarVisibleRef]);
+  }, [
+    getPlayer,
+    showEnhancedSubtitlesRef,
+    controlBarVisibleRef,
+    clearUnlockTimer,
+    setControlBarLock,
+  ]);
 
   const hideControlBar = useCallback(() => {
     const player = getPlayer();
@@ -85,7 +94,13 @@ export function useControlBarManagement({
     if (showEnhancedSubtitlesRef.current) {
       setControlBarLock(playerEl, true);
     }
-  }, [getPlayer, showEnhancedSubtitlesRef, controlBarVisibleRef]);
+  }, [
+    getPlayer,
+    showEnhancedSubtitlesRef,
+    controlBarVisibleRef,
+    clearUnlockTimer,
+    setControlBarLock,
+  ]);
 
   // Toggle the control bar lock and keep it pinned (no auto-hide timer).
   // Used by the AP icon double-click: first double-click unlocks and keeps the
@@ -114,7 +129,13 @@ export function useControlBarManagement({
       player.reportUserActivity(new Event("useractive"));
       player.userActive(true);
     }
-  }, [getPlayer, showEnhancedSubtitlesRef, controlBarVisibleRef]);
+  }, [
+    getPlayer,
+    showEnhancedSubtitlesRef,
+    controlBarVisibleRef,
+    clearUnlockTimer,
+    setControlBarLock,
+  ]);
 
   useEffect(() => {
     temporarilyUnlockControlBarRef.current = temporarilyUnlockControlBar;
@@ -144,7 +165,7 @@ export function useControlBarManagement({
         return;
       }
 
-      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
       player.reportUserActivity = function (this: typeof player, event?: any) {
         const el = player.el();
 
@@ -207,7 +228,7 @@ export function useControlBarManagement({
         const el = player.el() as HTMLElement & {
           _focusLossHandler?: () => void;
         };
-        if (el && el._focusLossHandler) {
+        if (el?._focusLossHandler) {
           el.removeEventListener("blur", el._focusLossHandler);
           delete el._focusLossHandler;
         }
@@ -236,7 +257,13 @@ export function useControlBarManagement({
         }
       }
     }
-  }, [getPlayer, showEnhancedSubtitles, enhancedSubtitleNavigationRef]);
+  }, [
+    getPlayer,
+    showEnhancedSubtitles,
+    enhancedSubtitleNavigationRef,
+    controlBarVisibleRef,
+    clearUnlockTimer,
+  ]);
 
   // 同步所有状态到移动触摸控件
   useEffect(() => {
@@ -258,6 +285,7 @@ export function useControlBarManagement({
 
   // 传递单词导航回调到移动触摸控件
   // 回调函数每次调用时都从 ref 中读取最新值，避免闭包捕获旧状态
+  // biome-ignore lint/correctness/useExhaustiveDependencies: subtitleCues is an intentional trigger: re-attach the touch-plugin callbacks when the subtitle track changes
   useEffect(() => {
     if (!showEnhancedSubtitles) return;
 

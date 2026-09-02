@@ -146,14 +146,7 @@ export function useDictionary({
     return () => {
       ignore = true;
     };
-  }, [
-    aiProvider,
-    targetLanguage,
-    showDictionary,
-    selectedWord,
-    currentCue,
-    detectedLanguage,
-  ]);
+  }, [aiProvider, targetLanguage, showDictionary, selectedWord, currentCue]);
 
   // Load favorites on mount
   useEffect(() => {

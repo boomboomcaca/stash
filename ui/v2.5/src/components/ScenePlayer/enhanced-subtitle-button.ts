@@ -99,13 +99,11 @@ function enhancedSubtitleButton(
   this: videojs.Player,
   options: IEnhancedSubtitleButtonOptions = {}
 ) {
-  const player = this;
-
   // 创建按钮
-  const button = new EnhancedSubtitleButton(player, options);
+  const button = new EnhancedSubtitleButton(this, options);
 
   // 添加到控制栏，放在字幕按钮的位置
-  const controlBar = player.getChild("ControlBar");
+  const controlBar = this.getChild("ControlBar");
   if (controlBar) {
     // 尝试在全屏按钮之前插入
     const fullscreenToggle = controlBar.getChild("FullscreenToggle");

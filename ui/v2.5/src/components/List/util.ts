@@ -104,7 +104,7 @@ export function useDefaultFilter(emptyFilter: ListFilterModel, view?: View) {
       newFilter.currentPage = 1;
       try {
         newFilter.configureFromSavedFilter(savedFilter);
-      } catch (err) {
+      } catch {
         // ignore
       }
       // #1507 - reset random seed when loaded

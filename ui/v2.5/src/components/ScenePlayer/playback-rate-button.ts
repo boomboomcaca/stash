@@ -23,7 +23,7 @@ if (PlaybackRateMenuButton) {
       // 我们覆盖这个行为，让它总是显示菜单
       if (isTouchDevice) {
         // 触摸设备：显示菜单
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
         const self = this as any;
         if (self.menu && typeof self.menu.hasClass === "function") {
           if (self.menu.hasClass("vjs-lock-showing")) {
@@ -36,7 +36,7 @@ if (PlaybackRateMenuButton) {
         }
         // 阻止默认的切换行为
         // videojs.EventTarget.Event 可能包装了原生事件，尝试访问原始事件
-        /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+        // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
         const nativeEvent = (event as any)?.originalEvent || (event as any);
         if (nativeEvent && typeof nativeEvent.preventDefault === "function") {
           nativeEvent.preventDefault();
@@ -48,8 +48,8 @@ if (PlaybackRateMenuButton) {
       }
 
       // 非触摸设备：使用默认行为（可能会切换）
-      // @ts-ignore
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // @ts-expect-error
+      // biome-ignore lint/suspicious/noExplicitAny: videojs/DOM internals are untyped
       (super.handleClick as any)(event);
     }
   }

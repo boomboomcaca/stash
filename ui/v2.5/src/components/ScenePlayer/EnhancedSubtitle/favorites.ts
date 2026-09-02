@@ -47,7 +47,7 @@ export async function getFavorites(): Promise<IFavoriteWord[]> {
     const favorites = await response.json();
     updateCache(favorites);
     return favorites;
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -77,7 +77,7 @@ export async function addFavorite(
     }
 
     return result.success;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -107,7 +107,7 @@ export async function removeFavorite(
     }
 
     return result.success;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -133,7 +133,7 @@ export async function checkFavorite(
 
     const result: ICheckFavoriteResponse = await response.json();
     return result.isFavorite;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

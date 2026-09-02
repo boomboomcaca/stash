@@ -371,7 +371,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
 
       lastTouchEvent.current = event;
     },
-    [onScroll, setPosition]
+    [onScroll, setPosition, clearTransition]
   );
 
   const onTouchEnd = useCallback(
@@ -430,7 +430,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
         }
       }
     },
-    [setPosition]
+    [setPosition, setEaseOutTransition]
   );
 
   useEffect(() => {
