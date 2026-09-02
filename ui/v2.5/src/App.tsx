@@ -310,6 +310,7 @@ export const App: React.FC = () => {
 
   const title = config.data?.configuration.ui.title || "Stash";
   const titleProps = makeTitleProps(title);
+  const htmlAttributes = { lang: language };
 
   if (!messages) {
     return null;
@@ -322,6 +323,7 @@ export const App: React.FC = () => {
         messages={messages}
         formats={intlFormats}
       >
+        <Helmet htmlAttributes={htmlAttributes} />
         <MainContainer>{content}</MainContainer>
       </IntlProvider>
     );
@@ -368,7 +370,10 @@ export const App: React.FC = () => {
                   <LightboxProvider>
                     <ManualProvider>
                       <InteractiveProvider>
-                        <Helmet {...titleProps} />
+                        <Helmet
+                          {...titleProps}
+                          htmlAttributes={htmlAttributes}
+                        />
                         {maybeRenderNavbar()}
                         <MainContainer>{renderContent()}</MainContainer>
                       </InteractiveProvider>
