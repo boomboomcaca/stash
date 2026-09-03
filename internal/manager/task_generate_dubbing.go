@@ -425,7 +425,8 @@ func streamMultipartDub(body io.Reader, boundary, outPath string) (string, error
 			return "", err
 		}
 		ct, _, _ := mime.ParseMediaType(p.Header.Get("Content-Type"))
-		if strings.HasPrefix(ct, "audio/") {
+		switch {
+		case strings.HasPrefix(ct, "audio/"):
 			out, cerr := os.Create(outPath)
 			if cerr != nil {
 				p.Close()
@@ -438,14 +439,14 @@ func streamMultipartDub(body io.Reader, boundary, outPath string) (string, error
 				return "", cerr
 			}
 			wroteAudio = true
-		} else if strings.HasPrefix(ct, "text/") || strings.Contains(ct, "subrip") || p.FormName() == "recut_srt" {
+		case strings.HasPrefix(ct, "text/") || strings.Contains(ct, "subrip") || p.FormName() == "recut_srt":
 			b, rerr := io.ReadAll(p)
 			p.Close()
 			if rerr != nil {
 				return "", rerr
 			}
 			recut = string(b)
-		} else {
+		default:
 			p.Close()
 		}
 	}
