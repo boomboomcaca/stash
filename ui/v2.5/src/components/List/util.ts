@@ -617,6 +617,114 @@ export function useScrollToTopOnPageChange(
   }, [prevPage, currentPage, loading]);
 }
 
+// scrolling past the top or bottom of the list changes page. Require a bit of
+// extra scrolling past the edge so that reaching the end of a page doesn't
+// immediately flip to the next one.
+const scrollEdgeTolerance = 4;
+const scrollPageThreshold = 150;
+const scrollPageIdleReset = 400;
+const scrollPageCooldown = 700;
+
+// normalise the wheel delta to pixels - firefox reports lines, and page-mode
+// scrolling reports viewports
+function wheelDeltaPixels(ev: WheelEvent) {
+  switch (ev.deltaMode) {
+    case WheelEvent.DOM_DELTA_LINE:
+      return ev.deltaY * 16;
+    case WheelEvent.DOM_DELTA_PAGE:
+      return ev.deltaY * window.innerHeight;
+    default:
+      return ev.deltaY;
+  }
+}
+
+// returns true if the wheel event is over an element that can still scroll in
+// the given direction, in which case the page shouldn't be changed
+function scrolledElementCanScroll(ev: WheelEvent, down: boolean) {
+  let el: Element | null = ev.target instanceof Element ? ev.target : null;
+
+  while (el && el !== document.body && el !== document.documentElement) {
+    const { overflowY } = getComputedStyle(el);
+    if (
+      (overflowY === "auto" || overflowY === "scroll") &&
+      el.scrollHeight > el.clientHeight
+    ) {
+      const remaining = down
+        ? el.scrollHeight - el.clientHeight - el.scrollTop
+        : el.scrollTop;
+      if (remaining > scrollEdgeTolerance) return true;
+    }
+    el = el.parentElement;
+  }
+
+  return false;
+}
+
+// change page when the user keeps scrolling past the top or bottom of the page
+export function useChangePageOnScrollPastEdge(props: {
+  currentPage: number;
+  pages: number;
+  loading: boolean;
+  onChangePage: (page: number) => void;
+}) {
+  const { currentPage, pages, loading, onChangePage } = props;
+
+  const scrolledPastEdge = useRef(0);
+  const lastScroll = useRef(0);
+  const changeAllowedAt = useRef(0);
+
+  useEffect(() => {
+    if (pages <= 1) return;
+
+    function onWheel(ev: WheelEvent) {
+      const delta = wheelDeltaPixels(ev);
+      if (!delta) return;
+
+      const now = Date.now();
+      const down = delta > 0;
+
+      // reset the accumulated overscroll when the direction changes, or when
+      // the user pauses between scrolls
+      const directionChanged =
+        scrolledPastEdge.current !== 0 && scrolledPastEdge.current > 0 !== down;
+      if (now - lastScroll.current > scrollPageIdleReset || directionChanged) {
+        scrolledPastEdge.current = 0;
+      }
+      lastScroll.current = now;
+
+      if (loading || now < changeAllowedAt.current) return;
+      // don't change page from under a dialog
+      if (document.body.classList.contains("modal-open")) return;
+      if (scrolledElementCanScroll(ev, down)) return;
+
+      const page = down ? currentPage + 1 : currentPage - 1;
+      if (page < 1 || page > pages) return;
+
+      const maxScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const atEdge = down
+        ? window.scrollY >= maxScroll - scrollEdgeTolerance
+        : window.scrollY <= scrollEdgeTolerance;
+
+      if (!atEdge) {
+        scrolledPastEdge.current = 0;
+        return;
+      }
+
+      scrolledPastEdge.current += delta;
+
+      if (Math.abs(scrolledPastEdge.current) >= scrollPageThreshold) {
+        scrolledPastEdge.current = 0;
+        changeAllowedAt.current = now + scrollPageCooldown;
+        onChangePage(page);
+      }
+    }
+
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [currentPage, pages, loading, onChangePage]);
+}
+
 // handle case where page is more than there are pages
 export function useEnsureValidPage(
   filter: ListFilterModel,

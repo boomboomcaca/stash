@@ -6,6 +6,7 @@ import { useModal } from "src/hooks/modal";
 import {
   IFilterStateHook,
   IQueryResultHook,
+  useChangePageOnScrollPastEdge,
   useEnsureValidPage,
   useFilterOperations,
   useFilterState,
@@ -58,6 +59,14 @@ export function useFilteredItemList<
 
   // scroll to the top of the page when the page changes
   useScrollToTopOnPageChange(filter.currentPage, result.loading);
+
+  // change page when scrolling past the top or bottom of the page
+  useChangePageOnScrollPastEdge({
+    currentPage: filter.currentPage,
+    pages,
+    loading: result.loading,
+    onChangePage: setPage,
+  });
 
   // ensure that the current page is valid
   useEnsureValidPage(filter, totalCount, setFilter);
