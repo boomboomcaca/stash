@@ -19,6 +19,7 @@ import { Icon } from "src/components/Shared/Icon";
 import { SuccessIcon } from "src/components/Shared/SuccessIcon";
 import { LoadingIndicator } from "src/components/Shared/LoadingIndicator";
 import { TagSelect } from "src/components/Shared/Select";
+import TextUtils from "src/utils/text";
 import { TruncatedText } from "src/components/Shared/TruncatedText";
 import { OperationButton } from "src/components/Shared/OperationButton";
 import * as FormUtils from "src/utils/form";
@@ -64,6 +65,8 @@ const getDurationStatus = (
   if (!scene.duration && durations.length === 0) return "";
 
   const matchCount = durations.filter((duration) => duration <= 5).length;
+  const sceneDurationMatches =
+    !!scene.duration && Math.abs(scene.duration - stashDuration) < 5;
 
   let match: JSX.Element | undefined;
   if (matchCount > 0)
@@ -73,7 +76,7 @@ const getDurationStatus = (
         values={{ matchCount, durationsLength: durations.length }}
       />
     );
-  else if (scene.duration && Math.abs(scene.duration - stashDuration) < 5)
+  else if (sceneDurationMatches)
     match = <FormattedMessage id="component_tagger.results.fp_matches" />;
 
   const matchPercentage = (matchCount / durations.length) * 100;
@@ -81,7 +84,11 @@ const getDurationStatus = (
   if (match)
     return (
       <div className="font-weight-bold">
-        {getDurationIcon(matchPercentage)}
+        {sceneDurationMatches && matchCount === 0 ? (
+          <Icon className="SceneTaggerIcon text-success" icon={faCheckCircle} />
+        ) : (
+          getDurationIcon(matchPercentage)
+        )}
         {match}
       </div>
     );
@@ -553,11 +560,20 @@ const StashSearchResult: React.FC<IStashSearchResultProps> = ({
             }
             setExclude={(v) => setExcludedField(fields.cover_image, v)}
           >
-            <img
-              src={scene.image}
-              alt=""
-              className="align-self-center scene-image"
-            />
+            <div className="scene-image-overlay-container">
+              <img
+                src={scene.image}
+                alt=""
+                className="align-self-center scene-image"
+              />
+              {!!scene.duration && (
+                <div className="scene-specs-overlay">
+                  <span className="overlay-duration">
+                    {TextUtils.secondsToTimestamp(scene.duration)}
+                  </span>
+                </div>
+              )}
+            </div>
           </OptionalField>
         </div>
       );
