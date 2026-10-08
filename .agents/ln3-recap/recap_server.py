@@ -113,7 +113,12 @@ def run_claude(prompt, transcript, timeout=CLAUDE_TIMEOUT, allowed=None, max_tur
     # path previously bypassed the single-shot's outer _sem guard entirely.
     with _sem:
         proc = subprocess.run(
-            cmd, input=transcript, capture_output=True, text=True, timeout=timeout
+            cmd, input=transcript, capture_output=True, text=True, timeout=timeout,
+            # Pin UTF-8: on Windows text=True defaults to the ANSI codepage
+            # (cp1252 here), which raises UnicodeEncodeError on CJK prompts and
+            # UnicodeDecodeError on claude's output. Linux defaults to UTF-8,
+            # so this only ever bit the Windows host.
+            encoding="utf-8", errors="replace",
         )
     if proc.returncode != 0:
         raise RuntimeError(
