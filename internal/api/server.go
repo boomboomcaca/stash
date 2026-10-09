@@ -116,11 +116,6 @@ func Initialize() (*Server, error) {
 			Addr:      address,
 			Handler:   r,
 			TLSConfig: tlsConfig,
-			// disable http/2 support by default
-			// when http/2 is enabled, we are unable to hijack and close
-			// the connection/request. This is necessary to stop running
-			// streams when deleting a scene file.
-			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 		},
 		displayAddress: displayAddress,
 		manager:        mgr,
@@ -380,11 +375,14 @@ func (s *Server) Start() error {
 			return s.ListenAndServeTLS("", "")
 		}
 
+		var tlsConf *tls.Config
+		if s.TLSConfig != nil {
+			tlsConf = s.TLSConfig.Clone()
+		}
 		s.httpsServer = &http.Server{
-			Addr:         httpsAddr,
-			Handler:      s.Handler,
-			TLSConfig:    s.TLSConfig,
-			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
+			Addr:      httpsAddr,
+			Handler:   s.Handler,
+			TLSConfig: tlsConf,
 		}
 
 		go func() {
