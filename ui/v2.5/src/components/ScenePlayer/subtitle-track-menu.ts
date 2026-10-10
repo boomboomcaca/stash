@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import videojs from "video.js";
+import { getLanguageCodeBadge } from "src/utils/caption";
 import "./subtitle-track-menu.scss";
 
 // A control-bar dropdown that lists the enhanced-subtitle tracks available for
@@ -37,10 +38,48 @@ class SubtitleTrackMenuButton extends MenuButton {
     this.addClass("vjs-subtitle-track-menu");
     this.controlText("Subtitle track");
     this.updateVisibility();
+    this.updateBadge();
+    player.ready(() => this.updateBadge());
   }
 
   buildCSSClass() {
-    return `vjs-subtitle-track-menu vjs-subs-caps-button ${super.buildCSSClass()}`;
+    return `vjs-subtitle-track-menu ${super.buildCSSClass()}`;
+  }
+
+  private getSelectedBadgeText(): string {
+    if (!this.selectedSrc) {
+      return "OFF";
+    }
+    const track = this.trackOptions.find((o) => o.src === this.selectedSrc);
+    if (!track) {
+      return "CC";
+    }
+    const base = getLanguageCodeBadge(track.lang);
+    const sameLang = this.trackOptions.filter(
+      (t) => getLanguageCodeBadge(t.lang) === base
+    );
+    if (sameLang.length > 1) {
+      const idx = sameLang.indexOf(track) + 1;
+      return `${base}${idx}`;
+    }
+    return base;
+  }
+
+  private updateBadge() {
+    const text = this.getSelectedBadgeText();
+    const container = this.el()?.querySelector("button") || this.el();
+    if (!container) return;
+
+    let badgeEl = container.querySelector(
+      ".vjs-subtitle-track-badge-box"
+    ) as HTMLElement | null;
+    if (!badgeEl) {
+      badgeEl = document.createElement("span");
+      badgeEl.className = "vjs-subtitle-track-badge-box";
+      badgeEl.setAttribute("aria-hidden", "true");
+      container.appendChild(badgeEl);
+    }
+    badgeEl.textContent = text;
   }
 
   // Build the menu items from the current track options.
@@ -83,6 +122,7 @@ class SubtitleTrackMenuButton extends MenuButton {
       this.selectCallback(option);
     }
     this.update(); // rebuild items so the checkmark moves
+    this.updateBadge();
   }
 
   // Called by the parent to feed in the scene's tracks. preserveOff keeps an
@@ -98,12 +138,14 @@ class SubtitleTrackMenuButton extends MenuButton {
     }
     this.update();
     this.updateVisibility();
+    this.updateBadge();
   }
 
   // Keep external selection (e.g. auto-selected default) in sync.
   setSelected(selectedSrc: string | null) {
     this.selectedSrc = selectedSrc;
     this.update();
+    this.updateBadge();
   }
 
   // Hide the button entirely when there are no tracks.

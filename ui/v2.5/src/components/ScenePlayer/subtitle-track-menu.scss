@@ -1,12 +1,49 @@
 // Control-bar dropdown for selecting which enhanced-subtitle track is loaded.
-.vjs-subtitle-track-menu {
+.video-js .vjs-subtitle-track-menu {
   cursor: pointer;
 
-  // Use the VideoJS "chapters"/subtitles glyph so it reads as a track list and
-  // is visually distinct from the enhanced-subtitle toggle button.
-  .vjs-icon-placeholder::before {
-    content: "\f10e"; // VideoJS subtitles/captions glyph
-    font-family: VideoJS;
+  &,
+  button,
+  .vjs-button {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+  }
+
+  // Hide the default Video.js icon font since we display the language badge text
+  .vjs-icon-placeholder {
+    /* stylelint-disable-next-line declaration-no-important */
+    display: none !important;
+  }
+
+  .vjs-subtitle-track-badge-box {
+    align-items: center;
+    background: transparent;
+    border: 1.5px solid rgba(255, 255, 255, 0.75);
+    border-radius: 3px;
+    box-sizing: border-box;
+    color: #fff;
+    display: inline-flex;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    height: 18px;
+    justify-content: center;
+    letter-spacing: 0.5px;
+    line-height: 16px;
+    min-width: 24px;
+    padding: 0 3px;
+    pointer-events: none;
+    text-align: center;
+    transition: all 0.15s ease;
+    user-select: none;
+    visibility: visible !important;
+  }
+
+  &:hover .vjs-subtitle-track-badge-box {
+    border-color: #fff;
+    color: #fff;
+    transform: scale(1.08);
   }
 
   // The menu popup styling follows video.js defaults; just make sure the
