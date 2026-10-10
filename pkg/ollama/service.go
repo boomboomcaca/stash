@@ -186,68 +186,88 @@ func (s *Service) GenerateMistral(ctx context.Context, prompt string, sysPrompt 
 		return "", fmt.Errorf("mistral API key is not configured. Please configure it in settings")
 	}
 
-	urlStr := "https://api.mistral.ai/v1/chat/completions"
-
-	if sysPrompt == "" {
-		sysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
+	model := os.Getenv("MISTRAL_MODEL")
+	if model == "" {
+		model = "open-mistral-7b"
 	}
 
-	requestData := map[string]interface{}{
-		"model": "mistral-large-latest",
-		"messages": []map[string]interface{}{
-			{
-				"role":    "system",
-				"content": sysPrompt,
+	callMistral := func(m string) (string, int, error) {
+		urlStr := "https://api.mistral.ai/v1/chat/completions"
+
+		currentSysPrompt := sysPrompt
+		if currentSysPrompt == "" {
+			currentSysPrompt = "你必须全程使用中文进行解释说明（包括词根的含义也必须翻译为中文，不要夹杂英文解释）。纯文本输出，不要用任何符号（如反斜杠、星号、井号）包裹或强调单词。简洁回答。"
+		}
+
+		requestData := map[string]interface{}{
+			"model": m,
+			"messages": []map[string]interface{}{
+				{
+					"role":    "system",
+					"content": currentSysPrompt,
+				},
+				{
+					"role":    "user",
+					"content": prompt,
+				},
 			},
-			{
-				"role":    "user",
-				"content": prompt,
-			},
-		},
-		"temperature": 0,
-		"max_tokens":  800,
-	}
+			"temperature": 0,
+			"max_tokens":  800,
+		}
 
-	requestBody, err := json.Marshal(requestData)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal request: %w", err)
-	}
+		requestBody, err := json.Marshal(requestData)
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to marshal request: %w", err)
+		}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewBuffer(requestBody))
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+		req, err := http.NewRequestWithContext(ctx, "POST", urlStr, bytes.NewBuffer(requestBody))
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to create request: %w", err)
+		}
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate text with Mistral: %w", err)
-	}
-	defer resp.Body.Close()
+		resp, err := client.Do(req)
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to generate text with Mistral: %w", err)
+		}
+		defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("unexpected status code from Mistral: %d, body: %s", resp.StatusCode, string(body))
+		if resp.StatusCode != http.StatusOK {
+			return "", resp.StatusCode, fmt.Errorf("unexpected status code from Mistral: %d, body: %s", resp.StatusCode, string(body))
+		}
+
+		var mistralResp struct {
+			Choices []struct {
+				Message struct {
+					Content string `json:"content"`
+				} `json:"message"`
+			} `json:"choices"`
+		}
+
+		if err := json.Unmarshal(body, &mistralResp); err != nil {
+			return "", resp.StatusCode, fmt.Errorf("failed to decode Mistral response: %w", err)
+		}
+
+		if len(mistralResp.Choices) == 0 {
+			return "", resp.StatusCode, fmt.Errorf("empty response from Mistral")
+		}
+
+		return mistralResp.Choices[0].Message.Content, resp.StatusCode, nil
 	}
 
-	var mistralResp struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
+	content, statusCode, err := callMistral(model)
+	if err != nil && (statusCode == http.StatusForbidden || statusCode == http.StatusBadRequest) && model != "open-mistral-7b" {
+		s.logger.WithError(err).Warnf("Mistral model %s failed (status %d), falling back to open-mistral-7b", model, statusCode)
+		content, _, err = callMistral("open-mistral-7b")
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&mistralResp); err != nil {
-		return "", fmt.Errorf("failed to decode Mistral response: %w", err)
+	if err != nil {
+		return "", err
 	}
 
-	if len(mistralResp.Choices) == 0 {
-		return "", fmt.Errorf("empty response from Mistral")
-	}
-
-	return mistralResp.Choices[0].Message.Content, nil
+	return content, nil
 }
 
 // NewService creates a new Ollama service
