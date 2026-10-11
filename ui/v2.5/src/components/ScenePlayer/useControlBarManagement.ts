@@ -153,6 +153,9 @@ export function useControlBarManagement({
     if (!player) return;
 
     if (showEnhancedSubtitles) {
+      // 禁用Video.js的用户活跃检测
+      player.userActive(false);
+
       // 修改Video.js的用户活跃检测机制
       // 允许键盘事件触发用户活跃，但保持控制栏锁定
       // 保存原始的 reportUserActivity 方法（如果还没有保存）
@@ -187,14 +190,11 @@ export function useControlBarManagement({
         _focusLossHandler?: () => void;
       };
       if (playerEl) {
-        // 首次开启增强字幕时显示控制栏并“固定保持”：不启动自动隐藏计时器，
-        // 控制栏一直可见，直到用户双击 AP 图标（toggleControlBarLock）才锁定隐藏。
+        // 开启增强字幕时默认锁定隐藏控制栏，保持字幕沉浸体验并允许键盘左右键选词
         clearUnlockTimer();
-        controlBarVisibleRef.current = true;
-        controlBarPinnedRef.current = true;
-        playerEl.classList.remove("vjs-controls-locked-hidden");
-        playerEl.classList.add("vjs-controls-unlocked-once");
-        player.userActive(true);
+        controlBarVisibleRef.current = false;
+        controlBarPinnedRef.current = false;
+        setControlBarLock(playerEl, true);
         playerEl.setAttribute("tabindex", "0");
         playerEl.focus();
 
@@ -263,6 +263,7 @@ export function useControlBarManagement({
     enhancedSubtitleNavigationRef,
     controlBarVisibleRef,
     clearUnlockTimer,
+    setControlBarLock,
   ]);
 
   // 同步所有状态到移动触摸控件
