@@ -53,6 +53,7 @@ export const EnhancedSubtitleOverlay: React.FC<
 }) => {
   const [fullscreenContainer, setFullscreenContainer] =
     useState<HTMLElement | null>(null);
+  const [isAPHovered, setIsAPHovered] = useState(false);
   const subtitleRef = useRef<HTMLDivElement>(null);
   const isInWordNavigationModeRef = useRef<boolean>(false);
 
@@ -614,8 +615,13 @@ export const EnhancedSubtitleOverlay: React.FC<
                 ? "auto-pause-favorites"
                 : ""
           }`}
+          onMouseEnter={() => setIsAPHovered(true)}
+          onMouseLeave={() => setIsAPHovered(false)}
           onMouseDown={handleAPMouseDown}
-          onTouchStart={handleAPTouchStart}
+          onTouchStart={(e) => {
+            setIsAPHovered(false);
+            handleAPTouchStart(e);
+          }}
           onClick={handleAPClick}
         >
           <svg
@@ -647,6 +653,38 @@ export const EnhancedSubtitleOverlay: React.FC<
             )}
           </svg>
         </div>
+
+        {isAPHovered && !isDragging && (
+          <div className="ap-tooltip">
+            <div className="ap-tooltip-modes">
+              <span className="ap-tooltip-title">自动暂停</span>
+              <span
+                className={`mode-chip ${
+                  autoPauseMode === "off" ? "active off" : ""
+                }`}
+              >
+                <span className="mode-dot dot-off" />关
+              </span>
+              <span
+                className={`mode-chip ${
+                  autoPauseMode === "favorites" ? "active favorites" : ""
+                }`}
+              >
+                <span className="mode-dot dot-favorites" />
+                仅生词
+              </span>
+              <span
+                className={`mode-chip ${
+                  autoPauseMode === "all" ? "active all" : ""
+                }`}
+              >
+                <span className="mode-dot dot-all" />
+                全部
+              </span>
+            </div>
+            <div className="ap-tooltip-hint">单击切换 · 双击锁栏</div>
+          </div>
+        )}
 
         {currentCue && renderSegmentedText}
       </div>
