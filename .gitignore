@@ -73,7 +73,7 @@ node_modules
 /phasher
 /phasher.exe
 dist
-build/
+/build/
 
 # Media and cache files
 /blobs/
