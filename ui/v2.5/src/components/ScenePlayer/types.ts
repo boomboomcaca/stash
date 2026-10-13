@@ -37,6 +37,7 @@ export interface IScenePlayerProps {
 export interface IEnhancedSubtitleNavigation {
   isInWordNavigationMode: boolean;
   isAutoPaused: boolean;
+  canNavigateWords?: () => boolean;
   resumePlayback?: () => void;
   enterWordNavigationMode?: (selectLastWord: boolean) => void;
   exitWordNavigationMode?: () => void;

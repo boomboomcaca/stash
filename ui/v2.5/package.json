@@ -22,6 +22,7 @@
     "stylelint": "stylelint",
     "format": "biome format --write",
     "format-check": "biome format",
+    "test": "tsx --test src/components/ScenePlayer/EnhancedSubtitle/enhancedSubtitle.test.ts",
     "gqlgen": "gql-gen --config codegen.ts",
     "extract": "NODE_ENV=development extract-messages -l=en,de -o src/locale -d en --flat false 'src/**/!(*.test).tsx'"
   },
@@ -120,6 +121,7 @@
     "stylelint-order": "^8.1.1",
     "terser": "^5.48.0",
     "ts-node": "~10.9.2",
+    "tsx": "^4.23.15",
     "typescript": "~5.9.3",
     "vite": "^7.3.5",
     "vite-plugin-compression": "^0.5.1",

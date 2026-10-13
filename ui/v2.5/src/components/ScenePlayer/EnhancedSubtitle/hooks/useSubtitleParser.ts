@@ -14,14 +14,68 @@ interface IUseSubtitleParserResult {
   parsedSubtitles: IParsedSubtitle | null;
 }
 
-// Parse VTT timestamp to seconds
-function parseVTTTime(timeStr: string): number {
-  const [hours, minutes, seconds] = timeStr.split(":");
-  return (
-    parseInt(hours, 10) * 3600 +
-    parseInt(minutes, 10) * 60 +
-    parseFloat(seconds)
-  );
+// Parse VTT timestamp to seconds (supports hh:mm:ss.ttt, mm:ss.ttt, with . or , separator)
+export function parseVTTTime(timeStr: string): number {
+  const normalized = timeStr.trim().replace(",", ".");
+  const parts = normalized.split(":");
+  if (parts.length === 3) {
+    return (
+      parseInt(parts[0], 10) * 3600 +
+      parseInt(parts[1], 10) * 60 +
+      parseFloat(parts[2])
+    );
+  }
+  if (parts.length === 2) {
+    return parseInt(parts[0], 10) * 60 + parseFloat(parts[1]);
+  }
+  return parseFloat(normalized) || 0;
+}
+
+const TIME_LINE_REGEX =
+  /^((?:(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?))\s+-->\s+((?:(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?))/;
+const NEXT_TIME_LINE_REGEX =
+  /^(?:(?:\d{1,2}:)?\d{2}:\d{2}(?:[.,]\d{1,3})?)\s+-->/;
+
+export function parseVTTContent(vttContent: string): ISubtitleCue[] {
+  const cues: ISubtitleCue[] = [];
+  const lines = vttContent.split("\n");
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    if (line === "WEBVTT" || line === "" || line.startsWith("NOTE")) {
+      i++;
+      continue;
+    }
+
+    const timeMatch = line.match(TIME_LINE_REGEX);
+    if (timeMatch) {
+      const startTime = parseVTTTime(timeMatch[1]);
+      const endTime = parseVTTTime(timeMatch[2]);
+
+      i++;
+      let text = "";
+
+      while (
+        i < lines.length &&
+        lines[i].trim() !== "" &&
+        !lines[i].match(NEXT_TIME_LINE_REGEX)
+      ) {
+        if (text) text += "\n";
+        text += lines[i].trim().replace(/<[^>]*>/g, "");
+        i++;
+      }
+
+      if (text) {
+        cues.push({ startTime, endTime, text });
+      }
+    } else {
+      i++;
+    }
+  }
+
+  return cues;
 }
 
 export function useSubtitleParser({
@@ -34,47 +88,7 @@ export function useSubtitleParser({
 
   // Parse VTT subtitles
   const parseVTT = useCallback((vttContent: string): ISubtitleCue[] => {
-    const cues: ISubtitleCue[] = [];
-    const lines = vttContent.split("\n");
-
-    let i = 0;
-    while (i < lines.length) {
-      const line = lines[i].trim();
-
-      if (line === "WEBVTT" || line === "" || line.startsWith("NOTE")) {
-        i++;
-        continue;
-      }
-
-      const timeMatch = line.match(
-        /^(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})/
-      );
-      if (timeMatch) {
-        const startTime = parseVTTTime(timeMatch[1]);
-        const endTime = parseVTTTime(timeMatch[2]);
-
-        i++;
-        let text = "";
-
-        while (
-          i < lines.length &&
-          lines[i].trim() !== "" &&
-          !lines[i].match(/^\d{2}:\d{2}:\d{2}\.\d{3} -->/)
-        ) {
-          if (text) text += "\n";
-          text += lines[i].trim().replace(/<[^>]*>/g, "");
-          i++;
-        }
-
-        if (text) {
-          cues.push({ startTime, endTime, text });
-        }
-      } else {
-        i++;
-      }
-    }
-
-    return cues;
+    return parseVTTContent(vttContent);
   }, []);
 
   // Load and parse subtitle file

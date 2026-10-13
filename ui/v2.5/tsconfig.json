@@ -21,5 +21,6 @@
     "useDefineForClassFields": true,
     "types": ["vite/client"]
   },
-  "include": ["src", ".eslintrc.cjs"]
+  "include": ["src", ".eslintrc.cjs"],
+  "exclude": ["src/**/*.test.ts"]
 }

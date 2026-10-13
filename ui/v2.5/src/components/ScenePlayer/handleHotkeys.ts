@@ -211,14 +211,16 @@ export function handleHotkeys(
         event.which === 65 ||
         event.which === 68)
     ) {
-      event.preventDefault();
-      event.stopPropagation();
-      if (enhancedSubtitleNavigation.enterWordNavigationMode) {
-        // Left arrow (37)/A (65) selects last word, right arrow (39)/D (68) selects first word
-        const selectLastWord = event.which === 37 || event.which === 65;
-        enhancedSubtitleNavigation.enterWordNavigationMode(selectLastWord);
+      if (enhancedSubtitleNavigation.canNavigateWords?.()) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (enhancedSubtitleNavigation.enterWordNavigationMode) {
+          // Left arrow (37)/A (65) selects last word, right arrow (39)/D (68) selects first word
+          const selectLastWord = event.which === 37 || event.which === 65;
+          enhancedSubtitleNavigation.enterWordNavigationMode(selectLastWord);
+        }
+        return;
       }
-      return;
     }
 
     // Handle word navigation mode
@@ -417,6 +419,12 @@ export function handleHotkeys(
         // Down arrow: single press to repeat current subtitle, double press to go to previous subtitle
         event.preventDefault();
         event.stopPropagation();
+        // Exit word navigation mode if active
+        if (enhancedSubtitleNavigation.isInWordNavigationMode) {
+          enhancedSubtitleNavigation.exitWordNavigationMode?.();
+          enhancedSubtitleNavigation.markUserResumedPlayback?.();
+          enhancedSubtitleNavigation.clearScheduledAutoPause?.();
+        }
         const now = Date.now();
         const lastPress = player._lastDownArrowPress || 0;
         const timeSinceLastPress = now - lastPress;

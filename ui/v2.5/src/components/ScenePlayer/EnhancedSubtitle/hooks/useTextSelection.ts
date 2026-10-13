@@ -28,6 +28,8 @@ interface IUseTextSelectionResult {
   handleTokenMouseEnter: (index: number) => void;
   /** Dismiss the selection */
   clearSelection: () => void;
+  /** Check if the last mouse interaction was a drag-selection rather than a click */
+  didJustDragSelect: () => boolean;
 }
 
 /**
@@ -54,6 +56,7 @@ export function useTextSelection({
   const hasDragMovedRef = useRef(false);
   const dragStartXRef = useRef<number>(0);
   const dragStartYRef = useRef<number>(0);
+  const didJustDragRef = useRef<boolean>(false);
   // Ref to always have latest values in the mouseup closure
   const textTokensRef = useRef(textTokens);
   const currentCueTextRef = useRef(currentCueText);
@@ -129,6 +132,7 @@ export function useTextSelection({
       hasDragMovedRef.current = false;
       dragStartXRef.current = e.clientX;
       dragStartYRef.current = e.clientY;
+      didJustDragRef.current = false;
 
       // Start with the anchor token selected
       setDragSelectedIndices(new Set([index]));
@@ -172,6 +176,11 @@ export function useTextSelection({
       }
 
       if (hasDragMovedRef.current) {
+        didJustDragRef.current = true;
+        setTimeout(() => {
+          didJustDragRef.current = false;
+        }, 300);
+
         // Use functional setState to read the latest drag-selected indices
         setDragSelectedIndices((currentIndices) => {
           if (currentIndices.size > 0) {
@@ -191,6 +200,7 @@ export function useTextSelection({
       } else {
         // Single click (no drag movement) - clear and let onClick handle it
         // Note: we let onClick event on words trigger the dictionary.
+        didJustDragRef.current = false;
         setDragSelectedIndices(new Set());
       }
 
@@ -213,6 +223,7 @@ export function useTextSelection({
     isDragSelectingRef.current = false;
     dragStartIndexRef.current = -1;
     hasDragMovedRef.current = false;
+    didJustDragRef.current = false;
   }, [textTokens]);
 
   const clearSelection = useCallback(() => {
@@ -222,6 +233,11 @@ export function useTextSelection({
     isDragSelectingRef.current = false;
     dragStartIndexRef.current = -1;
     hasDragMovedRef.current = false;
+    didJustDragRef.current = false;
+  }, []);
+
+  const didJustDragSelect = useCallback(() => {
+    return didJustDragRef.current || hasDragMovedRef.current;
   }, []);
 
   return {
@@ -231,5 +247,6 @@ export function useTextSelection({
     handleTokenMouseDown,
     handleTokenMouseEnter,
     clearSelection,
+    didJustDragSelect,
   };
 }

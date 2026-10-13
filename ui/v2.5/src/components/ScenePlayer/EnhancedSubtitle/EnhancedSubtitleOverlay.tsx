@@ -225,11 +225,11 @@ export const EnhancedSubtitleOverlay: React.FC<
   // Text selection hook (mouse drag to select and copy)
   const {
     dragSelectedIndices,
-    isDragSelecting,
     justCopied,
     handleTokenMouseDown,
     handleTokenMouseEnter,
     clearSelection,
+    didJustDragSelect,
   } = useTextSelection({
     textTokens,
     currentCueText: currentCue?.text ?? "",
@@ -381,6 +381,7 @@ export const EnhancedSubtitleOverlay: React.FC<
         handleWordSelection,
         isInWordNavigationMode,
         isAutoPaused,
+        canNavigateWords: () => wordSegments.length > 0,
         resumePlayback: () => {
           if (onPlay && isAutoPaused) {
             onPlay();
@@ -439,6 +440,7 @@ export const EnhancedSubtitleOverlay: React.FC<
     setShowDictionary,
     selectedWord,
     handlePronunciation,
+    wordSegments,
   ]);
 
   // Render segmented text with clickable words, grouped by line with per-line language class
@@ -524,7 +526,7 @@ export const EnhancedSubtitleOverlay: React.FC<
             }`}
             onClick={() => {
               // Only trigger dictionary lookup if not in drag-select mode
-              if (!isDragSelecting && dragSelectedIndices.size === 0) {
+              if (!didJustDragSelect()) {
                 handleWordClick(token.text);
                 setSelectedWordIndex(token.wordIndex);
               } else {
@@ -576,13 +578,13 @@ export const EnhancedSubtitleOverlay: React.FC<
     isInWordNavigationMode,
     selectedWordIndex,
     isDragging,
-    isDragSelecting,
     justCopied,
     dragSelectedIndices,
     handleTokenMouseDown,
     handleTokenMouseEnter,
     clearSelection,
     setSelectedWordIndex,
+    didJustDragSelect,
   ]);
 
   if (!isVisible) {
