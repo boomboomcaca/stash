@@ -881,6 +881,36 @@ $sceneTabWidth: 450px;
       }
     }
   }
+
+  // 手机竖屏时页面朝下滚动保持视频吸顶在顶部
+  @media (orientation: portrait) {
+    body:has(.scene-player-container),
+    html:has(.scene-player-container) {
+      overflow-x: clip;
+    }
+
+    .scene-player-container ~ .scene-tabs,
+    .scene-tabs:has(~ .scene-player-container) {
+      order: 1;
+    }
+
+    .main > .row:has(.scene-player-container) {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .scene-player-container {
+      background: var(--bs-body-bg, #1a1a1a);
+      order: 0;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+
+      @media (min-width: 576px) {
+        top: $navbar-height;
+      }
+    }
+  }
 }
 @media (min-width: 1200px) {
   .scene-tabs {
