@@ -1178,16 +1178,17 @@ body.vjs-pseudo-fullscreen {
     display: flex;
     height: 24px;
     justify-content: center;
+    overflow: visible;
     position: relative;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
     width: 100%;
-    z-index: 10;
+    z-index: 25;
 
     &::before {
       content: "";
-      height: 32px;
+      height: 36px;
       left: 0;
       position: absolute;
       right: 0;
@@ -1196,13 +1197,12 @@ body.vjs-pseudo-fullscreen {
     }
 
     &.handle-top {
-      height: 14px;
       margin-bottom: 0;
     }
 
     &.handle-bottom {
-      margin-bottom: 2px;
-      margin-top: 4px;
+      margin-bottom: 0;
+      margin-top: 0;
     }
 
     &.dragging {
@@ -1212,7 +1212,7 @@ body.vjs-pseudo-fullscreen {
     .drag-handle-pill {
       background-color: rgba(255, 255, 255, 0.4);
       border-radius: 3px;
-      height: 5px;
+      height: 4px;
       pointer-events: none;
       transition: background-color 0.2s, width 0.2s, transform 0.2s;
       width: 44px;
@@ -1227,26 +1227,52 @@ body.vjs-pseudo-fullscreen {
 
     .drag-handle-reset-btn {
       align-items: center;
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.35);
       border-radius: 50%;
-      color: rgba(255, 255, 255, 0.8);
+      box-sizing: border-box;
+      color: rgba(255, 255, 255, 0.9);
       cursor: pointer;
       display: flex;
+      flex-shrink: 0;
       font-size: 0.7rem;
-      height: 22px;
+      height: 20px;
       justify-content: center;
+      line-height: 1;
+      margin: 0;
+      outline: none;
       padding: 0;
       position: absolute;
-      right: 8px;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
-      transition: background-color 0.2s, color 0.2s;
-      width: 22px;
+      transition: background-color 0.2s, color 0.2s, transform 0.15s;
+      width: 20px;
+      z-index: 30;
 
-      &:hover {
-        background: rgba(0, 0, 0, 0.8);
+      &::after {
+        bottom: -6px;
+        content: "";
+        left: -6px;
+        position: absolute;
+        right: -6px;
+        top: -6px;
+      }
+
+      svg {
+        display: block;
+        height: 10px;
+        margin: 0;
+        width: 10px;
+      }
+
+      &:hover,
+      &:active {
+        background: rgba(0, 0, 0, 0.85);
         color: #fff;
+        transform: translateY(-50%) scale(1.08);
       }
     }
   }
