@@ -66,6 +66,9 @@ import { useControlBarManagement } from "./useControlBarManagement";
 import type { SubtitleTrackMenuButton } from "./subtitle-track-menu";
 import { useMediaSession } from "./useMediaSession";
 import { ScenePlayerActions } from "./ScenePlayerActions";
+import { useMobilePortraitDrag } from "./useMobilePortraitDrag";
+import { Icon } from "src/components/Shared/Icon";
+import { faUndoAlt } from "@fortawesome/free-solid-svg-icons";
 
 export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
   "ScenePlayer",
@@ -110,6 +113,16 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     } = React.useContext(InteractiveContext);
 
     const [fullscreen, setFullscreen] = useState(false);
+    const {
+      containerRef: portraitContainerRef,
+      isMobilePortrait,
+      isDragging: isPortraitDragging,
+      topOffset: portraitTopOffset,
+      containerStyle: portraitContainerStyle,
+      handleProps: portraitHandleProps,
+      resetOffset: resetPortraitOffset,
+    } = useMobilePortraitDrag({ fullscreen });
+
     const [showScrubber, setShowScrubber] = useState(false);
     const [controlBarVisible, setControlBarVisible] = useState(true);
     const [showEnhancedSubtitles, setShowEnhancedSubtitles] = useState(false);
@@ -641,14 +654,58 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     const isPortrait = file?.height && file?.width && file.height > file.width;
 
+    const renderDragHandle = (position: "top" | "bottom") => {
+      if (!isMobilePortrait || fullscreen) {
+        return null;
+      }
+
+      return (
+        <div
+          className={cx("mobile-player-drag-handle", `handle-${position}`, {
+            dragging: isPortraitDragging,
+          })}
+          {...portraitHandleProps}
+          role="slider"
+          aria-label={`拖拽调整视频位置 (${position === "top" ? "顶部" : "底部"})`}
+          aria-valuenow={portraitTopOffset}
+          title="上下拖动调整视频位置，双击复位"
+        >
+          <div className="drag-handle-pill" />
+          {portraitTopOffset > 15 && (
+            <button
+              type="button"
+              className="drag-handle-reset-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetPortraitOffset();
+              }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+              }}
+              title="复位到顶部"
+              aria-label="复位到顶部"
+            >
+              <Icon icon={faUndoAlt} />
+            </button>
+          )}
+        </div>
+      );
+    };
+
     return (
       <div
+        ref={portraitContainerRef}
         className={cx("VideoPlayer", {
           portrait: isPortrait,
           "no-file": !file,
         })}
+        style={portraitContainerStyle}
         onKeyDownCapture={onKeyDown}
       >
+        {renderDragHandle("top")}
         <div className="video-container">
           <div className="video-wrapper" ref={videoRef}>
             {onDelete && onRatingChange && !showEnhancedSubtitles && (
@@ -697,6 +754,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
             onScroll={onScrubberScroll}
           />
         )}
+        {renderDragHandle("bottom")}
       </div>
     );
   }

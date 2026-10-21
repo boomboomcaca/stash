@@ -617,7 +617,14 @@ export const EnhancedSubtitleOverlay: React.FC<
                 ? "auto-pause-favorites"
                 : ""
           }`}
-          onMouseEnter={() => setIsAPHovered(true)}
+          onMouseEnter={() => {
+            if (
+              typeof window !== "undefined" &&
+              window.matchMedia("(hover: hover) and (pointer: fine)").matches
+            ) {
+              setIsAPHovered(true);
+            }
+          }}
           onMouseLeave={() => setIsAPHovered(false)}
           onMouseDown={handleAPMouseDown}
           onTouchStart={(e) => {

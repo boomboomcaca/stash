@@ -335,6 +335,12 @@
       transform: translateX(-50%);
       width: 0;
     }
+
+    // 移动触摸设备上不显示悬停提示，避免触摸后无法取消悬停状态并留下模糊阴影
+    @media (hover: none), (pointer: coarse) {
+      /* stylelint-disable-next-line declaration-no-important */
+      display: none !important;
+    }
   }
 
   .ap-tooltip-modes {

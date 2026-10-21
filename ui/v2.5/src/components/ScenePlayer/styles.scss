@@ -58,6 +58,12 @@ $sceneTabWidth: 450px;
   position: relative;
   width: 100%;
   z-index: 1031;
+
+  &:focus,
+  &:focus-visible {
+    box-shadow: none;
+    outline: none;
+  }
 }
 
 .VideoPlayer.no-file .video-js {
@@ -71,6 +77,14 @@ $sceneTabWidth: 450px;
   height: 100%;
   position: absolute;
   width: 100%;
+
+  &:focus,
+  &:focus-visible {
+    /* stylelint-disable declaration-no-important */
+    box-shadow: none !important;
+    outline: none !important;
+    /* stylelint-enable declaration-no-important */
+  }
 
   &:not(.vjs-has-started) .vjs-control-bar {
     display: flex;
@@ -809,9 +823,15 @@ $sceneTabWidth: 450px;
       .VideoPlayer {
         height: 100vh;
         height: 100dvh;
+        margin-top: 0;
         max-height: 100vh;
         max-height: 100dvh;
         padding-bottom: 0;
+
+        .mobile-player-drag-handle {
+          /* stylelint-disable-next-line declaration-no-important */
+          display: none !important;
+        }
 
         .video-container {
           height: 100vh;
@@ -1084,6 +1104,7 @@ body.vjs-pseudo-fullscreen {
     height: 100vh !important;
     height: 100dvh !important;
     left: 0 !important;
+    margin-top: 0 !important;
     max-height: 100vh !important;
     max-height: 100dvh !important;
     position: fixed !important;
@@ -1091,6 +1112,11 @@ body.vjs-pseudo-fullscreen {
     width: 100vw !important;
     z-index: 9999 !important;
     /* stylelint-enable declaration-no-important */
+
+    .mobile-player-drag-handle {
+      /* stylelint-disable-next-line declaration-no-important */
+      display: none !important;
+    }
 
     .video-container {
       /* stylelint-disable declaration-no-important */
@@ -1101,3 +1127,79 @@ body.vjs-pseudo-fullscreen {
     }
   }
 }
+
+// 移动端竖屏播放器顶部和底部拖拽手柄
+.mobile-player-drag-handle {
+  display: none;
+}
+
+@media (max-width: 1199px) and (orientation: portrait) {
+  .mobile-player-drag-handle {
+    align-items: center;
+    cursor: grab;
+    display: flex;
+    height: 24px;
+    justify-content: center;
+    position: relative;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    width: 100%;
+    z-index: 10;
+
+    &.handle-top {
+      margin-bottom: 2px;
+    }
+
+    &.handle-bottom {
+      margin-bottom: 2px;
+      margin-top: 4px;
+    }
+
+    &.dragging {
+      cursor: grabbing;
+    }
+
+    .drag-handle-pill {
+      background-color: rgba(255, 255, 255, 0.4);
+      border-radius: 3px;
+      height: 5px;
+      pointer-events: none;
+      transition: background-color 0.2s, width 0.2s, transform 0.2s;
+      width: 44px;
+    }
+
+    &:hover .drag-handle-pill,
+    &.dragging .drag-handle-pill {
+      background-color: rgba(255, 255, 255, 0.85);
+      transform: scaleY(1.2);
+      width: 52px;
+    }
+
+    .drag-handle-reset-btn {
+      align-items: center;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      color: rgba(255, 255, 255, 0.8);
+      cursor: pointer;
+      display: flex;
+      font-size: 0.7rem;
+      height: 22px;
+      justify-content: center;
+      padding: 0;
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      transition: background-color 0.2s, color 0.2s;
+      width: 22px;
+
+      &:hover {
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+      }
+    }
+  }
+}
+

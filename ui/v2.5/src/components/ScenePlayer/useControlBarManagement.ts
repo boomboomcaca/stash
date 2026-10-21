@@ -195,26 +195,35 @@ export function useControlBarManagement({
         controlBarVisibleRef.current = false;
         controlBarPinnedRef.current = false;
         setControlBarLock(playerEl, true);
-        playerEl.setAttribute("tabindex", "0");
-        playerEl.focus();
 
-        const handleFocusLoss = () => {
-          setTimeout(() => {
-            // 如果词典模态框正在显示，不要强制重新聚焦播放器，避免边框闪烁
-            const isDictionaryVisible =
-              enhancedSubtitleNavigationRef.current?.isDictionaryVisible?.() ??
-              false;
-            if (isDictionaryVisible) {
-              return;
-            }
-            if (playerEl?.classList.contains("vjs-controls-locked-hidden")) {
-              playerEl.focus();
-            }
-          }, 100);
-        };
+        // 仅在桌面细精度指针（支持鼠标/悬停）设备上设置聚焦，以便响应键盘快捷键；
+        // 移动触摸设备不调用 focus()，避免触发浏览器默认聚焦光晕/模糊边框及滚动
+        const hasFinePointer =
+          typeof window !== "undefined" &&
+          window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-        playerEl.addEventListener("blur", handleFocusLoss);
-        playerEl._focusLossHandler = handleFocusLoss;
+        if (hasFinePointer) {
+          playerEl.setAttribute("tabindex", "0");
+          playerEl.focus({ preventScroll: true });
+
+          const handleFocusLoss = () => {
+            setTimeout(() => {
+              // 如果词典模态框正在显示，不要强制重新聚焦播放器，避免边框闪烁
+              const isDictionaryVisible =
+                enhancedSubtitleNavigationRef.current?.isDictionaryVisible?.() ??
+                false;
+              if (isDictionaryVisible) {
+                return;
+              }
+              if (playerEl?.classList.contains("vjs-controls-locked-hidden")) {
+                playerEl.focus({ preventScroll: true });
+              }
+            }, 100);
+          };
+
+          playerEl.addEventListener("blur", handleFocusLoss);
+          playerEl._focusLossHandler = handleFocusLoss;
+        }
       }
 
       // 清理函数：恢复原始方法
