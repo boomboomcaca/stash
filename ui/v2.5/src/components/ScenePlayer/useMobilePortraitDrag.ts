@@ -27,9 +27,14 @@ export const calculateMaxOffset = (
 export const clampOffset = (
   offset: number,
   maxOffset: number,
-  minOffset: number = 0
+  minOffset: number = 0,
+  snapThreshold: number = 4
 ): number => {
-  return Math.max(minOffset, Math.min(maxOffset, offset));
+  const clamped = Math.max(minOffset, Math.min(maxOffset, offset));
+  if (clamped < snapThreshold) {
+    return 0;
+  }
+  return clamped;
 };
 
 interface IUseMobilePortraitDragOptions {

@@ -884,9 +884,17 @@ $sceneTabWidth: 450px;
 
   // 手机竖屏时页面朝下滚动保持视频吸顶在顶部
   @media (orientation: portrait) {
-    body:has(.scene-player-container),
+    body:has(.scene-player-container) {
+      overflow-x: clip;
+      padding-top: 0;
+    }
+
     html:has(.scene-player-container) {
       overflow-x: clip;
+    }
+
+    .main:has(.scene-player-container) {
+      padding-top: 0;
     }
 
     .scene-player-container ~ .scene-tabs,
@@ -1177,8 +1185,19 @@ body.vjs-pseudo-fullscreen {
     width: 100%;
     z-index: 10;
 
+    &::before {
+      content: "";
+      height: 32px;
+      left: 0;
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
     &.handle-top {
-      margin-bottom: 2px;
+      height: 14px;
+      margin-bottom: 0;
     }
 
     &.handle-bottom {

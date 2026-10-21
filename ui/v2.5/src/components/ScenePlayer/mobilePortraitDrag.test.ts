@@ -43,12 +43,17 @@ test("calculateMaxOffset ensures player does not exceed top or bottom boundaries
   assert.equal(calculateMaxOffset(300, 400, 0, 12), 0);
 });
 
-test("clampOffset correctly constrains offset within [minOffset, maxOffset]", () => {
+test("clampOffset correctly constrains offset within [minOffset, maxOffset] and snaps small offsets to 0", () => {
   const maxOffset = 400;
   // Normal value within range
   assert.equal(clampOffset(150, maxOffset), 150);
   assert.equal(clampOffset(0, maxOffset), 0);
   assert.equal(clampOffset(400, maxOffset), 400);
+
+  // Small values below threshold snap to 0
+  assert.equal(clampOffset(3, maxOffset), 0);
+  assert.equal(clampOffset(1, maxOffset), 0);
+  assert.equal(clampOffset(4, maxOffset), 4);
 
   // Negative value clamped to 0 (cannot exceed top)
   assert.equal(clampOffset(-50, maxOffset), 0);
