@@ -1,7 +1,8 @@
 import { ApolloProvider } from "@apollo/client";
-import ReactDOM from "react-dom";
-import { HashRouter, BrowserRouter } from "react-router-dom";
 import React, { useState } from "react";
+import { flushSync } from "react-dom";
+import { createRoot } from "react-dom/client";
+import { HashRouter, BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { getClient } from "./core/StashService";
 import {
@@ -57,11 +58,20 @@ const WebApp: React.FC = () => {
   );
 };
 
+const root = createRoot(document.getElementById("root")!);
+
 // 根据环境选择渲染的组件
 if (isTauriEnv()) {
-  ReactDOM.render(<TauriApp />, document.getElementById("root"));
+  flushSync(() => {
+    root.render(<TauriApp />);
+  });
 } else {
-  ReactDOM.render(<WebApp />, document.getElementById("root"));
+  // commit the initial render synchronously, matching ReactDOM.render, before
+  // the custom javascript is loaded. Lazy-loaded routes and content that waits on
+  // queries still mount later, so custom javascript cannot rely on them existing.
+  flushSync(() => {
+    root.render(<WebApp />);
+  });
 
   const script = document.createElement("script");
   script.src = getPlatformURL("javascript").toString();
