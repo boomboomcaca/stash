@@ -528,11 +528,12 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     // ✅ 将 useCallback 移到组件顶层
     const handleSubtitlesLoaded = useCallback(
-      (cues) => setSubtitleCues(cues),
+      (cues: Array<{ startTime: number; endTime: number; text: string }>) =>
+        setSubtitleCues(cues),
       []
     );
     const handleCurrentCueChange = useCallback(
-      (index) => setCurrentSubtitleIndex(index),
+      (index: number) => setCurrentSubtitleIndex(index),
       []
     );
 
